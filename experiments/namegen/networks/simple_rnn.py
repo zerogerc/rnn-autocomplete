@@ -6,20 +6,27 @@ from experiments.namegen.reader import names_data_reader
 
 
 class RNN(nn.Module):
+    """
+    Simple RNN model with one hidden layer.
+    """
+
     def __init__(self, input_size, hidden_size, output_size):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
+        self.input_size = input_size
+        self.output_size = output_size
 
-        self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
-        self.i2o = nn.Linear(input_size + hidden_size, output_size)
-        self.o2o = nn.Linear(hidden_size + output_size, output_size)
+        self.i2h = nn.Linear(self.input_size + self.hidden_size, self.hidden_size)
+        self.i2o = nn.Linear(self.input_size + self.hidden_size, self.output_size)
+        self.o2o = nn.Linear(self.hidden_size + self.output_size, self.output_size)
         self.dropout = nn.Dropout(0.3)
         self.softmax = nn.LogSoftmax()
 
-    # forward path for a one timestamp
-    # returns output and hidden state
     def single_forward(self, input_tensor, hidden, with_dropout=True):
-        batch_size, input_dim = input_tensor.size()
+        """
+        Forward path for a one timestamp
+        :return: output and hidden state
+        """
 
         # combine input and hidden layer
         input_combined = torch.cat((input_tensor, hidden), 1)
@@ -28,7 +35,7 @@ class RNN(nn.Module):
         output = self.i2o(input_combined)
         hidden = self.i2h(input_combined)
 
-        # combinde output and hidden
+        # combine output and hidden
         out_combined = torch.cat((output, hidden), 1)
 
         # convert output + hidden -> output
@@ -73,7 +80,7 @@ class RNN(nn.Module):
                 break
 
             # do forward path for single timestamp
-            out_combined, hidden = self.single_forward(cur_input, hidden)
+            out_combined, hidden = self.single_forward(cur_input, hidden, with_dropout=False)
 
             # append output for current timestamp, view is necessary in order to be able to concat latter
             output_all.append(out_combined.view(1, batch_size, -1))

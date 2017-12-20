@@ -25,11 +25,11 @@ class NamesDataReader(Reader):
         target_data = torch.zeros(0).long()
 
         for category in self.category_lines:
-            category_tensor = self.__category_tensor__(category)
+            category_tensor = self.category_tensor(category)
 
             lines = self.category_lines[category]
-            category_inputs = [self.__input_tensor__(line) for line in lines]
-            category_targets = [self.__target_tensor__(line) for line in lines]
+            category_inputs = [self.input_tensor(line) for line in lines]
+            category_targets = [self.target_tensor(line) for line in lines]
 
             cur_category = []
             cur_inputs = []
@@ -62,7 +62,7 @@ class NamesDataReader(Reader):
         if topi == n_letters - 1:
             return None
         else:
-            cur_input = self.__input_tensor__(all_letters[topi])[0]  # create one-hot tensor of letter with max weight
+            cur_input = self.input_tensor(all_letters[topi])[0]  # create one-hot tensor of letter with max weight
 
         return torch.cat((category_tensor, cur_input), 1)  # concat category and letter tensor
 
@@ -78,7 +78,7 @@ class NamesDataReader(Reader):
         self.n_categories = len(self.all_categories)
 
     # One-hot vector for category
-    def __category_tensor__(self, category):
+    def category_tensor(self, category):
         li = self.all_categories.index(category)
         tensor = torch.zeros(1, self.n_categories)
         tensor[0][li] = 1
@@ -86,7 +86,7 @@ class NamesDataReader(Reader):
 
     # One-hot matrix of first to last letters (not including EOS) for input
     @classmethod
-    def __input_tensor__(cls, line):
+    def input_tensor(cls, line):
         tensor = torch.zeros(max_name_length, 1, n_letters)
         for li in range(max_name_length):
             if li < len(line):
@@ -100,7 +100,7 @@ class NamesDataReader(Reader):
 
     # LongTensor of second letter to end (EOS) for target
     @classmethod
-    def __target_tensor__(cls, line):
+    def target_tensor(cls, line):
         letter_indexes = []
         for li in range(1, max_name_length):
             if li < len(line):
