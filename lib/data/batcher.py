@@ -3,6 +3,7 @@ from torch.autograd import Variable
 
 from typing import Dict
 
+
 class BatchNode:
     def __init__(self, key, size, input_picker, output_picker):
         self.key = key
