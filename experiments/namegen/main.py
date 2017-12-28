@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from lib.data.batcher import Batcher
-from lib.data.split import split_datasets
+from lib.data.split import split_rnn_datasets
 from lib.utils.file import n_letters
 from lib.utils.state import load_if_saved, save_model
 
@@ -21,7 +21,7 @@ LEARNING_RATE = 0.001
 def train():
     reader = names_data_reader
     input_tensor, target_tensor = reader.get_data()
-    train_x, train_y, validation_x, validation_y, test_x, test_y = split_datasets(input_tensor, target_tensor)
+    train_x, train_y, validation_x, validation_y, test_x, test_y = split_rnn_datasets(input_tensor, target_tensor)
 
     batcher = Batcher()
     batcher.add_rnn_data('train', train_x, train_y)

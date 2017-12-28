@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
-from lib.data.split import split_datasets
+from lib.data.split import split_rnn_datasets
 from lib.data.batcher import Batcher
 from lib.utils.state import save_model, load_if_saved
 from lib.utils.train import RNNRunner
@@ -28,7 +28,7 @@ def loss_calculator(output_tensor, target_tensor, criterion, seq_len):
 
 def train():
     input_tensor, target_tensor = data_reader.get_data()
-    train_x, train_y, validation_x, validation_y, test_x, test_y = split_datasets(input_tensor, target_tensor)
+    train_x, train_y, validation_x, validation_y, test_x, test_y = split_rnn_datasets(input_tensor, target_tensor)
 
     batcher = Batcher()
     batcher.add_rnn_data('train', train_x, train_y)
