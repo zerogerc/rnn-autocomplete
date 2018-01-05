@@ -4,7 +4,7 @@ import time
 
 from lib.data.batcher import Batcher
 from experiments.namegen.reader import max_name_length
-from lib.utils.time import time_since
+from lib.utils.train import time_since
 
 
 def create_train_runner(network, optimizer, criterion, batcher, batch_size):

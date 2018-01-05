@@ -8,9 +8,7 @@ from experiments.namegen.reader import names_data_reader
 
 
 def sample_one(network, category, start_line):
-    """
-    
-    Sample from a category and starting letter.
+    """Sample from a category and starting letter.
     """
     category_tensor = autograd.Variable(names_data_reader.category_tensor(category))
     input_tensor = autograd.Variable(names_data_reader.input_tensor(start_line))

@@ -7,6 +7,8 @@
       (где есть периодичность, Google trends).
 - [x] Подумать над датасетом для текста (UCI machine learning repository).
 - [ ] Документировать почему я выбираю тот или иной критерий.
+- [x] Тесты на lib?
+- [ ] YellowFin
 
 ## Библиотека
 
@@ -42,3 +44,12 @@
 ### namegen [ссылка](http://pytorch.org/tutorials/intermediate/char_rnn_generation_tutorial.html)
 
 Генерация фамилий различных стран с помощью RNN, LSTM
+
+
+## Полезные команды
+
+Рекурсивное копирование всех файлов из папки **source** в папку **dest**: 
+
+```
+find source -name "*.[c|h]" -exec cp -i {} dest \;
+```

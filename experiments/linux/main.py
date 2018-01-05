@@ -1,12 +1,13 @@
 import sys
 
 from constants import ROOT_DIR
-from lib.data.text_reader import RowTextDataReader
 from lib.data.batcher import Batcher
-from lib.data.split import split_data
+from lib.data.reader import RowTextDataReader
+from lib.utils.split import split_data
 
 DATA_PATH = ROOT_DIR + '/data/linux_kernel_mini.txt'
 SEQ_LEN = 100
+
 
 def run_train():
     reader = RowTextDataReader(DATA_PATH)

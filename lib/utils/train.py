@@ -1,3 +1,4 @@
+import math
 import time
 
 import torch.nn as nn
@@ -5,14 +6,10 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 from lib.data.batcher import Batcher
-from lib.utils.time import time_since
 
 
 def default_loss_calculator(output_tensor, target_tensor, criterion, seq_len):
-    """
-    Default way to compute loss for rnn.
-    It's the mean of losses on all timestamps.
-    """
+    """Mean of losses on all timestamps."""
     loss = 0
     for i in range(seq_len):
         loss += criterion(output_tensor[i], target_tensor[i])
@@ -20,13 +17,12 @@ def default_loss_calculator(output_tensor, target_tensor, criterion, seq_len):
 
 
 class RNNRunner:
-    """
-    Runner for typical RNN networks that accept input of size [seq_len, data_len, input_len] 
+    """Runner for typical RNN networks that accept input of size [seq_len, data_len, input_len] 
     and returns target of size [seq_len, data_len, target_len].
     
-    seq_len is a parameter of constructor because it needed to compute loss
+    seq_len is a parameter of constructor because it needed to compute loss.
     
-    After training will print to plots: validation loss, train loss
+    After training will print two plots: validation loss, train loss
     """
 
     def __init__(
@@ -38,8 +34,7 @@ class RNNRunner:
             seq_len: int,
             loss_calculator=default_loss_calculator
     ):
-        """
-        Create RNNRunner. All parameters a pretty self explaining except loss_calculator.
+        """Create RNNRunner. All parameters a pretty self explaining except loss_calculator.
         
         :param loss_calculator: function that computes loss on the output of rnn.
             See **default_loss_calculator** for example
@@ -52,8 +47,7 @@ class RNNRunner:
         self.loss_calculator = loss_calculator
 
     def run_train(self, batch_size: int, n_iters: int, validation_every: int, print_every: int = 1000):
-        """
-        Run train with parameters passed in constructor.
+        """Run train with parameters passed in constructor.
         
         :param batch_size: size of chunks to split input during training
         :param n_iters: number of iterations to run
@@ -122,3 +116,12 @@ class RNNRunner:
 
         losses_x.append(iter_num)
         losses_y.append(loss.data[0])
+
+
+def time_since(since):
+    """Calculates time in seconds since given time."""
+    now = time.time()
+    s = now - since
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)

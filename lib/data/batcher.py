@@ -69,8 +69,7 @@ class Batcher:
 
 
 def choose_from_data(data_tensor, chunk_len, start_indexes):
-    """
-    Choose subsequent chunks of data from 2d tensor.
+    """Choose subsequent chunks of data from 2d tensor.
     
     :param data_tensor: 2d tensor
     :param chunk_len: chunk length

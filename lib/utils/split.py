@@ -1,10 +1,9 @@
-
 import numpy as np
-import  torch
+import torch
+
 
 def split_rnn_datasets(input_tensor, target_tensor, validation_percentage=0.2, test_percentage=0.2, shuffle=True):
-    """
-    Splits input and target tensors into train/validation/test. 
+    """Splits input and target tensors into train/validation/test. 
     Validation dataset size will be equal to len(input) * validation_percentage.
     Test dataset size will be equal to len(input) * test_percentage.
     All other entries will be train dataset.
@@ -34,12 +33,12 @@ def split_rnn_datasets(input_tensor, target_tensor, validation_percentage=0.2, t
 
 
 def split_data(data_tensor, validation_percentage=0.2, test_percentage=0.2, shuffle=True):
-    """
-    Splits 2d data tensor
+    """Splits 2d data tensor
 
     :param data_tensor: tensor of the size (data_size, input_size)
     :param validation_percentage: percentage of validation data
     :param test_percentage: percentage of test data
+    :param shuffle: whether to shuffle indexes when spilt or to split continuously
     :return: 3 datasets : train, validation, test
     """
     train_indexes, validation_indexes, test_indexes = \
@@ -69,6 +68,7 @@ def get_split_indexes(length, validation_percentage=0.2, test_percentage=0.2, sh
     train_indexes = indexes[:-(validation_size + test_size)]
 
     return train_indexes, validation_indexes, test_indexes
+
 
 if __name__ == '__main__':
     print(split_data(torch.eye(100), shuffle=False))

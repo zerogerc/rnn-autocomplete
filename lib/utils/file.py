@@ -1,10 +1,14 @@
 from __future__ import unicode_literals, print_function, division
-import unicodedata
-import string
-from io import open
-import glob
 
-from constants import ROOT_DIR
+import glob
+import string
+import unicodedata
+from io import open
+
+import numpy as np
+
+from constants import ROOT_DIR, DEFAULT_ENCODING
+from lib.utils.split import get_split_indexes
 
 all_letters = string.ascii_letters + " .,;'-"
 n_letters = len(all_letters) + 1  # Plus EOS marker
@@ -35,3 +39,39 @@ def unicode_to_ascii(s):
         if unicodedata.category(c) != 'Mn'
         and c in all_letters
     )
+
+
+def convert_repo_to_train_val_test(pattern, dest_dir, validation_percentage, test_percentage):
+    """Find files in repo that match pattern and concatenate them 
+    into three different files for train, validation and test.
+    
+    :param pattern: pattern to find files by.
+    :param dest_dir: directory to store files to. Files will be **train.txt**, **validation.txt**, **test.txt**.
+    :param validation_percentage: percentage of validation data.
+    :param test_percentage: percentage of test data.
+    """
+    filenames = np.array(find_files(pattern))
+
+    train_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'train.txt'), 'w', encoding=DEFAULT_ENCODING)
+    validation_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'validation.txt'), 'w', encoding=DEFAULT_ENCODING)
+    test_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'test.txt'), 'w', encoding=DEFAULT_ENCODING)
+
+    train_indexes, validation_indexes, test_indexes = get_split_indexes(
+        len(filenames),
+        validation_percentage,
+        test_percentage,
+        shuffle=True
+    )
+
+    for train_i in train_indexes:
+        train_file.write(open(filenames[train_i], 'r', encoding=DEFAULT_ENCODING).read())
+
+    for validation_i in validation_indexes:
+        validation_file.write(open(filenames[validation_i], 'r', encoding=DEFAULT_ENCODING).read())
+
+    for test_i in test_indexes:
+        test_file.write(open(filenames[test_i], 'r', encoding=DEFAULT_ENCODING).read())
+
+
+if __name__ == '__main__':
+    convert_repo_to_train_val_test('/data/linux_dataset_all/*', '/data/linux', 0.05, 0.05)
