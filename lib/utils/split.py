@@ -12,6 +12,7 @@ def split_rnn_datasets(input_tensor, target_tensor, validation_percentage=0.2, t
     :param target_tensor: (seq_len, data_size)
     :param validation_percentage: percentage of validation data
     :param test_percentage: percentage of test data
+    :param shuffle: whether to shuffle indexes when spilt or to split continuously
     :return: 6 datasets : input/target for train, validation, test
     """
     n = input_tensor.size()[1]
@@ -63,9 +64,14 @@ def get_split_indexes(length, validation_percentage=0.2, test_percentage=0.2, sh
     test_size = np.floor(test_percentage * length).astype(int)
 
     # getting indexes of datasets
-    test_indexes = indexes[-validation_size:]
-    validation_indexes = indexes[-(validation_size + test_size):-validation_size]
+    test_indexes = indexes[-test_size:]
+    validation_indexes = indexes[-(validation_size + test_size):-test_size]
     train_indexes = indexes[:-(validation_size + test_size)]
+
+
+    # test_indexes = indexes[:test_size]
+    # validation_indexes = indexes[test_size:validation_size + test_size]
+    # train_indexes = indexes[validation_size + test_size:]
 
     return train_indexes, validation_indexes, test_indexes
 

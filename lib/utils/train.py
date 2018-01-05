@@ -8,12 +8,14 @@ import matplotlib.pyplot as plt
 from lib.data.batcher import Batcher
 
 
-def default_loss_calculator(output_tensor, target_tensor, criterion, seq_len):
-    """Mean of losses on all timestamps."""
-    loss = 0
-    for i in range(seq_len):
-        loss += criterion(output_tensor[i], target_tensor[i])
-    return loss / seq_len
+class PlotData:
+    def __init__(self):
+        self.x = []
+        self.y = []
+
+    def add(self, x, y):
+        self.x.append(x)
+        self.y.append(y)
 
 
 class RNNRunner:
@@ -31,20 +33,44 @@ class RNNRunner:
             optimizer: optim.Optimizer,
             criterion,
             batcher: Batcher,
-            seq_len: int,
-            loss_calculator=default_loss_calculator
+            seq_len: int
     ):
-        """Create RNNRunner. All parameters a pretty self explaining except loss_calculator.
-        
-        :param loss_calculator: function that computes loss on the output of rnn.
-            See **default_loss_calculator** for example
-        """
         self.network = network
         self.optimizer = optimizer
         self.criterion = criterion
         self.batcher = batcher
         self.seq_len = seq_len
-        self.loss_calculator = loss_calculator
+
+    def run_epoch(self, validation_every, train_epoch, validation_random, test_random=None):
+        train_plot = PlotData()
+        validation_plot = PlotData()
+
+        cur_iter = 0
+        start = time.time()
+
+        for input_tensor, target_tensor in train_epoch:
+            if cur_iter % validation_every == 0:
+                val_input, val_target = next(validation_random)
+                self.__run_iter__(cur_iter, val_input, val_target, validation_plot,
+                                  do_backward=False)
+                print('Validation:\n time: %s iter: %d loss: %.4f' % (
+                    time_since(start), cur_iter, validation_plot.y[-1])
+                      )
+
+            self.__run_iter__(cur_iter, input_tensor, target_tensor, train_plot)
+            cur_iter += 1
+
+        if test_random is not None:
+            input_tensor, target_tensor = next(test_random)
+            test_data = PlotData()
+            self.__run_iter__(0, input_tensor, target_tensor, test_data, do_backward=False)
+            print('Loss on test data: {}'.format(test_data.y[-1]))
+
+        # plot graphs of validation and train losses
+        plt.plot(train_plot.x, train_plot.y, label='Train')
+        plt.plot(validation_plot.x, validation_plot.y, label='Validation')
+        plt.legend()
+        plt.show()
 
     def run_train(self, batch_size: int, n_iters: int, validation_every: int, print_every: int = 1000):
         """Run train with parameters passed in constructor.
@@ -54,68 +80,69 @@ class RNNRunner:
         :param validation_every: how often to run train on validation dataset
         :param print_every: how often to print current loss (loss on train) to the console
         """
-        # train plot: x - iterations, y - loss
-        train_losses_x = []
-        train_losses_y = []
-
-        # validation plot: x - iterations, y - loss
-        validation_losses_x = []
-        validation_losses_y = []
+        train_plot = PlotData()
+        validation_plot = PlotData()
 
         start = time.time()
 
         # get train and validation data generators
         data_map = self.batcher.data_map
-        train_data = data_map['train'].get_batched(batch_size)
-        validation_data = data_map['validation'].get_batched(batch_size)
-        test_data = data_map['test'].get_batched(batch_size)
+        train_data = data_map['train'].get_batched_random(batch_size)
+        validation_data = data_map['validation'].get_batched_random(batch_size)
+        test_data = data_map['test'].get_batched_random(batch_size)
 
         # run first time to initialize train and validation losses (without weight update)
         input_tensor, target_tensor = next(train_data)
-        self.__run_iter__(0, input_tensor, target_tensor, train_losses_x, train_losses_y, do_backward=False)
+        self.__run_iter__(0, input_tensor, target_tensor, train_plot, do_backward=False)
 
         input_tensor, target_tensor = next(validation_data)
-        self.__run_iter__(0, input_tensor, target_tensor, validation_losses_x, validation_losses_y, do_backward=False)
+        self.__run_iter__(0, input_tensor, target_tensor, validation_plot, do_backward=False)
 
         # run all iters with weights update
         for iter_num in range(1, n_iters + 1):
             if iter_num % validation_every == 0:  # should run on validation set also
                 input_tensor, target_tensor = next(validation_data)
-                self.__run_iter__(iter_num, input_tensor, target_tensor, validation_losses_x, validation_losses_y)
+                self.__run_iter__(iter_num, input_tensor, target_tensor, validation_plot)
             else:
                 input_tensor, target_tensor = next(train_data)
-                self.__run_iter__(iter_num, input_tensor, target_tensor, train_losses_x, train_losses_y)
+                self.__run_iter__(iter_num, input_tensor, target_tensor, train_plot)
 
             if iter_num % print_every == 0:
                 print('%s (%d %d%%) %.4f' % (
-                    time_since(start), iter_num, iter_num / n_iters * 100, validation_losses_y[-1])
-                )
+                    time_since(start), iter_num, iter_num / n_iters * 100, validation_plot.y[-1])
+                      )
 
         # run on test
         input_tensor, target_tensor = next(test_data)
-        test_loss = []
-        self.__run_iter__(0, input_tensor, target_tensor, [], test_loss, do_backward=False)
-        print('Loss on test data: {}'.format(test_loss[-1]))
+        test_loss = PlotData()
+        self.__run_iter__(0, input_tensor, target_tensor, test_loss, do_backward=False)
+        print('Loss on test data: {}'.format(test_loss.y[-1]))
 
         # plot graphs of validation and train losses
-        plt.plot(train_losses_x, train_losses_y, label='Train')
-        plt.plot(validation_losses_x, validation_losses_y, label='Validation')
+        plt.plot(train_plot.x, train_plot.y, label='Train')
+        plt.plot(validation_plot.x, validation_plot.y, label='Validation')
         plt.legend()
         plt.show()
 
-    def __run_iter__(self, iter_num, input_tensor, target_tensor, losses_x, losses_y, do_backward=True):
+    def __run_iter__(self, iter_num, input_tensor, target_tensor, losses, do_backward=True):
         """ Run single iteration. Append result to losses_x and losses_y. """
         self.network.zero_grad()
         output_tensor = self.network(input_tensor)
 
-        loss = self.loss_calculator(output_tensor, target_tensor, self.criterion, self.seq_len)
+        loss = self.__calc_loss__(output_tensor, target_tensor)
 
         if do_backward:
             loss.backward()
             self.optimizer.step()
 
-        losses_x.append(iter_num)
-        losses_y.append(loss.data[0])
+        losses.add(iter_num, loss.data[0])
+
+    def __calc_loss__(self, output_tensor, target_tensor):
+        # flatten tensors
+        sz_o = output_tensor.size()[-1]
+        sz_t = target_tensor.size()[-1]
+
+        return self.criterion(output_tensor.view(-1, sz_o), target_tensor.view(-1, sz_t))
 
 
 def time_since(since):

@@ -30,7 +30,7 @@ class TrendsDataReader(Reader):
 
         inputs = []
         targets = []
-        for first in range(len(table) - TrendsDataReader.SEQ_LEN - 1):
+        for first in range(len(table) - TrendsDataReader.SEQ_LEN):
             # create input and target, target is input shifted by one month
             input_seq = timeline.iloc[first:first + TrendsDataReader.SEQ_LEN]
             target_seq = timeline.iloc[first + 1:first + TrendsDataReader.SEQ_LEN + 1]

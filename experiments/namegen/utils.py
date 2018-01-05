@@ -28,9 +28,9 @@ def run_train_new(
     start = time.time()
 
     data_map = batcher.data_map
-    train_data = data_map['train'].get_batched(batch_size)
-    validation_data = data_map['validation'].get_batched(batch_size)
-    test_data = data_map['test'].get_batched(batch_size)
+    train_data = data_map['train'].get_batched_random(batch_size)
+    validation_data = data_map['validation'].get_batched_random(batch_size)
+    test_data = data_map['test'].get_batched_random(batch_size)
 
     for iter in range(1, n_iters + 1):
         network.zero_grad()

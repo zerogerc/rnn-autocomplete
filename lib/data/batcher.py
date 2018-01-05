@@ -13,22 +13,44 @@ class BatchNode:
         self.input_picker = input_picker
         self.output_picker = output_picker
 
-        self.indexes = np.arange(0, self.size)
-        np.random.shuffle(self.indexes)
+        self.indexes = None
         self.cur_id = 0
 
-    def get_batch_indexes(self, batch_size):
-        if self.cur_id + batch_size > self.size:
-            np.random.shuffle(self.indexes)
-            self.cur_id = 0
-
-        return self.indexes[self.cur_id: self.cur_id + batch_size]
-
-    def get_batched(self, batch_size):
+    def get_batched_random(self, batch_size):
+        """Infinite generator of random batches."""
         while True:
             indexes = self.get_batch_indexes(batch_size)
             input_tensor = Variable(self.input_picker(indexes))
             target_tensor = Variable(self.output_picker(indexes))
+            yield input_tensor, target_tensor
+
+    def get_batch_indexes(self, batch_size):
+        if self.indexes is None:
+            self.indexes = np.arange(0, self.size)
+            np.random.shuffle(self.indexes)
+
+        if self.cur_id + batch_size > self.size:
+            np.random.shuffle(self.indexes)
+            self.cur_id = 0
+
+        self.cur_id += batch_size
+        return self.indexes[self.cur_id - batch_size: self.cur_id]
+
+    def get_batched_epoch(self, batch_size):
+        """Returns generator for batched input. It will run through all inputs except 
+        inputs that are not in any batch (residue). 
+        
+        :param batch_size: size of batch to split inputs.
+        :return: generator through batches that contains all inputs (except residue).
+        """
+        indexes = np.arange(0, self.size)
+        np.random.shuffle(indexes)
+        cur_id = 0
+        while cur_id + batch_size < self.size:
+            cur = indexes[cur_id: cur_id + batch_size]
+            cur_id += batch_size
+            input_tensor = Variable(self.input_picker(cur))
+            target_tensor = Variable(self.output_picker(cur))
             yield input_tensor, target_tensor
 
 
@@ -64,7 +86,7 @@ class Batcher:
             key,
             data_tensor.size()[0] - seq_len,
             lambda indexes: choose_from_data(data_tensor, seq_len, indexes),
-            lambda indexes: choose_from_data(data_tensor, seq_len, indexes + 1) # shifted by 1
+            lambda indexes: choose_from_data(data_tensor, seq_len, indexes + 1)  # shifted by 1
         )
 
 
@@ -83,5 +105,6 @@ def choose_from_data(data_tensor, chunk_len, start_indexes):
         out.append(data_tensor[np.arange(start, start + chunk_len), :].view(chunk_len, 1, input_len))
     return torch.cat(out, dim=1)
 
+
 if __name__ == '__main__':
-    print(choose_from_data(torch.eye(10), 3, np.array([1,3]))[:, 0, :])
+    print(choose_from_data(torch.eye(10), 3, np.array([1, 3]))[:, 0, :])

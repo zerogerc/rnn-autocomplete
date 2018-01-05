@@ -48,7 +48,7 @@ class RNNSampler:
 
         sequence = []
         current_input = input_tensor.contiguous()
-        for it in range(iters - seq_len):
+        for it in range(iters):
             output_tensor = self.network.predict(current_input)
 
             sequence.append(extract_next_prediction_default(current_input, output_tensor))
