@@ -8,7 +8,7 @@ from experiments.namegen.networks.classic_lstm import LSTM
 from experiments.namegen.reader import names_data_reader
 from experiments.namegen.results import samples
 from experiments.namegen.utils import create_train_runner
-from lib.data.batcher import Batcher
+from lib.old.batcher import Batcher
 from lib.utils.file import n_letters
 from lib.utils.split import split_rnn_datasets
 from lib.utils.state import load_if_saved, save_model

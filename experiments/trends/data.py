@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 
 from constants import ROOT_DIR
-from lib.data.reader import Reader
+from lib.old.reader import Reader
 
 
 class TrendsDataReader(Reader):

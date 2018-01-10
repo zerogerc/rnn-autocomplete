@@ -1,10 +1,11 @@
-import torch.nn as nn
-import torch.optim as optim
 import time
 
-from lib.data.batcher import Batcher
+import torch.nn as nn
+import torch.optim as optim
+
 from experiments.namegen.reader import max_name_length
-from lib.utils.train import time_since
+from lib.old.batcher import Batcher
+from lib.old.train import time_since
 
 
 def create_train_runner(network, optimizer, criterion, batcher, batch_size):

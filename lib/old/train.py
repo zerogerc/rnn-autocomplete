@@ -1,11 +1,11 @@
 import math
 import time
 
+import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib.pyplot as plt
 
-from lib.data.batcher import Batcher
+from lib.old.batcher import Batcher
 
 
 class PlotData:

@@ -1,8 +1,8 @@
-import torch
 import pytest
+import torch
 from mock import Mock
 
-from lib.data.batcher import BatchNode
+from lib.old.batcher import BatchNode
 
 TEST_LEN = 1001
 TEST_BATCH = 10
@@ -51,3 +51,18 @@ class TestBatchNode:
         assert set(input_ids) == set(target_ids)
         assert len(set(input_ids)) == TEST_LEN - (TEST_LEN % TEST_BATCH)
         assert len(set(target_ids)) == TEST_LEN - (TEST_LEN % TEST_BATCH)
+
+
+# class TestDataPickers:
+#     def test_general_data_picker_text_to_index(self):
+#         all_letters = 'xyz'
+#         data = general_data_picker_new(
+#             'xxyyzz',
+#             2,
+#             [0, 3],
+#             lambda row: convert_row_text_to_index_tensor(row, all_letters)
+#         )
+#
+#         assert data.size() == torch.Size([2, 2, 1])
+#         assert_tensors_equal(data[:, 0, :], torch.LongTensor([[0], [0]]))
+#         assert_tensors_equal(data[:, 1, :], torch.LongTensor([[1], [2]]))

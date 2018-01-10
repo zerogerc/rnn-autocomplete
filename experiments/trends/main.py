@@ -7,12 +7,13 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from experiments.trends.data import data_reader
+from experiments.trends.trends_gru import TrendsGRU
 from experiments.trends.trends_rnn import TrendsRNN
-from lib.data.batcher import Batcher
-from lib.utils.sample import RNNSampler
+from lib.old.batcher import Batcher
+from lib.old.sample import RNNSampler
+from lib.train.run import TrainEpochRunner
 from lib.utils.split import split_rnn_datasets
 from lib.utils.state import save_model, load_if_saved
-from lib.utils.train import RNNRunner
 
 BATCH_SIZE = 8
 LEARNING_RATE = 0.001
@@ -26,7 +27,7 @@ def loss_calculator(output_tensor, target_tensor, criterion, seq_len):
     return loss
 
 
-def train():
+def read_data():
     input_tensor, target_tensor = data_reader.get_data()
     input_tensor = input_tensor / 100
     target_tensor = target_tensor / 100
@@ -39,35 +40,38 @@ def train():
     batcher.add_rnn_data('validation', validation_x, validation_y)
     batcher.add_rnn_data('test', test_x, test_y)
 
-    # network = TrendsGRU(
-    #     input_size=1,  # single number
-    #     hidden_size=32,
-    #     output_size=1  # single number
-    # )
-    network = TrendsRNN(
-        input_size=1,
+    return batcher
+
+def train():
+    batcher = read_data()
+
+    network = TrendsGRU(
+        input_size=1,  # single number
         hidden_size=32,
-        output_size=1
+        output_size=1  # single number
     )
+
+    # network = TrendsRNN(
+    #     input_size=1,
+    #     hidden_size=32,
+    #     output_size=1
+    # )
 
     load_if_saved(network, path='trends/rnn')
 
     optimizer = optim.Adam(network.parameters(), LEARNING_RATE)
     criterion = nn.MSELoss()
 
-    runner = RNNRunner(
+    runner = TrainEpochRunner(
         network=network,
-        optimizer=optimizer,
         criterion=criterion,
-        batcher=batcher,
-        seq_len=data_reader.SEQ_LEN
+        optimizer=optimizer,
+        batcher=batcher
     )
 
-    runner.run_train(
-        batch_size=BATCH_SIZE,
-        n_iters=5000,
-        validation_every=500,
-        print_every=500
+    runner.run(
+        number_of_epochs=100,
+        batch_size=8
     )
 
     save_model(network, path='trends/rnn')

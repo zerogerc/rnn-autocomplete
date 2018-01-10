@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
+from lib.old.reader import Reader
 from lib.utils.file import find_files, read_lines, all_letters, n_letters
-from lib.data.reader import Reader
 
 max_name_length = 20
 
