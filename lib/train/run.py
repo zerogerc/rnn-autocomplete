@@ -29,24 +29,28 @@ class TrainEpochRunner:
         self.validate(it, validation_random_batches)  # first validation for plot.
 
         train_generator = self.batcher.data_map['train']
-        for epoch in tqdm(range(number_of_epochs)):
-            if self.scheduler is not None:
-                self.scheduler.step()
-            train_data = train_generator.get_batched_epoch(batch_size)
-            # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
+        try:
+            for epoch in tqdm(range(number_of_epochs)):
+                if self.scheduler is not None:
+                    self.scheduler.step()
+                train_data = train_generator.get_batched_epoch(batch_size)
+                # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
-            for input_tensor, target_tensor in train_data:
-                self.train_routine.run(iter_num=it, input_tensor=input_tensor, target_tensor=target_tensor)
-                it += 1
+                for input_tensor, target_tensor in train_data:
+                    self.train_routine.run(iter_num=it, input_tensor=input_tensor, target_tensor=target_tensor)
+                    it += 1
 
-            # validate at the end of epoch
-            self.validate(it, validation_random_batches)
-
-        # plot graphs of validation and train losses
-        plt.plot(self.train_routine.plot.x, self.train_routine.plot.y, label='Train')
-        plt.plot(self.validation_routine.plot.x, self.validation_routine.plot.y, label='Validation')
-        plt.legend()
-        plt.show()
+                # validate at the end of epoch
+                self.validate(it, validation_random_batches)
+        except KeyboardInterrupt:
+            print('-' * 89)
+            print('Exiting from training early')
+        finally:
+            # plot graphs of validation and train losses
+            plt.plot(self.train_routine.plot.x, self.train_routine.plot.y, label='Train')
+            plt.plot(self.validation_routine.plot.x, self.validation_routine.plot.y, label='Validation')
+            plt.legend()
+            plt.show()
 
     def validate(self, iter_num, validation_random_batches):
         val_input, val_target = next(validation_random_batches)

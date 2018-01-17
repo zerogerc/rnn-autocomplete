@@ -2,7 +2,8 @@ import os
 import numpy as np
 import torch
 
-from constants import ROOT_DIR
+from global_constants import ROOT_DIR, DEFAULT_ENCODING
+from experiments.linux.constants import alphabet
 from lib.utils.split import split_data
 from lib.data.character import Corpus
 
@@ -52,7 +53,7 @@ def add_data(batcher, key, tensor, ntokens):
 
 
 def read_data():
-    corpus = Corpus(os.path.join(ROOT_DIR, 'data/linux'))
+    corpus = Corpus(os.path.join(ROOT_DIR, 'data/kernel_concatenated'), letters=alphabet)
 
     batcher = Batcher()
 
@@ -64,7 +65,7 @@ def read_data():
 
 
 def read_data_mini():
-    corpus = Corpus(os.path.join(ROOT_DIR, 'data'), single_file='linux_kernel_mini.txt')
+    corpus = Corpus(os.path.join(ROOT_DIR, 'data'), single_file='linux_kernel_mini.txt', letters=alphabet)
     input_tensor = corpus.single.unsqueeze(1)
 
     train, validation, test = split_data(input_tensor, validation_percentage=0.1, test_percentage=0.1, shuffle=False)
@@ -77,7 +78,10 @@ def read_data_mini():
     return batcher, corpus
 
 if __name__ == '__main__':
-    batcher, corpus = read_data_mini()
-    i, t = next(batcher.data_map['train'].get_batched_random(batch_size=8))
-    print(i.size())
-    print(t.size())
+    path = os.path.join(ROOT_DIR, 'data/kernel_concatenated/test.txt')
+    f = open(path, 'r', encoding=DEFAULT_ENCODING)
+    print(len(f.read()))
+    # batcher, corpus = read_data_mini()
+    # i, t = next(batcher.data_map['train'].get_batched_random(batch_size=8))
+    # print(i.size())
+    # print(t.size())

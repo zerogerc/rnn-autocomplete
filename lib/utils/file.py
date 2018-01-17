@@ -7,7 +7,7 @@ from io import open
 
 import numpy as np
 
-from constants import ROOT_DIR, DEFAULT_ENCODING
+from global_constants import ROOT_DIR, DEFAULT_ENCODING
 from lib.utils.split import get_split_indexes
 
 all_letters = string.ascii_letters + " .,;'-"
@@ -74,4 +74,4 @@ def convert_repo_to_train_val_test(pattern, dest_dir, validation_percentage, tes
 
 
 if __name__ == '__main__':
-    convert_repo_to_train_val_test('/data/linux_dataset_all/*', '/data/linux', 0.05, 0.05)
+    convert_repo_to_train_val_test('data/kernel/*.[c|h]', '/data/kernel_concatenated', 0.05, 0.05)

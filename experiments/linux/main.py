@@ -1,18 +1,22 @@
 import sys
 
+import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import MultiStepLR
 import torch.optim as optim
 
+from lib.utils.state import save_model, load_if_saved
 from experiments.linux.data import read_data_mini, read_data
 from experiments.linux.lstm import LSTMLinuxNetwork
 from lib.train.run import TrainEpochRunner
+
+from global_constants import ROOT_DIR
 
 BATCH_SIZE = 100
 
 LEARNING_RATE = 2 * 1e-3
 
-HIDDEN_SIZE = 64
+HIDDEN_SIZE = 128
 NUM_LAYERS = 1
 
 EPOCHS = 50
@@ -20,7 +24,7 @@ DECAY_AFTER_EPOCH = 10
 
 
 def run_train():
-    batcher, corpus = read_data_mini()
+    batcher, corpus = read_data()
 
     INPUT_SIZE = len(corpus.all_letters)
     OUTPUT_SIZE = len(corpus.all_letters)
@@ -55,6 +59,7 @@ def run_train():
     )
 
     runner.run(number_of_epochs=EPOCHS, batch_size=BATCH_SIZE)
+    save_model(network, 'linux')
 
 
 def run_sample():
