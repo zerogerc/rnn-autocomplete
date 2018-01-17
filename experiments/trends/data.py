@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 
-from constants import ROOT_DIR
+from global_constants import ROOT_DIR
 from lib.old.reader import Reader
 
 

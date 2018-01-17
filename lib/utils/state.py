@@ -1,7 +1,7 @@
 import os
 import torch
 
-from constants import ROOT_DIR
+from global_constants import ROOT_DIR
 
 BASE_PATH = ROOT_DIR + '/saved/'
 
