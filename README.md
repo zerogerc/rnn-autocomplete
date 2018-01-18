@@ -1,3 +1,5 @@
+This is for personal usage only.
+
 # Заметки по диплому
 
 ##### Общие TODO:
