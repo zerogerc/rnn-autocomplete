@@ -7,7 +7,7 @@ from zerogercrnn.lib.train.run import TrainEpochRunner
 from zerogercrnn.lib.utils.state import save_model
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.linux.data import read_data
+from zerogercrnn.experiments.linux.data import read_data, read_data_mini
 
 BATCH_SIZE = 100
 
@@ -21,7 +21,7 @@ DECAY_AFTER_EPOCH = 10
 
 
 def run_train():
-    batcher, corpus = read_data()
+    batcher, corpus = read_data_mini()
 
     INPUT_SIZE = len(corpus.all_letters)
     OUTPUT_SIZE = len(corpus.all_letters)
