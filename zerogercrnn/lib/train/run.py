@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from zerogercrnn.lib.train.routines import RNNTrainRoutine, RNNValidationRoutine
@@ -20,7 +19,7 @@ class TrainEpochRunner:
         self.batcher = batcher
         self.scheduler = scheduler
 
-        self.plotter = VisdomPlotter(title='linux', plots=['train', 'validation'])
+        self.plotter = MatplotlibPlotter(title='linux')  # Visdom: plots=['train', 'validation']
         self.train_routine = RNNTrainRoutine(
             label='train',
             network=network,

@@ -1,85 +1,120 @@
 import os
+import re
 
 import torch
 
-from zerogercrnn.global_constants import DEFAULT_ENCODING
+from zerogercrnn.lib.utils.split import split_data
+
+DEFAULT_ENCODING = 'ISO-8859-1'
+
+
+def get_alphabet(directory, pattern='((train)|(validation)|(test)).txt'):
+    """Scans files in the directory that match regular expression 
+    and creates alphabet of all characters encountered during scan.
+    """
+    all_letters = set()
+    all_letters.add('\n')
+    all_letters.add('\t')
+
+    reg = re.compile(pattern)
+    for file in os.listdir(directory):
+        if reg.match(file):
+            # Add letters to the dictionary
+            with open(os.path.join(directory, file), 'r', encoding=DEFAULT_ENCODING) as f:
+                for line in f:
+                    for c in line:
+                        all_letters.add(c)
+
+    return ''.join(sorted(all_letters))
+
+
+def create_char_to_idx_and_backward(alphabet):
+    """Create map from letter to position in the alphabet and array of letters in the order of alphabet."""
+    char2idx = {}
+    idx2char = []
+    for c in alphabet:
+        char2idx[c] = len(idx2char)
+        idx2char.append(c)
+    return char2idx, idx2char
+
+
+def tokenize(path, alphabet):
+    """Tokenizes a text file. Replaces all letters with their indexes in alphabet."""
+
+    assert os.path.exists(path)
+    char2idx, idx2char = create_char_to_idx_and_backward(alphabet=alphabet)
+
+    # Calculate number of tokens to create tensor with the same length.
+    with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
+        tokens = 0
+        for line in f:
+            tokens += len(line) + 1  # +1 for \n
+
+    # Tokenize file content
+    with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
+        ids = torch.LongTensor(tokens)
+        token = 0
+        for line in f:
+            for c in line:
+                ids[token] = char2idx[c]
+                token += 1
+
+            ids[token] = char2idx['\n']
+            token += 1
+
+    return ids
+
+
+def tokenize_single_without_alphabet(path):
+    """Creates alphabet from given file and tokenize it. This function is dangerous use it only for test purposes."""
+    all_letters = set()
+    all_letters.add('\n')
+    all_letters.add('\t')
+
+    with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
+        for line in f:
+            for c in line:
+                all_letters.add(c)
+
+    alphabet = ''.join(sorted(all_letters))
+    return tokenize(path, alphabet=alphabet), alphabet
 
 
 class Corpus:
-    """Tokenizes text from train/valid/test datasets using character-level dictionary."""
+    """Class that stores tokenized version of train/valid/test datasets using character-level dictionary."""
 
-    def __init__(self, path, *, single_file=None, letters=None):
-        self.all_letters = set()
-        self.char2idx = {}
-        self.idx2char = []
+    def __init__(self, train, valid, test, alphabet):
+        self.alphabet = alphabet
+        self.train = train
+        self.valid = valid
+        self.test = test
 
-        if single_file is None:
-            train_file = os.path.join(path, 'train.txt')
-            validation_file = os.path.join(path, 'validation.txt')
-            test_file = os.path.join(path, 'test.txt')
+    @staticmethod
+    def create_from_data_dir(path, alphabet):
+        """Creates instance of Corpus. Supposes that train/validation/test datasets is stored in the path 
+        with names train.txt/validation.txt/test.txt."""
 
-            if letters is None:
-                self.__create_dicts__(train_file, validation_file, test_file)
-            else:
-                self.__char_to_idx__(letters)
+        train_file = os.path.join(path, 'train.txt')
+        validation_file = os.path.join(path, 'validation.txt')
+        test_file = os.path.join(path, 'test.txt')
 
-            self.train = self.tokenize(train_file)
-            self.valid = self.tokenize(validation_file)
-            self.test = self.tokenize(test_file)
-        else:
-            file = os.path.join(path, single_file)
-            if letters is None:
-                self.__create_dicts__(file)
-            else:
-                self.__char_to_idx__(letters)
-            self.single = self.tokenize(file)
+        train = tokenize(train_file, alphabet=alphabet)
+        valid = tokenize(validation_file, alphabet=alphabet)
+        test = tokenize(test_file, alphabet=alphabet)
 
-    def tokenize(self, path):
-        """Tokenizes a text file."""
-        assert os.path.exists(path)
-        # Add letters to the dictionary
-        with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
-            tokens = 0
-            for line in f:
-                tokens += len(line) + 1  # +1 for \n
+        return Corpus(train=train, valid=valid, test=test, alphabet=alphabet)
 
-        # Tokenize file content
-        with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
-            ids = torch.LongTensor(tokens)
-            token = 0
-            for line in f:
-                for c in line:
-                    ids[token] = self.char2idx[c]
-                    token += 1
+    @staticmethod
+    def create_from_single_file(path, validation_percentage=0.1, test_percentage=0.1, shuffle=True):
+        """Creates instance of Corpus using a single file. Use it for testing purposes only."""
+        single, alphabet = tokenize_single_without_alphabet(path)
 
-                ids[token] = self.char2idx['\n']
-                token += 1
+        input_tensor = single.unsqueeze(1)
+        train, valid, test = split_data(
+            data_tensor=input_tensor,
+            validation_percentage=validation_percentage,
+            test_percentage=test_percentage,
+            shuffle=False
+        )
 
-        return ids
-
-    def __create_dicts__(self, *paths):
-        for path in paths:
-            assert os.path.exists(path)
-            # Add letters to the dictionary
-            with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
-                tokens = 0
-                for line in f:
-                    tokens += len(line) + 1  # +1 for \n
-                    for c in line:
-                        self.all_letters.add(c)
-
-        self.all_letters.add('\n')
-
-        letters = ''.join(sorted(self.all_letters))
-        self.__char_to_idx__(letters)
-
-    def __char_to_idx__(self, letters):
-        self.all_letters = set(letters)
-        for c in letters:
-            self.char2idx[c] = len(self.idx2char)
-            self.idx2char.append(c)
-
-
-if __name__ == '__main__':
-    corpus = Corpus(path='/Users/zerogerc/Yandex.Disk.localized/shared_files/University/rnn-autocomplete/data')
-    print(corpus.train.size())
+        return Corpus(train=train, valid=valid, test=test, alphabet=alphabet)

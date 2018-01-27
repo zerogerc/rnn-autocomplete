@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import visdom
 import numpy as np
 
+
 class Plotter:
     def on_new_point(self, label, x, y):
         pass

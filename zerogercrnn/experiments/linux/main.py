@@ -1,4 +1,5 @@
 import sys
+import os
 
 import torch.nn as nn
 import torch.optim as optim
@@ -9,6 +10,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 
 from zerogercrnn.experiments.linux.data import read_data, read_data_mini
 
+SEQ_LEN = 100
 BATCH_SIZE = 100
 
 LEARNING_RATE = 5 * 1e-3
@@ -21,10 +23,10 @@ DECAY_AFTER_EPOCH = 10
 
 
 def run_train():
-    batcher, corpus = read_data_mini()
+    batcher, corpus = read_data_mini(single=os.getcwd() + '/data/linux_kernel_mini.txt', seq_len=SEQ_LEN)
 
-    INPUT_SIZE = len(corpus.all_letters)
-    OUTPUT_SIZE = len(corpus.all_letters)
+    INPUT_SIZE = len(corpus.alphabet)
+    OUTPUT_SIZE = len(corpus.alphabet)
 
     network = LSTMLinuxNetwork(
         input_size=INPUT_SIZE,
