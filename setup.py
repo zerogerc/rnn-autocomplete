@@ -1,9 +1,10 @@
 from distutils.core import setup
+from setuptools import find_packages
 
 setup(
     name='zerogercrnnpackage',
     version='0.1',
-    packages=['zerogercrnn', 'mmain'],
+    packages=find_packages(),
     url='https://github.com/ZeRoGerc/rnn-autocomplete',
     license='Apache 2.0',
     author='zerogerc',
