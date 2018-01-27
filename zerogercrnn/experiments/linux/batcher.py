@@ -65,7 +65,9 @@ class Batcher:
 
 
 if __name__ == '__main__':
-    x = torch.zeros((2, 2))
-    print(x.size())
-    print(x.unsqueeze(1).size())
+    from setuptools import find_packages
+    print(find_packages())
+    # x = torch.zeros((2, 2))
+    # print(x.size())
+    # print(x.unsqueeze(1).size())
     # print(general_data_picker(torch.eye(10), 3, np.array([1, 3]))[:, 0, :])

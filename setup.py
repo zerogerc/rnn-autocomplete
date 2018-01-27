@@ -1,14 +1,12 @@
-from setuptools import setup
+from distutils.core import setup
 
 setup(
-    name='zerogercrnn',
-    packages=['zerogercrnn'],
-    version='0.15',
-    description='My grad work in rnn',
-    author='Uladzislau Sazanovich',
-    author_email='zerogerc@gmail.com',
+    name='zerogercrnnpackage',
+    version='0.1',
+    packages=[''],
     url='https://github.com/ZeRoGerc/rnn-autocomplete',
-    download_url='https://github.com/ZeRoGerc/rnn-autocomplete/archive/0.12.tar.gz',
-    keywords=['rnn', 'personal'],
-    classifiers=[]
+    license='Apache 2.0',
+    author='zerogerc',
+    author_email='zerogerc@gmail.com',
+    description='My grad work at rnn code autocompletion'
 )
