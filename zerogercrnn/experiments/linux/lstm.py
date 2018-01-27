@@ -8,7 +8,7 @@ class LSTMLinuxNetwork(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, dropout=0.5)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, dropout=0.01)
         self.h2o = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax()
 

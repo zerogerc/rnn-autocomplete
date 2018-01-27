@@ -52,3 +52,7 @@ This is for personal usage only.
 ```
 find source -name "*.[c|h]" -exec cp -i {} dest \;
 ```
+```
+Стартануть сервак visdom
+python -m visdom.server
+```

@@ -11,7 +11,7 @@ from zerogercrnn.experiments.linux.data import read_data, read_data_mini
 
 BATCH_SIZE = 100
 
-LEARNING_RATE = 2 * 1e-3
+LEARNING_RATE = 5 * 1e-3
 
 HIDDEN_SIZE = 128
 NUM_LAYERS = 1
@@ -34,7 +34,7 @@ def run_train():
     )
     criterion = nn.NLLLoss()
     # optimizer = optim.Adam(params=network.parameters(), lr=LEARNING_RATE)
-    optimizer = optim.RMSprop(params=network.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
+    optimizer = optim.RMSprop(params=network.parameters(), lr=LEARNING_RATE)
 
     # We will decay after DECAY_AFTER_EPOCH by WEIGHT_DECAY after each additional epoch
     scheduler = MultiStepLR(

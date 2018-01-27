@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from zerogercrnn.lib.train.routines import RNNTrainRoutine, RNNValidationRoutine
+from zerogercrnn.lib.visualization.plotter import MatplotlibPlotter, VisdomPlotter
 
 
 class TrainEpochRunner:
@@ -19,8 +20,20 @@ class TrainEpochRunner:
         self.batcher = batcher
         self.scheduler = scheduler
 
-        self.train_routine = RNNTrainRoutine(network, loss_calc, optimizer)
-        self.validation_routine = RNNValidationRoutine(network, loss_calc)
+        self.plotter = VisdomPlotter(title='linux', plots=['train', 'validation'])
+        self.train_routine = RNNTrainRoutine(
+            label='train',
+            network=network,
+            plotter=self.plotter,
+            loss_calc=loss_calc,
+            optimizer=optimizer
+        )
+        self.validation_routine = RNNValidationRoutine(
+            label='validation',
+            network=network,
+            plotter=self.plotter,
+            loss_calc=loss_calc
+        )
 
     def run(self, number_of_epochs, batch_size):
         validation_random_batches = self.batcher.data_map['validation'].get_batched_random(batch_size)
@@ -47,10 +60,7 @@ class TrainEpochRunner:
             print('Exiting from training early')
         finally:
             # plot graphs of validation and train losses
-            plt.plot(self.train_routine.plot.x, self.train_routine.plot.y, label='Train')
-            plt.plot(self.validation_routine.plot.x, self.validation_routine.plot.y, label='Validation')
-            plt.legend()
-            plt.show()
+            self.plotter.on_finish()
 
     def validate(self, iter_num, validation_random_batches):
         val_input, val_target = next(validation_random_batches)

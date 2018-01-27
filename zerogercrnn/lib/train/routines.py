@@ -1,5 +1,6 @@
 from torch.autograd import Variable
 
+
 class NetworkRoutine:
     """Base class for running single iteration of RNN. Enable to train or validate networks."""
 
@@ -7,7 +8,7 @@ class NetworkRoutine:
         self.network = network
 
     def run(self, iter_num, input_tensor, target_tensor):
-        """ Run routine.
+        """ Run routine and return value of loss function.
         
         :param iter_num: number of iteration
         :param input_tensor: tensor of the size corresponding to network.
@@ -19,9 +20,10 @@ class NetworkRoutine:
 class PlottedNetworkRoutine(NetworkRoutine):
     """Network that will run on iteration and store loss to the plot."""
 
-    def __init__(self, network):
+    def __init__(self, label, network, plotter):
         super(PlottedNetworkRoutine, self).__init__(network)
-        self.plot = PlotData()  # place to store loss on particular iteration.
+        self.label = label
+        self.plotter = plotter
 
     def run(self, iter_num, input_tensor, target_tensor):
         """Run routine and store loss on the plot.
@@ -31,7 +33,7 @@ class PlottedNetworkRoutine(NetworkRoutine):
         input_tensor = Variable(input_tensor)
         target_tensor = Variable(target_tensor)
         loss = self.__run_and_calc_loss__(iter_num, input_tensor, target_tensor)
-        self.plot.add(iter_num, loss)
+        self.plotter.on_new_point(label=self.label, x=iter_num, y=loss)
         return loss
 
     def __run_and_calc_loss__(self, iter_num, input_tensor, target_tensor):
@@ -42,11 +44,11 @@ class PlottedNetworkRoutine(NetworkRoutine):
 class RNNRoutine(PlottedNetworkRoutine):
     """Base routine for training/validation of RNN networks."""
 
-    def __init__(self, network, loss_calc):
+    def __init__(self, label, network, plotter, loss_calc):
         """
         :param loss_calc: function that computes loss for the given output and target.
         """
-        super(RNNRoutine, self).__init__(network)
+        super(RNNRoutine, self).__init__(label, network, plotter)
         self.loss_calc = loss_calc
 
     def __run_and_calc_loss__(self, iter_num, input_tensor, target_tensor):
@@ -72,14 +74,14 @@ class RNNRoutine(PlottedNetworkRoutine):
 class RNNTrainRoutine(RNNRoutine):
     """Routine for training RNN networks."""
 
-    def __init__(self, network, loss_calc, optimizer):
+    def __init__(self, label, network, plotter, loss_calc, optimizer):
         """Create training routine.
         
         :param network: network to train.
         :param loss_calc: function that computes loss for the given output and target.
         :param optimizer: optimizer to perform training. Should be bound to criterion.
         """
-        super(RNNTrainRoutine, self).__init__(network, loss_calc)
+        super(RNNTrainRoutine, self).__init__(label, network, plotter, loss_calc)
         self.optimizer = optimizer
 
     def __process_loss__(self, loss):
@@ -91,12 +93,12 @@ class RNNTrainRoutine(RNNRoutine):
 class RNNValidationRoutine(RNNRoutine):
     """Routine for validation RNN networks. This routine don't run backward path."""
 
-    def __init__(self, network, loss_calc):
+    def __init__(self, label, network, plotter, loss_calc):
         """
         :param network: network to train.
         :param loss_calc: function that computes loss for the given output and target.
         """
-        super(RNNValidationRoutine, self).__init__(network, loss_calc)
+        super(RNNValidationRoutine, self).__init__(label, network, plotter, loss_calc)
 
     def __process_loss__(self, loss):
         print('validation loss: {}'.format(loss))

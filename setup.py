@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='zerogercrnn',
     packages=['zerogercrnn'],
-    version='0.14',
+    version='0.15',
     description='My grad work in rnn',
     author='Uladzislau Sazanovich',
     author_email='zerogerc@gmail.com',
