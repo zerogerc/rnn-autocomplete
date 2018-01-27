@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 
-from global_constants import ROOT_DIR
+from zerogercrnn.global_constants import ROOT_DIR
 from zerogercrnn.lib.old.reader import Reader
 
 

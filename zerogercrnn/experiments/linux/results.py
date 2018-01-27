@@ -2,13 +2,13 @@ import os
 
 import numpy as np
 import torch
-from zerogercrnn.experiments.linux.constants import alphabet
-from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
-from zerogercrnn.lib.utils.state import load_if_saved
 from torch.autograd import Variable
 
-from global_constants import ROOT_DIR
+from zerogercrnn.experiments.linux.constants import alphabet
+from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+from zerogercrnn.global_constants import ROOT_DIR
 from zerogercrnn.lib.data.character import Corpus
+from zerogercrnn.lib.utils.state import load_if_saved
 
 SEQ_LEN = 100
 BATCH_SIZE = 100

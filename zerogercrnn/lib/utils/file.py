@@ -7,7 +7,7 @@ from io import open
 
 import numpy as np
 
-from global_constants import ROOT_DIR, DEFAULT_ENCODING
+from zerogercrnn.global_constants import ROOT_DIR, DEFAULT_ENCODING
 from zerogercrnn.lib.utils.split import get_split_indexes
 
 all_letters = string.ascii_letters + " .,;'-"

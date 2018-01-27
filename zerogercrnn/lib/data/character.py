@@ -1,7 +1,8 @@
 import os
+
 import torch
 
-from global_constants import DEFAULT_ENCODING
+from zerogercrnn.global_constants import DEFAULT_ENCODING
 
 
 class Corpus:

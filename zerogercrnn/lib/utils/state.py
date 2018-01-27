@@ -1,7 +1,8 @@
 import os
+
 import torch
 
-from global_constants import ROOT_DIR
+from zerogercrnn.global_constants import ROOT_DIR
 
 BASE_PATH = ROOT_DIR + '/saved/'
 

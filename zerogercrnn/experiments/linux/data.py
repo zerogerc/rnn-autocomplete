@@ -2,12 +2,12 @@ import os
 
 import numpy as np
 import torch
+
 from zerogercrnn.experiments.linux.batcher import Batcher
 from zerogercrnn.experiments.linux.constants import alphabet
-from zerogercrnn.lib.utils.split import split_data
-
-from global_constants import ROOT_DIR, DEFAULT_ENCODING
+from zerogercrnn.global_constants import ROOT_DIR, DEFAULT_ENCODING
 from zerogercrnn.lib.data.character import Corpus
+from zerogercrnn.lib.utils.split import split_data
 
 SEQ_LEN = 100
 BATCH_SIZE = 100
