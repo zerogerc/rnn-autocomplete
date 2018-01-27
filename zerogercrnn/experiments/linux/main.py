@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 from zerogercrnn.experiments.linux.data import read_data, read_data_mini
 
 SEQ_LEN = 100
-BATCH_SIZE = 100
+BATCH_SIZE = 64
 
 LEARNING_RATE = 5 * 1e-3
 
