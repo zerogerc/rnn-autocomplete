@@ -17,99 +17,37 @@ class NetworkRoutine:
         pass
 
 
-class PlottedNetworkRoutine(NetworkRoutine):
-    """Network that will run on iteration and store loss to the plot."""
+class BaseRoutine(NetworkRoutine):
+    """Base routine for training/validation of networks where loss function is cal."""
 
-    def __init__(self, label, network, plotter):
-        super(PlottedNetworkRoutine, self).__init__(network)
-        self.label = label
-        self.plotter = plotter
+    def __init__(self, network, criterion, optimizer=None):
+        """
+        :param network: nn.Module.
+        :param criterion: function that computes loss for the given output and target.
+        :param optimizer: is specified routine will perform backward pass and optimizer step.
+        """
+        super(BaseRoutine, self).__init__(network)
+        self.criterion = criterion
+        self.optimizer = optimizer
 
     def run(self, iter_num, input_tensor, target_tensor):
-        """Run routine and store loss on the plot.
-        
-        :return: float value of loss.
-        """
-        input_tensor = Variable(input_tensor)
-        target_tensor = Variable(target_tensor)
-        loss = self.__run_and_calc_loss__(iter_num, input_tensor, target_tensor)
-        self.plotter.on_new_point(label=self.label, x=iter_num, y=loss)
-        return loss
-
-    def __run_and_calc_loss__(self, iter_num, input_tensor, target_tensor):
-        """Run routine and return float value of loss on input_tensor."""
-        return 0
-
-
-class RNNRoutine(PlottedNetworkRoutine):
-    """Base routine for training/validation of RNN networks."""
-
-    def __init__(self, label, network, plotter, loss_calc):
-        """
-        :param loss_calc: function that computes loss for the given output and target.
-        """
-        super(RNNRoutine, self).__init__(label, network, plotter)
-        self.loss_calc = loss_calc
-
-    def __run_and_calc_loss__(self, iter_num, input_tensor, target_tensor):
-        """Run network and plot loss.
+        """Run network and return float value of loss.
         
         :param iter_num: number of iteration (used to plot loss).
         :param input_tensor: tensor of size [seq_len, batch_size, input_size].
         :param target_tensor: tensor of size [seq_len, batch_size, target_size]. 
         :return: float value of loss computed with specified loss function.
         """
+        input_tensor = Variable(input_tensor)
+        target_tensor = Variable(target_tensor)
+
         self.network.zero_grad()
         output_tensor = self.network(input_tensor)
 
-        loss = self.loss_calc(output_tensor, target_tensor)
+        loss = self.criterion(output_tensor, target_tensor)
 
-        return self.__process_loss__(loss)
+        if self.optimizer is not None:
+            loss.backward()
+            self.optimizer.step()
 
-    def __process_loss__(self, loss):
-        """Process loss and do backward path if necessary."""
         return loss.data[0]
-
-
-class RNNTrainRoutine(RNNRoutine):
-    """Routine for training RNN networks."""
-
-    def __init__(self, label, network, plotter, loss_calc, optimizer):
-        """Create training routine.
-        
-        :param network: network to train.
-        :param loss_calc: function that computes loss for the given output and target.
-        :param optimizer: optimizer to perform training. Should be bound to criterion.
-        """
-        super(RNNTrainRoutine, self).__init__(label, network, plotter, loss_calc)
-        self.optimizer = optimizer
-
-    def __process_loss__(self, loss):
-        loss.backward()
-        self.optimizer.step()
-        return loss.data[0]
-
-
-class RNNValidationRoutine(RNNRoutine):
-    """Routine for validation RNN networks. This routine don't run backward path."""
-
-    def __init__(self, label, network, plotter, loss_calc):
-        """
-        :param network: network to train.
-        :param loss_calc: function that computes loss for the given output and target.
-        """
-        super(RNNValidationRoutine, self).__init__(label, network, plotter, loss_calc)
-
-    def __process_loss__(self, loss):
-        print('validation loss: {}'.format(loss))
-        return loss.data[0]
-
-
-class PlotData:
-    def __init__(self):
-        self.x = []
-        self.y = []
-
-    def add(self, x, y):
-        self.x.append(x)
-        self.y.append(y)

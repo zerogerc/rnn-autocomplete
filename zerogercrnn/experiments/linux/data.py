@@ -7,7 +7,7 @@ from zerogercrnn.experiments.linux.batcher import Batcher
 from zerogercrnn.lib.data.character import Corpus, tokenize_single_without_alphabet
 
 SEQ_LEN = 100
-alphabet = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~¥Ã\n\t"
+alphabet = "\t\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~¥©ÂÃ"
 
 
 class DataPicker:

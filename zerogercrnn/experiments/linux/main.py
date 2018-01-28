@@ -1,21 +1,21 @@
-import sys
 import os
+import sys
 
 import torch.nn as nn
 import torch.optim as optim
-from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
-from zerogercrnn.lib.train.run import TrainEpochRunner
-from zerogercrnn.lib.utils.state import save_model
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.linux.data import read_data, read_data_mini
+from zerogercrnn.experiments.linux.data import read_data_mini
+from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+from zerogercrnn.lib.train.run import TrainEpochRunner
 
+# hyperparameters
 SEQ_LEN = 100
-BATCH_SIZE = 64
+BATCH_SIZE = 100
 
-LEARNING_RATE = 5 * 1e-3
+LEARNING_RATE = 2 * 1e-3
 
-HIDDEN_SIZE = 128
+HIDDEN_SIZE = 64
 NUM_LAYERS = 1
 
 EPOCHS = 50
@@ -23,7 +23,8 @@ DECAY_AFTER_EPOCH = 10
 
 
 def run_train():
-    batcher, corpus = read_data_mini(single=os.getcwd() + '/data/linux_kernel_mini.txt', seq_len=SEQ_LEN)
+    batcher, corpus = read_data_mini(single=os.getcwd() + '/data_dir/linux_kernel_mini.txt', seq_len=SEQ_LEN)
+    # batcher, corpus = read_data(datadir=os.path.join(os.getcwd(), 'data_dir/kernel_concat/'), seq_len=SEQ_LEN)
 
     INPUT_SIZE = len(corpus.alphabet)
     OUTPUT_SIZE = len(corpus.alphabet)
@@ -54,11 +55,12 @@ def run_train():
         loss_calc=calc_loss,
         optimizer=optimizer,
         batcher=batcher,
-        scheduler=scheduler
+        scheduler=scheduler,
+        plotter='visdom',
+        save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
     runner.run(number_of_epochs=EPOCHS, batch_size=BATCH_SIZE)
-    save_model(network, 'linux')
 
 
 def run_sample():

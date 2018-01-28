@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function, division
 
+import os
 import glob
 import string
 import unicodedata
@@ -7,26 +8,31 @@ from io import open
 
 import numpy as np
 
-from zerogercrnn.global_constants import ROOT_DIR, DEFAULT_ENCODING
 from zerogercrnn.lib.utils.split import get_split_indexes
+
+
+DEFAULT_ENCODING = 'ISO-8859-1'
 
 all_letters = string.ascii_letters + " .,;'-"
 n_letters = len(all_letters) + 1  # Plus EOS marker
 
 
-def find_files(pattern):
+def find_files(root, patterns):
     """
     Find files in the directory ROOT by pattern.
     :return list of filenames
     """
-    return glob.glob('{}/{}'.format(ROOT_DIR, pattern))
+    files = []
+    for pattern in patterns:
+        files.extend(glob.glob('{}/{}'.format(root, pattern), recursive=True))
+    return files
 
 
 def read_lines(filename):
     """
     Read a file and split into lines
     """
-    lines = open(filename, encoding='utf-8').read().strip().split('\n')
+    lines = open(filename, encoding=DEFAULT_ENCODING).read().strip().split('\n')
     return [unicode_to_ascii(line) for line in lines]
 
 
@@ -41,20 +47,21 @@ def unicode_to_ascii(s):
     )
 
 
-def convert_repo_to_train_val_test(pattern, dest_dir, validation_percentage, test_percentage):
+def convert_repo_to_train_val_test(root, patterns, dest_dir, validation_percentage, test_percentage):
     """Find files in repo that match pattern and concatenate them 
     into three different files for train, validation and test.
     
-    :param pattern: pattern to find files by.
+    :param root: home directory of the project. All paths will be relative to this.
+    :param pattern: array of patterns to find files by.
     :param dest_dir: directory to store files to. Files will be **train.txt**, **validation.txt**, **test.txt**.
     :param validation_percentage: percentage of validation data.
     :param test_percentage: percentage of test data.
     """
-    filenames = np.array(find_files(pattern))
+    filenames = np.array(find_files(root, patterns))
 
-    train_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'train.txt'), 'w', encoding=DEFAULT_ENCODING)
-    validation_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'validation.txt'), 'w', encoding=DEFAULT_ENCODING)
-    test_file = open('{}{}/{}'.format(ROOT_DIR, dest_dir, 'test.txt'), 'w', encoding=DEFAULT_ENCODING)
+    train_file = open('{}{}/{}'.format(root, dest_dir, 'train.txt'), 'w', encoding=DEFAULT_ENCODING)
+    validation_file = open('{}{}/{}'.format(root, dest_dir, 'validation.txt'), 'w', encoding=DEFAULT_ENCODING)
+    test_file = open('{}{}/{}'.format(root, dest_dir, 'test.txt'), 'w', encoding=DEFAULT_ENCODING)
 
     train_indexes, validation_indexes, test_indexes = get_split_indexes(
         len(filenames),
