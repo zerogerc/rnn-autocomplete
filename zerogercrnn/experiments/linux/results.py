@@ -4,19 +4,17 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.linux.constants import alphabet
+from zerogercrnn.experiments.linux.data import alphabet
+from zerogercrnn.experiments.linux.data import read_data_mini
 from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
-from zerogercrnn.global_constants import ROOT_DIR
-from zerogercrnn.lib.data.character import Corpus
+from zerogercrnn.lib.data.character import create_char_to_idx_and_backward
 from zerogercrnn.lib.utils.state import load_if_saved
+from zerogercrnn.lib.visualization.text import show_diff
 
 SEQ_LEN = 100
-BATCH_SIZE = 100
 
-HIDDEN_SIZE = 64
-NUM_LAYERS = 1
-
-DATA_PATH = ROOT_DIR + '/data/linux_kernel_mini.txt'
+HIDDEN_SIZE = 256
+NUM_LAYERS = 2
 
 
 def pick_single_input(data_tensor, start, ntokens):  # one hot encoding of data
@@ -38,14 +36,19 @@ def pick_batch(data_tensor, start_indexes, single_picker):
 
 def read_data():
     start = 1023
-    corpus = Corpus(os.path.join(ROOT_DIR, 'data'), single_file='kernel_concatenated/test.txt', letters=alphabet)
-    ntokens = len(corpus.all_letters)
 
-    input_tensor = Variable(pick_single_input(corpus.single.unsqueeze(1), start, ntokens).unsqueeze(1))
-    target_tensor = pick_single_target(corpus.single.unsqueeze(1), start)
+    batcher, corpus = read_data_mini(
+        single=os.path.join(os.getcwd(), 'data_dir/linux_kernel_mini.txt'),
+        alphabet=alphabet,
+        seq_len=SEQ_LEN
+    )
 
-    INPUT_SIZE = len(corpus.all_letters)
-    OUTPUT_SIZE = len(corpus.all_letters)
+    data_generator = batcher.data_map['test'].get_batched_random(batch_size=1)
+
+    input_tensor, target_tensor = next(data_generator)
+
+    INPUT_SIZE = len(corpus.alphabet)
+    OUTPUT_SIZE = len(corpus.alphabet)
 
     network = LSTMLinuxNetwork(
         input_size=INPUT_SIZE,
@@ -54,22 +57,23 @@ def read_data():
         num_layers=NUM_LAYERS
     )
 
-    load_if_saved(network, 'linux')
+    load_if_saved(network, os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
 
-    output_tensor = network(input_tensor)
+    output = network(Variable(input_tensor))
 
-    print_string(corpus, torch.max(output_tensor.squeeze(1), 1)[1].data, tag='Predicted')
-    print_string(corpus, target_tensor.view(-1), tag='Actual')
+    predicted = convert(corpus, torch.max(output.squeeze(1), 1)[1].data)
+    actual = convert(corpus, target_tensor.view(-1))
 
-def print_string(corpus, letter_positions, tag=None):
-    s = ""
+    show_diff(text=predicted, actual=actual)
+
+
+def convert(corpus, letter_positions):
+    char2idx, idx2char = create_char_to_idx_and_backward(alphabet=corpus.alphabet)
+    s = ''
     for lp in letter_positions:
-        s += corpus.idx2char[lp]
+        s += idx2char[lp]
 
-    if tag is None:
-        print(s)
-    else:
-        print('{}: {}'.format(tag, s))
+    return s
 
 
 if __name__ == '__main__':

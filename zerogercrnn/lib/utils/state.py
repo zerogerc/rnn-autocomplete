@@ -6,6 +6,7 @@ def load_if_saved(model, path):
     """Loads state of the model if previously saved."""
     if os.path.isfile(path):
         model.load_state_dict(torch.load(path))
+        print('Model restored from file.')
 
 
 def save_model(model, path):

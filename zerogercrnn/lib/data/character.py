@@ -92,7 +92,11 @@ class Corpus:
     @staticmethod
     def create_from_data_dir(path, alphabet):
         """Creates instance of Corpus. Supposes that train/validation/test datasets is stored in the path 
-        with names train.txt/validation.txt/test.txt."""
+        with names train.txt/validation.txt/test.txt.
+        
+        :param path: full path to the directory with files
+        :param alphabet: string of all possible symbols in text
+        """
 
         train_file = os.path.join(path, 'train.txt')
         validation_file = os.path.join(path, 'validation.txt')
@@ -105,9 +109,20 @@ class Corpus:
         return Corpus(train=train, valid=valid, test=test, alphabet=alphabet)
 
     @staticmethod
-    def create_from_single_file(path, validation_percentage=0.1, test_percentage=0.1, shuffle=True):
-        """Creates instance of Corpus using a single file. Use it for testing purposes only."""
-        single, alphabet = tokenize_single_without_alphabet(path)
+    def create_from_single_file(path, *, validation_percentage=0.1, test_percentage=0.1, alphabet=None):
+        """Creates instance of Corpus using a single file. **Use it for testing purposes only.**
+        File will be split on train/validation/test using
+        specified percentages.
+        
+        :param path: full path to the files with data
+        :param validation_percentage: percentage of validation data
+        :param test_percentage: percentage of test data
+        :param alphabet: all possible characters, if None alphabet will be created from file
+        """
+        if alphabet is None:
+            single, alphabet = tokenize_single_without_alphabet(path)
+        else:
+            single = tokenize(path, alphabet=alphabet)
 
         input_tensor = single.unsqueeze(1)
         train, valid, test = split_data(

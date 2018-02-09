@@ -77,12 +77,12 @@ def read_data(datadir, seq_len=100):
     return batcher, corpus
 
 
-def read_data_mini(single, seq_len=100):
+def read_data_mini(single, seq_len=100, alphabet=None):
     """
     :param single: path to the data file.
     :return: batcher with train/validation/test and Corpus.
     """
-    corpus = Corpus.create_from_single_file(single)
+    corpus = Corpus.create_from_single_file(path=single, alphabet=alphabet)
     batcher = Batcher()
     ntokens = len(corpus.alphabet)
 

@@ -5,9 +5,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.linux.data import read_data_mini
-from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+
 from zerogercrnn.lib.train.run import TrainEpochRunner
+from zerogercrnn.lib.utils.state import load_if_saved
+
+from zerogercrnn.experiments.linux.data import read_data, read_data_mini
+from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+
 
 # hyperparameters
 SEQ_LEN = 100
@@ -15,16 +19,17 @@ BATCH_SIZE = 100
 
 LEARNING_RATE = 2 * 1e-3
 
-HIDDEN_SIZE = 64
-NUM_LAYERS = 1
+HIDDEN_SIZE = 256
+NUM_LAYERS = 2
 
-EPOCHS = 50
-DECAY_AFTER_EPOCH = 10
+# run additional training
+EPOCHS = 40
+DECAY_AFTER_EPOCH = 1
 
 
 def run_train():
-    batcher, corpus = read_data_mini(single=os.getcwd() + '/data_dir/linux_kernel_mini.txt', seq_len=SEQ_LEN)
-    # batcher, corpus = read_data(datadir=os.path.join(os.getcwd(), 'data_dir/kernel_concat/'), seq_len=SEQ_LEN)
+    # batcher, corpus = read_data_mini(single=os.getcwd() + '/data_dir/linux_kernel_mini.txt', seq_len=SEQ_LEN)
+    batcher, corpus = read_data(datadir=os.path.join(os.getcwd(), 'data_dir/kernel_concat/'), seq_len=SEQ_LEN)
 
     INPUT_SIZE = len(corpus.alphabet)
     OUTPUT_SIZE = len(corpus.alphabet)
@@ -35,6 +40,9 @@ def run_train():
         output_size=OUTPUT_SIZE,
         num_layers=NUM_LAYERS
     )
+
+    load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
+
     criterion = nn.NLLLoss()
     # optimizer = optim.Adam(params=network.parameters(), lr=LEARNING_RATE)
     optimizer = optim.RMSprop(params=network.parameters(), lr=LEARNING_RATE)
