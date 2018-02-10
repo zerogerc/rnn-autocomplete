@@ -5,6 +5,24 @@ from urllib.request import pathname2url
 
 from zerogercrnn.lib.utils.file import DEFAULT_ENCODING
 
+htmlCodes = {
+    "'": '&#39;',
+    '"': '&quot;',
+    '>': '&gt;',
+    '<': '&lt;',
+    '&': '&amp;',
+    '\n': '</br>',
+    '\t': '&emsp;',
+    ' ': '&nbsp;'
+}
+
+
+def char_to_html(c):
+    if str(c) in htmlCodes:
+        return htmlCodes[str(c)]
+    else:
+        return c
+
 
 def get_diff(text, actual):
     """Return two html-colored strings. Green if text[i] == actual[i], red otherwise"""
@@ -19,11 +37,11 @@ def get_diff(text, actual):
 
     for i in range(len(text)):
         if text[i] == actual[i]:
-            out_text += green.format(text[i])
-            out_actual += green.format(actual[i])
+            out_text += green.format(char_to_html(text[i]))
+            out_actual += green.format(char_to_html(actual[i]))
         else:
-            out_text += red.format(text[i])
-            out_actual += red.format(actual[i])
+            out_text += red.format(char_to_html(text[i]))
+            out_actual += red.format(char_to_html(actual[i]))
     return out_text, out_actual
 
 
@@ -81,8 +99,8 @@ def show_diff(text, actual, file=None):
 
 if __name__ == '__main__':
     show_diff(
-        "Here we are\t\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ["
+        "  Here we are\te\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ["
         "\\]^_`abcdefghijklmnopqrstuvwxyz{|}~¥©ÂÃ",
-        "Hear We are\t\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ["
+        "  Hear We are\te\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ["
         "\\]^_`abcdefghijklmnopqrstuvwxyz{|}~¥©ÂÃ"
     )

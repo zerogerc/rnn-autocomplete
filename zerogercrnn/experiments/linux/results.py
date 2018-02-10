@@ -4,14 +4,13 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.linux.data import alphabet
-from zerogercrnn.experiments.linux.data import read_data_mini
+from zerogercrnn.experiments.linux.data import alphabet, read_data_mini, read_data
 from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
-from zerogercrnn.lib.data.character import create_char_to_idx_and_backward
+from zerogercrnn.lib.data.character import create_char_to_idx_and_backward, tokenize
 from zerogercrnn.lib.utils.state import load_if_saved
 from zerogercrnn.lib.visualization.text import show_diff
 
-SEQ_LEN = 100
+SEQ_LEN = 10000
 
 HIDDEN_SIZE = 256
 NUM_LAYERS = 2
@@ -34,21 +33,9 @@ def pick_batch(data_tensor, start_indexes, single_picker):
     return torch.cat(out, dim=1)
 
 
-def read_data():
-    start = 1023
-
-    batcher, corpus = read_data_mini(
-        single=os.path.join(os.getcwd(), 'data_dir/linux_kernel_mini.txt'),
-        alphabet=alphabet,
-        seq_len=SEQ_LEN
-    )
-
-    data_generator = batcher.data_map['test'].get_batched_random(batch_size=1)
-
-    input_tensor, target_tensor = next(data_generator)
-
-    INPUT_SIZE = len(corpus.alphabet)
-    OUTPUT_SIZE = len(corpus.alphabet)
+def visualize_for_input_target(input_tensor, target_tensor, alphabet):
+    INPUT_SIZE = len(alphabet)
+    OUTPUT_SIZE = len(alphabet)
 
     network = LSTMLinuxNetwork(
         input_size=INPUT_SIZE,
@@ -61,20 +48,51 @@ def read_data():
 
     output = network(Variable(input_tensor))
 
-    predicted = convert(corpus, torch.max(output.squeeze(1), 1)[1].data)
-    actual = convert(corpus, target_tensor.view(-1))
+    predicted = convert(torch.max(output.squeeze(1), 1)[1].data, alphabet=alphabet)
+    actual = convert(target_tensor.view(-1), alphabet=alphabet)
 
-    show_diff(text=predicted, actual=actual)
+    show_diff(text=predicted, actual=actual, file=os.path.join(os.getcwd(), 'result.html'))
 
 
-def convert(corpus, letter_positions):
-    char2idx, idx2char = create_char_to_idx_and_backward(alphabet=corpus.alphabet)
+def convert(letter_positions, alphabet):
+    char2idx, idx2char = create_char_to_idx_and_backward(alphabet=alphabet)
     s = ''
     for lp in letter_positions:
         s += idx2char[lp]
-
     return s
 
 
+def visualize_for_test():
+    # batcher, corpus = read_data_mini(
+    #     single=os.path.join(os.getcwd(), 'data_dir/linux_kernel_mini.txt'),
+    #     alphabet=alphabet,
+    #     seq_len=SEQ_LEN
+    # )
+
+    batcher, corpus = read_data(
+        datadir=os.path.join(os.getcwd(), 'data_dir/kernel_concat'),
+        seq_len=SEQ_LEN
+    )
+
+    data_generator = batcher.data_map['test'].get_batched_random(batch_size=1)
+
+    input_tensor, target_tensor = next(data_generator)
+    visualize_for_input_target(input_tensor, target_tensor, alphabet=corpus.alphabet)
+
+
+def visualize_for_source_file(path):
+    data = tokenize(path=path, alphabet=alphabet).unsqueeze(1) # tensor of size [Nx1]
+
+    input_tensor = pick_single_input(data_tensor=data, start=0, ntokens=len(alphabet))
+    target_tensor = pick_single_target(data_tensor=data, start=0)
+
+    visualize_for_input_target(
+        input_tensor=input_tensor.unsqueeze(1),
+        target_tensor=target_tensor,
+        alphabet=alphabet
+    )
+
+
 if __name__ == '__main__':
-    read_data()
+    visualize_for_test()
+    # visualize_for_source_file(path=os.path.join(os.getcwd(), 'data_dir/linux_kernel_mini.txt'))
