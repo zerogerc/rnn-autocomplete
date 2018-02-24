@@ -4,8 +4,8 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.linux.data import alphabet, read_data_mini, read_data
-from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+from zerogercrnn.experiments.linux.data import alphabet, read_data
+from zerogercrnn.experiments.linux.models.lstm import LSTMLinuxNetwork
 from zerogercrnn.lib.data.character import create_char_to_idx_and_backward, tokenize
 from zerogercrnn.lib.utils.state import load_if_saved
 from zerogercrnn.lib.visualization.text import show_diff

@@ -1,30 +1,71 @@
 import os
-import sys
 
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-
+from zerogercrnn.experiments.linux.data import read_data
+from zerogercrnn.experiments.linux.models.gru import GRULinuxNetwork
+from zerogercrnn.experiments.linux.models.lstm import LSTMLinuxNetwork
+from zerogercrnn.experiments.linux.models.rnn import RNNLinuxNetwork
 from zerogercrnn.lib.train.run import TrainEpochRunner
-from zerogercrnn.lib.utils.state import load_if_saved
 
-from zerogercrnn.experiments.linux.data import read_data, read_data_mini
-from zerogercrnn.experiments.linux.lstm import LSTMLinuxNetwork
+# ------------- hyperparameters ------------- #
 
 
-# hyperparameters
+# Context
 SEQ_LEN = 100
+
+# Batch
 BATCH_SIZE = 100
 
+# Learning rate
 LEARNING_RATE = 2 * 1e-3
 
-HIDDEN_SIZE = 256
-NUM_LAYERS = 2
+# Network parameters
+HIDDEN_SIZE = 64
+NUM_LAYERS = 1
+DROPOUT = 0.02
 
-# run additional training
-EPOCHS = 40
-DECAY_AFTER_EPOCH = 1
+# Number of train epoch
+EPOCHS = 50
+
+# Decrease learning rate by 0.9 after this epoch
+DECAY_AFTER_EPOCH = 10
+
+
+# ------------------------------------------- #
+
+
+
+def create_lstm(input_size, output_size):
+    return LSTMLinuxNetwork(
+        input_size=input_size,
+        hidden_size=HIDDEN_SIZE,
+        output_size=output_size,
+        num_layers=NUM_LAYERS,
+        dropout=DROPOUT
+    )
+
+
+def create_rnn(input_size, output_size):
+    return RNNLinuxNetwork(
+        input_size=input_size,
+        hidden_size=HIDDEN_SIZE,
+        output_size=output_size,
+        num_layers=NUM_LAYERS,
+        dropout=DROPOUT
+    )
+
+
+def create_gru(input_size, output_size):
+    return GRULinuxNetwork(
+        input_size=input_size,
+        hidden_size=HIDDEN_SIZE,
+        output_size=output_size,
+        num_layers=NUM_LAYERS,
+        dropout=DROPOUT
+    )
 
 
 def run_train():
@@ -34,17 +75,11 @@ def run_train():
     INPUT_SIZE = len(corpus.alphabet)
     OUTPUT_SIZE = len(corpus.alphabet)
 
-    network = LSTMLinuxNetwork(
-        input_size=INPUT_SIZE,
-        hidden_size=HIDDEN_SIZE,
-        output_size=OUTPUT_SIZE,
-        num_layers=NUM_LAYERS
-    )
+    network = create_gru(INPUT_SIZE, OUTPUT_SIZE)
 
-    load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
+    # load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
 
     criterion = nn.NLLLoss()
-    # optimizer = optim.Adam(params=network.parameters(), lr=LEARNING_RATE)
     optimizer = optim.RMSprop(params=network.parameters(), lr=LEARNING_RATE)
 
     # We will decay after DECAY_AFTER_EPOCH by WEIGHT_DECAY after each additional epoch
@@ -65,18 +100,11 @@ def run_train():
         batcher=batcher,
         scheduler=scheduler,
         plotter='visdom',
-        save_dir=os.path.join(os.getcwd(), 'saved_models')
+        # save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
     runner.run(number_of_epochs=EPOCHS, batch_size=BATCH_SIZE)
 
 
-def run_sample():
-    pass
-
-
 if __name__ == '__main__':
-    if sys.argv[1] == 'train':
-        run_train()
-    else:
-        run_sample()
+    run_train()
