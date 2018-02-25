@@ -97,6 +97,55 @@ def show_diff(text, actual, file=None):
     webbrowser.open(url='file:{}'.format(pathname2url(html_path)))
 
 
+def show_token_diff(predicted, actual, file=None):
+    assert len(predicted) == len(actual)
+    predicted_str = ' '.join(predicted)
+    actual_str = ' '.join(actual)
+
+    predicted_html = ''.join([char_to_html(c) for c in predicted_str])
+    actual_html = ''.join([char_to_html(c) for c in actual_str])
+
+    html_path = file or os.path.join(tempfile.gettempdir(), 'diff.html')
+    f = open(html_path, encoding=DEFAULT_ENCODING, mode='w')
+    message = """
+            <html>
+            <head>
+            <style>
+            .column {{
+                float: left;
+                width: 50%;
+            }}
+
+            /* Clear floats after the columns */
+            .row:after {{
+                content: "";
+                display: table;
+                clear: both;
+            }}
+            </style>
+            </head>
+
+            <body>
+                <div class="row">
+                    <div class="column">
+                        <h3 style="margin-top: 20px; ">Text</h3>
+                        <div>{}</div>
+                    </div>
+                    <div class="column">
+                        <h3 style="margin-top: 20px; ">Actual</h3>
+                        <div>{}</div>
+                    </div>
+                </div> 
+            </body>
+            </html>
+            """.format(predicted_html, actual_html)
+
+    f.write(message)
+    f.close()
+
+    webbrowser.open(url='file:{}'.format(pathname2url(html_path)))
+
+
 if __name__ == '__main__':
     show_diff(
         "  Here we are\te\n !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ["
