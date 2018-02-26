@@ -162,7 +162,7 @@ def _next_token_(line, i):
 if __name__ == '__main__':
     get_and_write_tokens(
         path=os.path.join(HOME_DIR, 'data_dir/kernel_concat/train.txt'),
-        limit_occur=4,
+        limit_occur=3,
         output_file=os.path.join(os.getcwd(), 'tokens.txt')
     )
 

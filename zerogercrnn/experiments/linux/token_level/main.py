@@ -13,17 +13,17 @@ from zerogercrnn.lib.train.run import TrainEpochRunner
 
 
 # Context
-SEQ_LEN = 20
+SEQ_LEN = 50
 
 # Batch
-BATCH_SIZE = 100
+BATCH_SIZE = 80
 
 # Learning rate
-LEARNING_RATE = 5 * 1e-3
+LEARNING_RATE = 3 * 1e-3
 
 # Network parameters
-EMBEDDING_SIZE = 200
-HIDDEN_SIZE = 500
+EMBEDDING_SIZE = 300
+HIDDEN_SIZE = 1500
 NUM_LAYERS = 1
 DROPOUT = 0.02
 WEIGHT_DECAY = 0.01
@@ -32,7 +32,7 @@ WEIGHT_DECAY = 0.01
 EPOCHS = 50
 
 # Decrease learning rate by 0.9 after this epoch
-DECAY_AFTER_EPOCH = 10
+DECAY_AFTER_EPOCH = 0
 
 # ------------------------------------------- #
 
