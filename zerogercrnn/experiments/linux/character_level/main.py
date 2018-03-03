@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.linux.data import read_data
+from zerogercrnn.experiments.linux.character_level.data import read_data
 from zerogercrnn.experiments.linux.models.gru import GRULinuxNetwork
 from zerogercrnn.experiments.linux.models.lstm import LSTMLinuxNetwork
 from zerogercrnn.experiments.linux.models.rnn import RNNLinuxNetwork

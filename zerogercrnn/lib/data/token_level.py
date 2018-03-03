@@ -6,6 +6,7 @@ import torch
 
 from zerogercrnn.experiments.linux.constants import HOME_DIR
 from zerogercrnn.lib.utils.split import split_data
+from zerogercrnn.lib.visualization.html_helper import string_to_html
 
 DEFAULT_ENCODING = 'ISO-8859-1'
 
@@ -53,6 +54,34 @@ class Corpus:
         return Corpus(train=train, valid=valid, test=test, tokens=tokens)
 
 
+def convert_tokens(path, tokens_path, converter):
+    """This function will convert tokens found in file using specified function.
+    Tokenization process is the same as when forming the test set.
+    
+    :param converter: (id: int, token: string, skipped: string -> string)
+    """
+    tokens = _read_tokens_(path=tokens_path)
+
+    tokens.append(NEWLINE_TKN)
+    tokens.append(UNK_TKN)
+
+    token2idx, idx2token = _create_to_from_(tokens)
+
+    token_number = 0
+    result = ''
+
+    with open(path, 'r', encoding=DEFAULT_ENCODING) as f:
+        ids = []
+        for line in f:
+            i = 0
+            while i < len(line):
+                tkn, i, skipped = _next_token_(line, i)
+                result += converter(token_number, tkn, skipped)
+                token_number += 1
+
+    return result
+
+
 def tokenize_file(path, tokens_path):
     tokens = _read_tokens_(path=tokens_path)
 
@@ -72,7 +101,7 @@ def _tokenize_(path, number_of_tokens, token2idx, idx2token):
         for line in f:
             i = 0
             while i < len(line):
-                tkn, i = _next_token_(line, i)
+                tkn, i, skipped = _next_token_(line, i)
 
                 if tkn in token2idx:
                     ids.append(token2idx[tkn])
@@ -133,7 +162,7 @@ def _get_tokens_from_file_(path):
 def _append_new_tokens_(line, tokens, token_occ):
     i = 0
     while i < len(line):
-        tkn, i = _next_token_(line, i)
+        tkn, i, skipped = _next_token_(line, i)
         if tkn == '':
             break
 
@@ -145,24 +174,29 @@ def _append_new_tokens_(line, tokens, token_occ):
 
 
 def _next_token_(line, i):
+    skipped = ''
+    while i < len(line) and (line[i] == ' ' or line[i] == '\t'):
+        skipped += line[i]
+        i += 1
+
     if i == len(line):
-        return '', i
+        return '', i, skipped
 
     tkn = ''
     if line[i].isalnum():
         while i < len(line) and (line[i].isalnum() or line[i] == '_'):
             tkn += line[i]
             i += 1
-        return tkn, i
+        return tkn, i, skipped
 
     # special character
-    return line[i], i + 1
+    return line[i], i + 1, skipped
 
 
 if __name__ == '__main__':
     get_and_write_tokens(
         path=os.path.join(HOME_DIR, 'data_dir/kernel_concat/train.txt'),
-        limit_occur=3,
+        limit_occur=0,
         output_file=os.path.join(os.getcwd(), 'tokens.txt')
     )
 

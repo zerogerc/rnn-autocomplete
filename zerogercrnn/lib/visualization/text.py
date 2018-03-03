@@ -1,27 +1,4 @@
-import os
-import tempfile
-import webbrowser
-from urllib.request import pathname2url
-
-from zerogercrnn.lib.utils.file import DEFAULT_ENCODING
-
-htmlCodes = {
-    "'": '&#39;',
-    '"': '&quot;',
-    '>': '&gt;',
-    '<': '&lt;',
-    '&': '&amp;',
-    '\n': '</br>',
-    '\t': '&emsp;',
-    ' ': '&nbsp;'
-}
-
-
-def char_to_html(c):
-    if str(c) in htmlCodes:
-        return htmlCodes[str(c)]
-    else:
-        return c
+from zerogercrnn.lib.visualization.html_helper import char_to_html, string_to_html, show_html_page
 
 
 def get_diff(text, actual):
@@ -54,10 +31,7 @@ def show_diff(text, actual, file=None):
     :param file: if specified html will be stored there
     """
     assert (len(text) == len(actual))
-    html_path = file or os.path.join(tempfile.gettempdir(), 'diff.html')
     diff_text, diff_actual = get_diff(text, actual)
-
-    f = open(html_path, encoding=DEFAULT_ENCODING, mode='w')
     message = """
         <html>
         <head>
@@ -91,22 +65,17 @@ def show_diff(text, actual, file=None):
         </html>
         """.format(diff_text, diff_actual)
 
-    f.write(message)
-    f.close()
-
-    webbrowser.open(url='file:{}'.format(pathname2url(html_path)))
+    show_html_page(
+        page=message,
+        save_file=file
+    )
 
 
 def show_token_diff(predicted, actual, file=None):
     assert len(predicted) == len(actual)
-    predicted_str = ' '.join(predicted)
-    actual_str = ' '.join(actual)
+    predicted_html = string_to_html(' '.join(predicted))
+    actual_html = string_to_html(' '.join(actual))
 
-    predicted_html = ''.join([char_to_html(c) for c in predicted_str])
-    actual_html = ''.join([char_to_html(c) for c in actual_str])
-
-    html_path = file or os.path.join(tempfile.gettempdir(), 'diff.html')
-    f = open(html_path, encoding=DEFAULT_ENCODING, mode='w')
     message = """
             <html>
             <head>
@@ -140,10 +109,10 @@ def show_token_diff(predicted, actual, file=None):
             </html>
             """.format(predicted_html, actual_html)
 
-    f.write(message)
-    f.close()
-
-    webbrowser.open(url='file:{}'.format(pathname2url(html_path)))
+    show_html_page(
+        page=message,
+        save_file=file
+    )
 
 
 if __name__ == '__main__':

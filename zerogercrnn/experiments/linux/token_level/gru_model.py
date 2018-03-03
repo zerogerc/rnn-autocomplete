@@ -17,7 +17,7 @@ class GRULinuxNetwork(nn.Module):
             dropout=dropout
         )
         self.h2o = nn.Linear(self.hidden_size, self.output_size)
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.LogSoftmax(dim=1)
 
         self.init_params()
 

@@ -4,104 +4,99 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.linux.token_level.data import read_data_mini, read_data
 from zerogercrnn.experiments.linux.constants import HOME_DIR
+from zerogercrnn.experiments.linux.token_level.data import read_data, read_data_mini
 from zerogercrnn.experiments.linux.token_level.gru_model import GRULinuxNetwork
+from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
-# ------------- hyperparameters ------------- #
+# --- parameters of the training --- #
+config = Config()
+config.learning_rate = 5e-3
+config.seq_len = 50
+config.batch_size = 80
+config.embedding_size = 300
+config.hidden_size = 1000
+config.num_layers = 1
+config.dropout = 0.02
+config.weight_decay = 0.01
+config.epochs = 50
+config.decay_after_epoch = 0
+config.loss_function = 'nll'
+config.optimizer = 'adam'
+config.network_type = 'gru'
+# ---------------------------------- #
 
-
-# Context
-SEQ_LEN = 50
-
-# Batch
-BATCH_SIZE = 80
-
-# Learning rate
-LEARNING_RATE = 3 * 1e-3
-
-# Network parameters
-EMBEDDING_SIZE = 300
-HIDDEN_SIZE = 1500
-NUM_LAYERS = 1
-DROPOUT = 0.02
-WEIGHT_DECAY = 0.01
-
-# Number of train epoch
-EPOCHS = 50
-
-# Decrease learning rate by 0.9 after this epoch
-DECAY_AFTER_EPOCH = 0
-
-# ------------------------------------------- #
-
+PARAMETERS_PATH = os.path.join(os.getcwd(), 'parameters.json')
 TOKENS_PATH = os.path.join(os.getcwd(), 'tokens.txt')
 DATA_PATH = os.path.join(HOME_DIR, 'data_dir/kernel_concat')
 
-# def create_lstm(input_size, output_size):
-#     return LSTMLinuxNetwork(
-#         input_size=input_size,
-#         hidden_size=HIDDEN_SIZE,
-#         output_size=output_size,
-#         num_layers=NUM_LAYERS,
-#         dropout=DROPOUT
-#     )
-#
-#
-# def create_rnn(input_size, output_size):
-#     return RNNLinuxNetwork(
-#         input_size=input_size,
-#         hidden_size=HIDDEN_SIZE,
-#         output_size=output_size,
-#         num_layers=NUM_LAYERS,
-#         dropout=DROPOUT
-#     )
+
+def create_network(cfg, vocab_size: int):
+    if cfg.network_type == 'gru':
+        return GRULinuxNetwork(
+            vocab_size=vocab_size,
+            embedding_size=cfg.embedding_size,
+            hidden_size=cfg.hidden_size,
+            num_layers=cfg.num_layers,
+            dropout=cfg.dropout
+        )
+    else:
+        raise Exception('Unknown network type')
 
 
-def create_gru(vocab_size):
-    return GRULinuxNetwork(
-        vocab_size=vocab_size,
-        embedding_size=200,
-        hidden_size=HIDDEN_SIZE,
-        num_layers=NUM_LAYERS,
-        dropout=DROPOUT
-    )
-
-
-def run_train():
-    # batcher, corpus = read_data_mini(
-    #     single=HOME_DIR + '/data_dir/linux_kernel_mini.txt',
-    #     tokens_path=TOKENS_PATH,
-    #     seq_len=SEQ_LEN
-    # )
-    batcher, corpus = read_data(
-        datadir=DATA_PATH,
-        tokens_path=TOKENS_PATH,
-        seq_len=SEQ_LEN
-    )
-
-    network = create_gru(vocab_size=len(corpus.tokens))
-
-    # load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
-
-    criterion = nn.NLLLoss()
-    optimizer = optim.Adam(params=network.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-
-    # We will decay after DECAY_AFTER_EPOCH by WEIGHT_DECAY after each additional epoch
-    scheduler = MultiStepLR(
-        optimizer=optimizer,
-        milestones=list(range(DECAY_AFTER_EPOCH, EPOCHS + 1)),
-        gamma=0.95
-    )
+def create_loss_function(cfg):
+    if cfg.loss_function == 'nll':
+        criterion = nn.NLLLoss()
+    else:
+        raise Exception('Unknown loss function')
 
     def calc_loss(output_tensor, target_tensor):
         sz_o = output_tensor.size()[-1]
         return criterion(output_tensor.view(-1, sz_o), target_tensor.view(-1))
 
+    return calc_loss
+
+
+def create_optimizer(cfg, network):
+    if cfg.optimizer == 'adam':
+        return optim.Adam(params=network.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+    else:
+        raise Exception('Unknown optimizer')
+
+
+def create_scheduler(cfg, optimizer):
+    return MultiStepLR(
+        optimizer=optimizer,
+        milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
+        gamma=0.95
+    )
+
+
+def run_train(cfg):
+    # batcher, corpus = read_data_mini(
+    #     single=HOME_DIR + '/data_dir/linux_kernel_mini.txt',
+    #     tokens_path=TOKENS_PATH,
+    #     seq_len=cfg.seq_len
+    # )
+    batcher, corpus = read_data(
+        datadir=DATA_PATH,
+        tokens_path=TOKENS_PATH,
+        seq_len=cfg.seq_len
+    )
+
+    network = create_network(cfg, vocab_size=len(corpus.tokens))
+    optimizer = create_optimizer(cfg, network=network)
+    scheduler = create_scheduler(cfg, optimizer=optimizer)
+    loss_calc = create_loss_function(cfg)
+
+    cfg.write_to_file(PARAMETERS_PATH)
+
+    # load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
+
     runner = TrainEpochRunner(
         network=network,
-        loss_calc=calc_loss,
+        loss_calc=loss_calc,
         optimizer=optimizer,
         batcher=batcher,
         scheduler=scheduler,
@@ -109,8 +104,23 @@ def run_train():
         save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
-    runner.run(number_of_epochs=EPOCHS, batch_size=BATCH_SIZE)
+    runner.run(number_of_epochs=cfg.epochs, batch_size=cfg.batch_size)
 
 
 if __name__ == '__main__':
-    run_train()
+    run_train(cfg=config)
+    # parameters = [
+    #     'learning_rate',
+    #     'weight_decay',
+    #     'seq_len',
+    #     'batch_size',
+    #     'embedding_size',
+    #     'hidden_size',
+    #     'num_layers',
+    #     'dropout',
+    #     'weight_decay',
+    #     'epochs',
+    #     'decay_after_epoch',
+    #     'loss_function',
+    #     'optimizer'
+    # ]
