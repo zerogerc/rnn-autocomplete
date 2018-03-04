@@ -58,20 +58,24 @@ class HtmlBuilder:
     def __init__(self):
         self.message = ""
 
-    def add_popup(self, anchor, popup):
+    def add_popup(self, anchor, popup, background=None):
         """Add popup with two texts: one for anchor text and other for popup.
         You should not append any html elements to anchor or popup because this texts will be *converted*.
         """
-        self.message += HtmlBuilder.get_popup_html(anchor, popup)
+        self.message += HtmlBuilder.get_popup_html(anchor, popup, background)
 
     def build(self):
         return HtmlBuilder.get_popup_html_page(self.message)
 
     @staticmethod
-    def get_popup_html(anchor, popup):
+    def get_popup_html(anchor, popup, background=None):
+        background = background or '#FFF'
         return """
-            <span class = "popup-container"><span class = "anchor">{}</span><span class = "popup">{}</span></span>
-        """.format(string_to_html(anchor), string_to_html(popup))
+            <span class = "popup-container">
+                <span class = "anchor" style="background: {}">{}</span>
+                <span class = "popup">{}</span>
+            </span>
+        """.format(background, string_to_html(anchor), string_to_html(popup))
 
     @staticmethod
     def get_popup_html_page(body):
@@ -82,12 +86,15 @@ if __name__ == '__main__':
     builder = HtmlBuilder()
     builder.add_popup(
         anchor="first",
-        popup="First\nSecond"
+        popup="First\nSecond",
+        background="#81C784"
+
     )
     for i in range(100):
         builder.add_popup(
             anchor="second",
-            popup="1\n2\n3"
+            popup="1\n2\n3",
+            background="#EF9A9A"
         )
     show_html_page(
         page=builder.build()
