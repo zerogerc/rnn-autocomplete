@@ -73,3 +73,12 @@ namegen
 Стартануть сервак visdom:
 
 ``python3 -m visdom.server``
+
+Tensorboard visualization::
+
+    for name, param in model.named_parameters():
+        writer.add_histogram(name, param.clone().cpu().data.numpy(), n_iter)
+
+Link: https://github.com/lanpa/tensorboard-pytorch
+
+CUDA notes: http://pytorch.org/docs/master/notes/cuda.html
