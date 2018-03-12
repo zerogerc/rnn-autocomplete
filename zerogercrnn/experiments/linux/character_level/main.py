@@ -9,6 +9,8 @@ from zerogercrnn.experiments.linux.models.gru import GRULinuxNetwork
 from zerogercrnn.experiments.linux.models.lstm import LSTMLinuxNetwork
 from zerogercrnn.experiments.linux.models.rnn import RNNLinuxNetwork
 from zerogercrnn.lib.train.run import TrainEpochRunner
+from zerogercrnn.lib.train.routines import BaseRoutine
+from zerogercrnn.experiments.linux.batcher import BatcherDataGenerator
 
 # ------------- hyperparameters ------------- #
 
@@ -35,8 +37,6 @@ DECAY_AFTER_EPOCH = 10
 
 
 # ------------------------------------------- #
-
-
 
 def create_lstm(input_size, output_size):
     return LSTMLinuxNetwork(
@@ -71,6 +71,10 @@ def create_gru(input_size, output_size):
 def run_train():
     # batcher, corpus = read_data_mini(single=os.getcwd() + '/data_dir/linux_kernel_mini.txt', seq_len=SEQ_LEN)
     batcher, corpus = read_data(datadir=os.path.join(os.getcwd(), 'data_dir/kernel_concat/'), seq_len=SEQ_LEN)
+    data_generator = BatcherDataGenerator(
+        batcher=batcher,
+        batch_size=BATCH_SIZE
+    )
 
     INPUT_SIZE = len(corpus.alphabet)
     OUTPUT_SIZE = len(corpus.alphabet)
@@ -93,17 +97,27 @@ def run_train():
         sz_o = output_tensor.size()[-1]
         return criterion(output_tensor.view(-1, sz_o), target_tensor.view(-1))
 
+    train_routine = BaseRoutine(
+        network=network,
+        criterion=calc_loss,
+        optimizer=optimizer
+    )
+    validation_routine = BaseRoutine(
+        network=network,
+        criterion=calc_loss
+    )
+
     runner = TrainEpochRunner(
         network=network,
-        loss_calc=calc_loss,
-        optimizer=optimizer,
-        batcher=batcher,
+        train_routine=train_routine,
+        validation_routine=validation_routine,
+        data_generator=data_generator,
         scheduler=scheduler,
         plotter='visdom',
         # save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
-    runner.run(number_of_epochs=EPOCHS, batch_size=BATCH_SIZE)
+    runner.run(number_of_epochs=EPOCHS)
 
 
 if __name__ == '__main__':

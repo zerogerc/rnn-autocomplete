@@ -4,11 +4,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
+from zerogercrnn.experiments.linux.batcher import BatcherDataGenerator
 from zerogercrnn.experiments.linux.constants import HOME_DIR
 from zerogercrnn.experiments.linux.token_level.data import read_data, read_data_mini
 from zerogercrnn.experiments.linux.token_level.gru_model import GRULinuxNetwork
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.train.run import TrainEpochRunner
+from zerogercrnn.lib.train.routines import BaseRoutine
 
 # --- parameters of the training --- #
 config = Config()
@@ -74,15 +76,20 @@ def create_scheduler(cfg, optimizer):
 
 
 def run_train(cfg):
-    # batcher, corpus = read_data_mini(
-    #     single=HOME_DIR + '/data_dir/linux_kernel_mini.txt',
+    batcher, corpus = read_data_mini(
+        single=HOME_DIR + '/data_dir/linux_kernel_mini.txt',
+        tokens_path=TOKENS_PATH,
+        seq_len=cfg.seq_len
+    )
+    # batcher, corpus = read_data(
+    #     datadir=DATA_PATH,
     #     tokens_path=TOKENS_PATH,
     #     seq_len=cfg.seq_len
     # )
-    batcher, corpus = read_data(
-        datadir=DATA_PATH,
-        tokens_path=TOKENS_PATH,
-        seq_len=cfg.seq_len
+
+    data_generator = BatcherDataGenerator(
+        batcher=batcher,
+        batch_size=cfg.batch_size
     )
 
     network = create_network(cfg, vocab_size=len(corpus.tokens))
@@ -94,17 +101,27 @@ def run_train(cfg):
 
     # load_if_saved(network, path=os.path.join(os.getcwd(), 'saved_models/model_epoch_10'))
 
+    train_routine = BaseRoutine(
+        network=network,
+        criterion=loss_calc,
+        optimizer=optimizer
+    )
+    validation_routine = BaseRoutine(
+        network=network,
+        criterion=loss_calc
+    )
+
     runner = TrainEpochRunner(
         network=network,
-        loss_calc=loss_calc,
-        optimizer=optimizer,
-        batcher=batcher,
+        train_routine=train_routine,
+        validation_routine=validation_routine,
+        data_generator=data_generator,
         scheduler=scheduler,
-        plotter='visdom',
+        plotter='tensorboard',
         save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
-    runner.run(number_of_epochs=cfg.epochs, batch_size=cfg.batch_size)
+    runner.run(number_of_epochs=cfg.epochs)
 
 
 if __name__ == '__main__':

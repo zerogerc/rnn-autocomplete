@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import visdom
 import numpy as np
 
+from tensorboardX import SummaryWriter
+
+TENSORBOARD_DIR = '/tensorboard/runs/'
+
 
 class Plotter:
     def on_new_point(self, label, x, y):
@@ -60,6 +64,18 @@ class VisdomPlotter(Plotter):
         )
 
 
+class TensorboardPlotter(Plotter):
+    def __init__(self, title):
+        self.writer = SummaryWriter(TENSORBOARD_DIR + title)
+
+    def on_new_point(self, label, x, y):
+        self.writer.add_scalar(
+            tag=label,
+            scalar_value=y,
+            global_step=x
+        )
+
+
 class PlotData:
     def __init__(self):
         self.x = []
@@ -68,3 +84,7 @@ class PlotData:
     def add(self, x, y):
         self.x.append(x)
         self.y.append(y)
+
+
+if __name__ == '__main__':
+    plotter = VisdomPlotter(title='x', plots=['y', 'z'])

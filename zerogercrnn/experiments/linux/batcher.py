@@ -1,7 +1,21 @@
 import numpy as np
-import torch
-
 from typing import Dict
+
+from zerogercrnn.lib.data.general import DataGenerator
+
+
+class BatcherDataGenerator(DataGenerator):
+    """Encapsulates batcher architecture into general interface for data."""
+
+    def __init__(self, batcher, batch_size):
+        self.batcher = batcher
+        self.batch_size = batch_size
+
+    def get_train_generator(self):
+        return self.batcher.data_map['train'].get_batched_epoch(self.batch_size)
+
+    def get_validation_generator(self):
+        return self.batcher.data_map['validation'].get_batched_epoch(self.batch_size)
 
 
 class BatchNode:
@@ -65,7 +79,8 @@ class Batcher:
 
 
 if __name__ == '__main__':
-    x = torch.zeros((2, 2))
-    print(x.size())
-    print(x.unsqueeze(1).size())
-    print(general_data_picker(torch.eye(10), 3, np.array([1, 3]))[:, 0, :])
+    pass
+    # x = torch.zeros((2, 2))
+    # print(x.size())
+    # print(x.unsqueeze(1).size())
+    # print(general_data_picker(torch.eye(10), 3, np.array([1, 3]))[:, 0, :])

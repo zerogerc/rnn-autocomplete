@@ -41,7 +41,7 @@ class TestBatchNode:
 
         input_ids = []
         target_ids = []
-        for _ in node.get_batched_epoch(TEST_BATCH):
+        for _ in node._get_batched_epoch_(TEST_BATCH):
             input_ids += set(mock_input_picker.call_args[0][0])
             target_ids += set(mock_output_picker.call_args[0][0])
 

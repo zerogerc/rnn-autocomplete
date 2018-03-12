@@ -1,300 +1,236 @@
 import json
 import os
 
+import numpy as np
+import torch
 from tqdm import tqdm
 
-"""Utils for parsing and providing dataset from here: https://www.srl.inf.ethz.ch/js150.php."""
+from zerogercrnn.experiments.js.ast_level.raw_data import ENCODING
+from zerogercrnn.lib.data.general import DataGenerator
 
-DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar'
+"""
+File that contains utilities that transform sequence of one-hot (Terminal, Non-Terminal) 
+to the tensors that could be fed into models.
+"""
 
-FILE_TRAINING_DATASET = os.path.join(DIR_DATASET, 'programs_training.json')
-FILE_EVAL_DATASET = os.path.join(DIR_DATASET, 'programs_eval.json')
+DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar/processed'
 
-FILE_TRAINING_PROCESSED = os.path.join(DIR_DATASET, 'programs_processed_training.json')
-FILE_EVAL_PROCESSED = os.path.join(DIR_DATASET, 'programs_processed_eval.json')
+FILE_TRAINING = os.path.join(DIR_DATASET, 'programs_training_one_hot.json')
+FILE_EVAL = os.path.join(DIR_DATASET, 'programs_eval_one_hot.json')
 
-FILE_TRAINING_ONE_HOT = os.path.join(DIR_DATASET, 'programs_training_one_hot.json')
-FILE_EVAL_ONE_HOT = os.path.join(DIR_DATASET, 'programs_eval_one_hot.json')
-
-FILE_NON_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'non_terminal_tokens.txt')
-FILE_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
-
-# ENCODING = 'utf-8'
-# ENCODING = 'latin-1'
-ENCODING = 'ISO-8859-1'
-
-EMPTY_TOKEN = '_EMP_'  # token means that for particular terminal there are no corresponding non-terminal
-UNKNOWN_TOKEN = '_UNK_'  # token means that non-terminal token is rare
-EOF_TOKEN = '_EOF_'  # token indicating end of program
+FILE_TERMINALS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
+FILE_NON_TERMINALS = os.path.join(DIR_DATASET, 'non_terminal_tokens.txt')
 
 
-class OneHotConverter:
-    """Converts tokenized sequence from JsonConverter into one-hot."""
+class SourceFile:
+    """Encoded source file of JS AST. Has two fields N and T that are the same length.
+    N is a sequence of non-terminals and T is a sequence of corresponding terminals.
 
-    def __init__(self, file_terminals, file_non_terminals, encoding=ENCODING):
-        # dataset was already converted using this limit.
-        # TODO: do not use limit when converting dataset
-
-        self.terminals, self.terminal_idx = DataUtils.read_terminals(
-            file=file_terminals,
-            limit=50000,
-            encoding=encoding
-        )
-
-        self.non_terminals, self.non_terminal_idx = DataUtils.read_non_terminals(
-            file=file_non_terminals,
-            encoding=encoding
-        )
-
-        self.encoding = encoding
-
-    def convert_file(self, src_file, dst_file):
-        f_read = open(src_file, mode='r', encoding=self.encoding)
-        f_write = open(dst_file, mode='w', encoding=self.encoding)
-
-        for l in tqdm(f_read, total=100000):
-            raw_json = json.loads(l)
-
-            converted_json = []
-            for node in raw_json:
-                if node == 0:
-                    break
-
-                N = node['N']
-                T = node['T']
-
-                assert N in self.non_terminal_idx.keys()
-                assert T in self.terminal_idx.keys()
-
-                converted_json.append({
-                    'N': self.non_terminal_idx[N],
-                    'T': self.terminal_idx[T]
-                })
-
-            f_write.write(json.dumps(converted_json))
-            f_write.write('\n')
-
-
-class JsonConverter:
-    """Converts raw json of parsed AST to sequence of (N, T) where N means non-terminal and T means corresponding terminal.
-    T should employ coding from TokensRetriever (two bits appended).
-    Output format - json like that: [{"N": "Program01", "T": "_EMP_"}, 0]"""
-
-    @staticmethod
-    def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True):
-        f_read = open(raw_file, mode='r', encoding=encoding)
-        f_write = open(dest_file, mode='w', encoding=encoding)
-        terminals = DataUtils.read_lines(file=terminals_file, limit=50000)
-
-        for l in tqdm(f_read, total=100000):
-            raw_json = json.loads(l)
-            converted_json = JsonConverter._convert_json_(raw_json, terminals, append_eof)
-
-            converted_json_string = json.dumps(converted_json)
-            f_write.write(converted_json_string)
-            f_write.write('\n')
-
-    @staticmethod
-    def _convert_json_(raw_json, terminals, append_eof):
-        left_child, right_sibling = DataUtils.get_left_child_right_sibling(
-            raw_json=raw_json,
-            append_eof=append_eof
-        )
-
-        output_json = []
-        for node in raw_json:
-            if node == 0:
-                break
-
-            # non-terminal
-            N = DataUtils.encode_non_terminal(node, left_child, right_sibling)
-
-            # terminal
-            if 'value' not in node:
-                T = EMPTY_TOKEN
-            elif node['value'] not in terminals:
-                T = UNKNOWN_TOKEN
-            else:
-                T = node['value']
-
-            output_json.append({
-                'N': N,
-                'T': T
-            })
-
-        if append_eof:
-            output_json.append({
-                'N': EOF_TOKEN,
-                'T': EMPTY_TOKEN
-            })
-
-        return output_json
-
-
-class TokensRetriever:
-    """Process raw dataset and forms files with terminal and non-terminal tokens.
-    Two bits will be appended to each non-terminal token in order to encode whether it has left child and right sibling.
+    N: torch.LongTensor
+    T: torch.LongTensor
     """
 
-    def __init__(self):
-        self.non_terminals = {}
-        self.terminals = {}
+    def __init__(self, N: torch.LongTensor, T: torch.LongTensor):
+        assert N.size() == T.size()
+        self.N = N
+        self.T = T
 
-    def get_and_write_tokens(self, dataset, non_terminal_dest, terminal_dest, encoding=ENCODING, append_eof=True):
-        with open(dataset, mode='r', encoding=ENCODING) as f:
-            for l in tqdm(f, total=100000):
-                self._process_single_json_(json.loads(l), append_eof=append_eof)
-
-        with open(non_terminal_dest, mode='w', encoding=encoding) as f:
-            for t in self.non_terminals.keys():
-                f.write('{}\n'.format(t))
-
-        # with open(terminal_dest, mode='w', encoding=encoding) as f:
-        #     sorted_terminals = sorted(self.terminals.keys(), key=lambda key: self.terminals[key], reverse=True)
-        #     for t in sorted_terminals:
-        #         f.write('{}\n'.format(t))
-
-    def _process_single_json_(self, raw_json, append_eof):
-        left_child, right_sibling = DataUtils.get_left_child_right_sibling(
-            raw_json=raw_json,
-            append_eof=append_eof
-        )
-
-        for node in raw_json:
-            if node == 0:
-                break
-
-            # add non-terminal
-            node_type = DataUtils.encode_non_terminal(node, left_child, right_sibling)
-            if node_type not in self.non_terminals.keys():
-                self.non_terminals[node_type] = 0
-            self.non_terminals[node_type] += 1
-
-            # add terminal
-            if 'value' in node:
-                node_value = node['value']
-                if node_value not in self.terminals.keys():
-                    self.terminals[node_value] = 0
-                self.terminals[node_value] += 1
+    def size(self):
+        return self.N.size()
 
 
-class DataUtils:
-    @staticmethod
-    def read_terminals(file, limit, encoding=ENCODING):
-        terminals = DataUtils.read_lines(file=file, limit=limit, encoding=encoding)
-        terminals.append(EMPTY_TOKEN)
-        terminals.append(UNKNOWN_TOKEN)
+class ASTDataGenerator(DataGenerator):
+    """Provides batched data for training and evaluation of model."""
 
-        terminal_idx = {}
-        for i in range(len(terminals)):
-            terminal_idx[terminals[i]] = i
+    def __init__(self, data_reader, seq_len, batch_size):
+        super(ASTDataGenerator, self).__init__()
+        self.seq_len = seq_len
+        self.batch_size = batch_size
 
-        return terminals, terminal_idx
+        self.data_train = self._prepare_data_(data_reader.data_train)
+        self.data_eval = self._prepare_data_(data_reader.data_eval)
 
-    @staticmethod
-    def read_non_terminals(file, encoding=ENCODING):
-        non_terminals = DataUtils.read_lines(file=file, limit=None, encoding=encoding)
-        non_terminals.append(EOF_TOKEN)
+        self.buckets = []
+        for i in range(self.batch_size):
+            self.buckets.append(DataBucket(self.seq_len))
 
-        non_terminal_idx = {}
-        for i in range(len(non_terminals)):
-            non_terminal_idx[non_terminals[i]] = i
+    # override
+    def get_train_generator(self):
+        return self._get_batched_epoch_(dataset=self.data_train)
 
-        return non_terminals, non_terminal_idx
+    # override
+    def get_validation_generator(self):
+        return self._get_random_batch_(dataset=self.data_eval)
 
-    @staticmethod
-    def read_lines(file, limit, encoding=ENCODING):
-        """Read first *limit* lines from file and returns list of them."""
-        lines = []
-        with open(file, mode='r', encoding=encoding) as f:
-            times = limit
+    def _get_random_batch_(self, dataset):
+        """Returns batch of first sequences of random files.
+            TODO: enhance. now it's r
+        """
+        for i in range(self.batch_size):
+            self.buckets[i].clear()
+            self.buckets[i].add_first_seq_of_source_file(dataset[ASTDataGenerator._get_random_index(len(dataset))])
 
-            for l in tqdm(f, total=limit):
-                if l[-1] == '\n':
-                    lines.append(l[:-1])
-                else:
-                    lines.append(l)
+        yield self._retrieve_batch_()
 
-                if times is not None:
-                    times -= 1
-                    if times == 0:
+    def _get_batched_epoch_(self, dataset):
+        """Returns generator over batched data of all files in the dataset."""
+        indexes = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
+        current = 0
+        while True:
+            cont = True  # indicates if epoch is finished
+            for bucket in self.buckets:  # add SourceFiles from query to the empty buckets.
+                if bucket.is_empty():
+                    if current == len(indexes):
+                        cont = False
                         break
 
-        return lines
+                    bucket.add_source_file(source=dataset[indexes[current]])  # add source file to fill the bucket
+                    current += 1
 
-    @staticmethod
-    def get_left_child_right_sibling(raw_json, append_eof=True):
-        """
-        :param     raw_json: AST json employed format from here: https://www.srl.inf.ethz.ch/js150.php
-        :param   append_eof: whether to append EOF token to the end of program
-        :return: left_child - ids of nodes that have left child </br>
-                 right_sibling - ids of nodes that have right sibling
-        """
-        left_child = set()
-        right_sibling = set()
-
-        for node in raw_json:
-            if node == 0:
+            if cont:
+                yield self._retrieve_batch_()
+            else:
                 break
 
-            if 'children' in node:  # this node has children
-                has_right_sibling_count = len(node['children']) - 1  # all except of last has right sibling
-                if append_eof and node['type'] == 'Program':  # we append eof, so last children also has right sibling
-                    has_right_sibling_count = len(node['children'])
+    def _retrieve_batch_(self):
+        """Returns pair of two tensors for input and target: (N, T) with sizes [seq_len, batch_size].
+            All buckets should not be empty here.
 
-                left_child.add(node['id'])  # has left child
-                for i in range(has_right_sibling_count):
-                    right_sibling.add(node['children'][i])
+            TODO: optimize
+        """
+        N = []
+        T = []
 
-        return left_child, right_sibling
+        for bucket in self.buckets:
+            n, t = bucket.get_next_seq()
+            N.append(n.unsqueeze(1))
+            T.append(t.unsqueeze(1))
+
+        N_cat = torch.cat(seq=N, dim=1)
+        T_cat = torch.cat(seq=T, dim=1)
+
+        t_input = (N_cat[0:self.seq_len, :], T_cat[0:self.seq_len, :])
+        t_target = (N_cat[1:self.seq_len + 1, :], T_cat[1:self.seq_len + 1, :])
+        return t_input, t_target
+
+    def _prepare_data_(self, data):
+        """Add (EOF, EMPTY) tokens to the end of file to match with self.seq_len. """
+        for i in tqdm(range(len(data))):
+            source_file_n = data[i].N
+            source_file_t = data[i].T
+            assert source_file_n.size() == source_file_t.size()
+
+            tail_size = (self.seq_len - source_file_n.size()[0] % self.seq_len) + 1  # + 1 for target
+            tail_n = torch.LongTensor([source_file_n[-1]]).expand(tail_size)
+            tail_t = torch.LongTensor([source_file_t[-1]]).expand(tail_size)
+
+            assert tail_n.size() == tail_t.size()
+
+            data[i].N = torch.cat((data[i].N, tail_n))
+            data[i].T = torch.cat((data[i].T, tail_t))
+
+        return data
 
     @staticmethod
-    def encode_non_terminal(node, left_child, right_sibling):
-        """Encodes non-terminal based on whether it has left_child and right_sibling."""
-        node_type = node['type']
-        if node['id'] in left_child:
-            node_type += '1'
-        else:
-            node_type += '0'
+    def _get_shuffled_indexes_(length):
+        temp = np.arange(length)
+        np.random.shuffle(temp)
+        return temp
 
-        if node['id'] in right_sibling:
-            node_type += '1'
-        else:
-            node_type += '0'
+    @staticmethod
+    def _get_random_index(length):
+        return np.random.randint(length)
 
-        return node_type
+
+class DataBucket:
+    """Bucket with SourceFiles. You could put SourceFiles here and extract tensors of (N, T) with specified seq_len."""
+
+    def __init__(self, seq_len):
+        self.seq_len = seq_len
+        self.source = None
+        self.index = 0
+
+    def is_empty(self):
+        """Indicates whether this bucket contains at least one more sequence."""
+        return (self.source is None) or ((self.source.size()[0] - 1) == self.index)
+
+    def clear(self):
+        """Remove attached SourceFile from this bucket."""
+        self.source = None
+        self.index = 0
+
+    def get_next_seq(self):
+        """Return two values of size (seq_len + 1) to be able to get input and target:
+            N - is the sequence of non-terminals,
+            T - is the sequence of corresponding terminals.
+        """
+        assert not self.is_empty()
+        self.index += self.seq_len
+        start = self.index - self.seq_len
+        return self.source.N.narrow(0, start, self.seq_len + 1), self.source.T.narrow(0, start, self.seq_len + 1)
+
+    def add_source_file(self, source: SourceFile):
+        """Adds the whole source file to the bucket."""
+        assert (source.N.size()[0] - 1) % self.seq_len == 0
+        assert (source.T.size()[0] - 1) % self.seq_len == 0
+        self.source = source
+        self.index = 0
+
+    def add_first_seq_of_source_file(self, source: SourceFile):
+        """Adds the first segment of the source file to the bucket."""
+        assert (source.N.size()[0] - 1) % self.seq_len == 0
+        assert (source.T.size()[0] - 1) % self.seq_len == 0
+        self.source = SourceFile(
+            N=source.N[0:self.seq_len + 1],
+            T=source.T[0:self.seq_len + 1]
+        )
+        self.index = 0
+
+
+class MockDataReader:
+    def __init__(self):
+        N = torch.LongTensor([1] * 1000)
+        T = torch.LongTensor(np.arange(1000))
+        self.data_train = [SourceFile(N, T) for i in range(100)]
+        self.data_eval = [SourceFile(N, T) for i in range(100)]
+
+
+class DataReader:
+    """Reads the data from one-hot encoded files and stores them as array of SourceFiles."""
+
+    def __init__(self, file_training, file_eval, encoding=ENCODING):
+        self.data_train = self.parse_programs(file_training, encoding, total=100000, label='Train')
+        self.data_eval = self.parse_programs(file_eval, encoding, total=50000, label='Eval')
+
+    @staticmethod
+    def parse_programs(file, encoding, total, label):
+        print('Parsing {}'.format(label))
+
+        programs = []
+        with open(file, mode='r', encoding=encoding) as f:
+            for l in tqdm(f, total=total):
+                raw_json = json.loads(l)
+
+                N = []
+                T = []
+                for node in raw_json:
+                    assert ('N' in node) and ('T' in node)
+                    N.append(node['N'])
+                    T.append(node['T'])
+
+                programs.append(
+                    SourceFile(
+                        N=torch.LongTensor(N),
+                        T=torch.LongTensor(T)
+                    )
+                )
+
+        return programs
 
 
 if __name__ == '__main__':
-    c = 2
-
-    if c == 0:
-        TokensRetriever().get_and_write_tokens(
-            dataset=FILE_TRAINING_DATASET,
-            non_terminal_dest=FILE_NON_TERMINAL_TOKENS,
-            terminal_dest=FILE_TERMINAL_TOKENS,
-            encoding=ENCODING,
-            append_eof=True
-        )
-    elif c == 1:
-        JsonConverter.convert_file(
-            raw_file=FILE_TRAINING_DATASET,
-            dest_file=FILE_TRAINING_PROCESSED,
-            terminals_file=FILE_TERMINAL_TOKENS,
-            encoding=ENCODING,
-            append_eof=True
-        )
-    elif c == 2:
-        converter = OneHotConverter(
-            file_terminals=FILE_TERMINAL_TOKENS,
-            file_non_terminals=FILE_NON_TERMINAL_TOKENS,
-            encoding=ENCODING
-        )
-        # converter.convert_file(
-        #     src_file=FILE_EVAL_PROCESSED,
-        #     dst_file=FILE_EVAL_ONE_HOT
-        # )
-        converter.convert_file(
-            src_file=FILE_TRAINING_PROCESSED,
-            dst_file=FILE_TRAINING_ONE_HOT
-        )
+    reader = DataReader(
+        file_training=FILE_TRAINING,
+        file_eval=FILE_EVAL,
+        encoding=ENCODING
+    )

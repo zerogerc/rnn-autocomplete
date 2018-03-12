@@ -7,12 +7,12 @@ class NetworkRoutine:
     def __init__(self, network):
         self.network = network
 
-    def run(self, iter_num, input_tensor, target_tensor):
+    def run(self, iter_num, n_input, n_target):
         """ Run routine and return value of loss function.
         
         :param iter_num: number of iteration
-        :param input_tensor: tensor of the size corresponding to network.
-        :param target_tensor: tensor of the size corresponding to criterion and network.
+        :param n_input: input corresponding to network.
+        :param n_target: output corresponding to criterion and network.
         """
         pass
 
@@ -30,21 +30,21 @@ class BaseRoutine(NetworkRoutine):
         self.criterion = criterion
         self.optimizer = optimizer
 
-    def run(self, iter_num, input_tensor, target_tensor):
+    def run(self, iter_num, n_input, n_target):
         """Run network and return float value of loss.
         
         :param iter_num: number of iteration (used to plot loss).
-        :param input_tensor: tensor of size [seq_len, batch_size, input_size].
-        :param target_tensor: tensor of size [seq_len, batch_size, target_size]. 
+        :param n_input: tensor of size [seq_len, batch_size, input_size].
+        :param n_target: tensor of size [seq_len, batch_size, target_size]. 
         :return: float value of loss computed with specified loss function.
         """
-        input_tensor = Variable(input_tensor)
-        target_tensor = Variable(target_tensor)
+        n_input = Variable(n_input)
+        n_target = Variable(n_target)
 
         self.network.zero_grad()
-        output_tensor = self.network(input_tensor)
+        output_tensor = self.network(n_input)
 
-        loss = self.criterion(output_tensor, target_tensor)
+        loss = self.criterion(output_tensor, n_target)
 
         if self.optimizer is not None:
             loss.backward()
