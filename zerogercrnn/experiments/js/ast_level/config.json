@@ -1,0 +1,19 @@
+{
+  "train_file": "/Users/zerogerc/Documents/datasets/js_dataset.tar/processed/programs_training_one_hot.json",
+  "eval_file": "/Users/zerogerc/Documents/datasets/js_dataset.tar/processed/programs_eval_one_hot.json",
+  "encoding": "ISO-8859-1",
+  "non_terminals_count": 97,
+  "terminals_count": 50002,
+  "data_train_limit": 100,
+  "data_eval_limit": 100,
+  "seq_len": 50,
+  "batch_size": 80,
+  "learning_rate": 0.05,
+  "epochs": 10,
+  "decay_after_epoch": 10,
+  "decay_multiplier": 0.95,
+  "embedding_size": 100,
+  "hidden_size": 500,
+  "num_layers": 1,
+  "dropout": 0.01
+}

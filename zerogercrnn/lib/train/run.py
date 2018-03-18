@@ -66,7 +66,6 @@ class TrainEpochRunner:
                         n_input=n_input,
                         n_target=n_target
                     )
-                    print('Loss: {}'.format(loss))
 
                     self.plotter.on_new_point(
                         label='train',

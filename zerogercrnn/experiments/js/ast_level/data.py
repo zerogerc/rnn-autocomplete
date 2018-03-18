@@ -60,7 +60,7 @@ class ASTDataGenerator(DataGenerator):
 
     # override
     def get_validation_generator(self):
-        return self._get_random_batch_(dataset=self.data_eval)
+        return self._get_batched_epoch_(dataset=self.data_eval, limit=1000)
 
     def _get_random_batch_(self, dataset):
         """Returns batch of first sequences of random files.
@@ -72,7 +72,7 @@ class ASTDataGenerator(DataGenerator):
 
         yield self._retrieve_batch_()
 
-    def _get_batched_epoch_(self, dataset):
+    def _get_batched_epoch_(self, dataset, limit=None):
         """Returns generator over batched data of all files in the dataset."""
         indexes = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
         current = 0
@@ -90,6 +90,9 @@ class ASTDataGenerator(DataGenerator):
             if cont:
                 yield self._retrieve_batch_()
             else:
+                break
+
+            if current == limit:
                 break
 
     def _retrieve_batch_(self):
@@ -198,9 +201,12 @@ class MockDataReader:
 class DataReader:
     """Reads the data from one-hot encoded files and stores them as array of SourceFiles."""
 
-    def __init__(self, file_training, file_eval, encoding=ENCODING):
-        self.data_train = self.parse_programs(file_training, encoding, total=100000, label='Train')
-        self.data_eval = self.parse_programs(file_eval, encoding, total=50000, label='Eval')
+    def __init__(self, file_training, file_eval, encoding=ENCODING, limit_train=None, limit_eval=None):
+        data_train_limit = 100000 if (limit_train is None) else limit_train
+        data_eval_limit = 50000 if (limit_eval is None) else limit_eval
+
+        self.data_train = self.parse_programs(file_training, encoding, total=data_train_limit, label='Train')
+        self.data_eval = self.parse_programs(file_eval, encoding, total=data_eval_limit, label='Eval')
 
     @staticmethod
     def parse_programs(file, encoding, total, label):
@@ -208,6 +214,7 @@ class DataReader:
 
         programs = []
         with open(file, mode='r', encoding=encoding) as f:
+            cur = 0
             for l in tqdm(f, total=total):
                 raw_json = json.loads(l)
 
@@ -224,6 +231,10 @@ class DataReader:
                         T=torch.LongTensor(T)
                     )
                 )
+
+                cur += 1
+                if cur == total:
+                    break
 
         return programs
 

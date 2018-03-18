@@ -84,26 +84,21 @@ class JSBaseModel(nn.Module):
         """
         :param input_tensor: tensor of size [seq_len, batch_size, 1]
         """
-        print('start')
         assert non_terminal_input.size() == terminal_input.size()
         seq_len = non_terminal_input.size()[0]
         batch_size = non_terminal_input.size()[1]
 
         non_terminal_input = torch.squeeze(non_terminal_input)
         terminal_input = torch.squeeze(terminal_input)
-        print('squeeze')
 
         # this tensors will be the size of [batch_size, seq_len, embedding_dim]
         non_terminal_emb = self.non_terminal_embedding(non_terminal_input.permute(1, 0))
         terminal_emb = self.terminal_embedding(terminal_input.permute(1, 0))
-        print('embedded')
 
         non_terminal_emb = non_terminal_emb.permute(1, 0, 2)
         terminal_emb = terminal_emb.permute(1, 0, 2)
-        print('permuted')
 
         lstm_input = non_terminal_emb + terminal_emb
-        print('lstmed')
 
         # output_tensor will be the size of (seq_len, batch_size, hidden_size * num_directions)
         output_tensor, hidden = self.lstm(lstm_input)
@@ -114,13 +109,9 @@ class JSBaseModel(nn.Module):
         non_terminal_output = self.h2NT(output_tensor)
         non_terminal_output = self.softmaxNT(non_terminal_output)
         non_terminal_output = non_terminal_output.view(seq_len, batch_size, self.non_terminal_output_size)
-        print('non_terminal_converted')
 
         terminal_output = self.h2T(output_tensor)
         terminal_output = self.softmaxT(terminal_output)
         terminal_output = terminal_output.view(seq_len, batch_size, self.terminal_output_size)
-        print('terminal_converted')
-
-        print('finish')
 
         return non_terminal_output, terminal_output
