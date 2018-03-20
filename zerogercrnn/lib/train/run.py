@@ -74,15 +74,15 @@ class TrainEpochRunner:
                         n_target=n_target
                     )
 
-                    if train_point_id % self.skip_train_points == 0:
-                        if isinstance(loss, Variable):
-                            loss = loss.data[0]
+                    # if train_point_id % self.skip_train_points == 0:
+                    #     if isinstance(loss, Variable):
+                    #         loss = loss.data[0]
 
-                        self.plotter.on_new_point(
-                            label='train',
-                            x=it,
-                            y=loss
-                        )
+                    # self.plotter.on_new_point(
+                    #     label='train',
+                    #     x=it,
+                    #     y=loss
+                    # )
 
                     count = 0
                     for obj in gc.get_objects():
@@ -105,8 +105,9 @@ class TrainEpochRunner:
             print('-' * 89)
             print('Exiting from training early')
         finally:
+            x = 0
             # plot graphs of validation and train losses
-            self.plotter.on_finish()
+            # self.plotter.on_finish()
 
     def validate(self, epoch, iter_num):
         """Perform validation and calculate loss as an average of the whole validation dataset."""
@@ -132,10 +133,10 @@ class TrainEpochRunner:
         if isinstance(total_loss, Variable):
             total_loss = total_loss.data[0]
 
-        self.plotter.on_new_point(
-            label='validation',
-            x=iter_num,
-            y=total_loss / total_count
-        )
+        # self.plotter.on_new_point(
+        #     label='validation',
+        #     x=iter_num,
+        #     y=total_loss / total_count
+        # )
 
         print('Epoch: {}, Average loss: {}'.format(epoch, total_loss / total_count))
