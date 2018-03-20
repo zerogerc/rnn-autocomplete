@@ -15,7 +15,7 @@ class ASTRoutine(NetworkRoutine):
     def run(self, iter_num, n_input, n_target):
         """Input and target here are pair of tensors (N, T)"""
 
-        ct = time.clock()
+        # ct = time.clock()
         non_terminal_input = Variable(n_input[0].unsqueeze(2))
         terminal_input = Variable(n_target[0].unsqueeze(2))
 
@@ -28,26 +28,26 @@ class ASTRoutine(NetworkRoutine):
             non_terminal_target = non_terminal_target.cuda()
             terminal_target = terminal_target.cuda()
 
-        print("TIME GET DATA: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        # print("TIME GET DATA: {}".format(1000 * (time.clock() - ct)))
+        # ct = time.clock()
 
         self.network.zero_grad()
         n_target = (non_terminal_target, terminal_target)
         n_output = self.network(non_terminal_input, terminal_input)
 
-        print("TIME NETWORK: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        # print("TIME NETWORK: {}".format(1000 * (time.clock() - ct)))
+        # ct = time.clock()
 
         loss = self.criterion(n_output, n_target)
 
-        print("TIME CRITERION: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        # print("TIME CRITERION: {}".format(1000 * (time.clock() - ct)))
+        # ct = time.clock()
 
         if self.optimizer is not None:
             loss.backward()
             self.optimizer.step()
 
-        print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        # print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
+        # ct = time.clock()
 
         return loss

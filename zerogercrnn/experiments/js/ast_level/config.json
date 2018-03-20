@@ -1,6 +1,7 @@
 {
   "train_file": "/Users/zerogerc/Documents/datasets/js_dataset.tar/processed/programs_training_one_hot.json",
   "eval_file": "/Users/zerogerc/Documents/datasets/js_dataset.tar/processed/programs_eval_one_hot.json",
+  "model_save_dir": "/Users/zerogerc/Documents/saved_models/",
   "encoding": "ISO-8859-1",
   "non_terminals_count": 97,
   "terminals_count": 50002,

@@ -1,0 +1,15 @@
+{
+  "batch_size": 80,
+  "decay_after_epoch": 0,
+  "dropout": 0.02,
+  "embedding_size": 200,
+  "epochs": 50,
+  "hidden_size": 1500,
+  "learning_rate": 0.005,
+  "loss_function": "nll",
+  "network_type": "gru",
+  "num_layers": 1,
+  "optimizer": "adam",
+  "seq_len": 50,
+  "weight_decay": 0.01
+}

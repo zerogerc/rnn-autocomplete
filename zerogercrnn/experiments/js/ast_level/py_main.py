@@ -59,7 +59,7 @@ def run_training(cfg, cuda, data_generator, network, criterion, optimizer, sched
         data_generator=data_generator,
         scheduler=scheduler,
         plotter='matplotlib',
-        save_dir=os.path.join(os.getcwd(), 'saved_models')
+        save_dir=cfg.model_save_dir
     )
 
     runner.run(number_of_epochs=cfg.epochs)
