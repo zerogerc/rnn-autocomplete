@@ -50,4 +50,4 @@ class ASTRoutine(NetworkRoutine):
         print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
         ct = time.clock()
 
-        return loss.data[0]
+        return loss

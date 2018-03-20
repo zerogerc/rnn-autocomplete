@@ -1,6 +1,7 @@
 import os
 from tqdm import tqdm
 
+from torch.autograd import Variable
 import torch.nn as nn
 
 from zerogercrnn.lib.train.routines import BaseRoutine
@@ -20,7 +21,8 @@ class TrainEpochRunner:
             scheduler=None,
             plotter='matplotlib',
             save_dir=None,
-            title='TrainRunner'
+            title='TrainRunner',
+            skip_train_points=100
     ):
         """Create train runner.
         
@@ -39,6 +41,7 @@ class TrainEpochRunner:
         self.data_generator = data_generator
         self.scheduler = scheduler
         self.save_dir = save_dir
+        self.skip_train_points = skip_train_points
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)
@@ -60,6 +63,7 @@ class TrainEpochRunner:
                 train_data = self.data_generator.get_train_generator()
                 # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
+                train_point_id = 0
                 for n_input, n_target in train_data:
                     loss = self.train_routine.run(
                         iter_num=it,
@@ -67,11 +71,15 @@ class TrainEpochRunner:
                         n_target=n_target
                     )
 
-                    self.plotter.on_new_point(
-                        label='train',
-                        x=it,
-                        y=loss
-                    )
+                    if train_point_id % self.skip_train_points == 0:
+                        if loss is Variable:
+                            loss = loss.data[0]
+
+                        self.plotter.on_new_point(
+                            label='train',
+                            x=it,
+                            y=loss
+                        )
 
                     it += 1
 
@@ -94,7 +102,7 @@ class TrainEpochRunner:
         """Perform validation and calculate loss as an average of the whole validation dataset."""
         validation_data = self.data_generator.get_validation_generator()
 
-        total_loss = 0
+        total_loss = None
         total_count = 0
 
         for input_tensor, target_tensor in validation_data:
@@ -104,8 +112,15 @@ class TrainEpochRunner:
                 n_target=target_tensor
             )
 
-            total_loss += current_loss
+            if total_loss is None:
+                total_loss = current_loss
+            else:
+                total_loss += current_loss
+
             total_count += 1
+
+        if total_loss is Variable:
+            total_loss = total_loss.data[0]
 
         self.plotter.on_new_point(
             label='validation',
