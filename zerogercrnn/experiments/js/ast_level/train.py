@@ -47,7 +47,9 @@ class ASTRoutine(NetworkRoutine):
             loss.backward()
             self.optimizer.step()
 
+        del non_terminal_target, terminal_target, non_terminal_target, terminal_target
+
         # print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
         # ct = time.clock()
 
-        return loss
+        return loss.data[0]  # TODO: this is slow
