@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader
+from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader, MockDataReader
 from zerogercrnn.experiments.js.ast_level.network_base_lstm import JSBaseModel
 from zerogercrnn.experiments.js.ast_level.train import ASTRoutine
 from zerogercrnn.lib.train.config import Config
@@ -18,13 +18,15 @@ parser.add_argument('--cuda', action='store_true', help='use cuda?')
 
 
 def create_data_generator(cfg):
-    reader = DataReader(
-        file_training=cfg.train_file,
-        file_eval=cfg.eval_file,
-        encoding=cfg.encoding,
-        limit_train=cfg.data_train_limit,
-        limit_eval=cfg.data_eval_limit
-    )
+    # reader = DataReader(
+    #     file_training=cfg.train_file,
+    #     file_eval=cfg.eval_file,
+    #     encoding=cfg.encoding,
+    #     limit_train=cfg.data_train_limit,
+    #     limit_eval=cfg.data_eval_limit
+    # )
+
+    reader = MockDataReader()
 
     data_generator = ASTDataGenerator(
         data_reader=reader,
@@ -56,8 +58,8 @@ def run_training(cfg, cuda, data_generator, network, criterion, optimizer, sched
         validation_routine=validation_routine,
         data_generator=data_generator,
         scheduler=scheduler,
-        plotter='matplotlib'
-        # save_dir=os.path.join(os.getcwd(), 'saved_models')
+        plotter='matplotlib',
+        save_dir=os.path.join(os.getcwd(), 'saved_models')
     )
 
     runner.run(number_of_epochs=cfg.epochs)
