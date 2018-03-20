@@ -63,7 +63,7 @@ class BatchNode:
 
 class Batcher:
     def __init__(self):
-        self.data_map: Dict[str, BatchNode] = {}
+        self.data_map = {}
 
     def add_data(self, key, size, picker):
         """
