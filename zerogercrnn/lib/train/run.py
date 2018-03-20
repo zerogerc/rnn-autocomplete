@@ -1,6 +1,9 @@
 import os
 from tqdm import tqdm
 
+import torch
+import gc
+
 from torch.autograd import Variable
 import torch.nn as nn
 
@@ -72,7 +75,7 @@ class TrainEpochRunner:
                     )
 
                     if train_point_id % self.skip_train_points == 0:
-                        if loss is Variable:
+                        if isinstance(loss, Variable):
                             loss = loss.data[0]
 
                         self.plotter.on_new_point(
@@ -80,6 +83,13 @@ class TrainEpochRunner:
                             x=it,
                             y=loss
                         )
+
+                    count = 0
+                    for obj in gc.get_objects():
+                        if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                            count += 1
+
+                    print("Tensors: {}".format(count))
 
                     it += 1
 
@@ -119,7 +129,7 @@ class TrainEpochRunner:
 
             total_count += 1
 
-        if total_loss is Variable:
+        if isinstance(total_loss, Variable):
             total_loss = total_loss.data[0]
 
         self.plotter.on_new_point(
