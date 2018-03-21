@@ -5,6 +5,11 @@ from torch.autograd import Variable
 from zerogercrnn.lib.train.routines import NetworkRoutine
 
 
+def print_interval_and_update(label, ct):
+    print("{}: {}".format(label, (1000 * (time.clock() - ct))))
+    return time.clock()
+
+
 class ASTRoutine(NetworkRoutine):
     def __init__(self, network, criterion, optimizer=None, cuda=True):
         super(ASTRoutine, self).__init__(network)
@@ -45,11 +50,8 @@ class ASTRoutine(NetworkRoutine):
 
         if self.optimizer is not None:
             loss.backward()
+            ct = print_interval_and_update("TIME BACKWARD", ct)
             self.optimizer.step()
-
-        del non_terminal_input, terminal_input, non_terminal_target, terminal_target
-
-        print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+            ct = print_interval_and_update("TIME STEP", ct)
 
         return loss  # TODO: this is slow
