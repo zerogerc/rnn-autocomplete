@@ -31,7 +31,8 @@ class JSBaseModel(nn.Module):
         # Layer that encodes one-hot vector of terminals (B)
         self.terminal_embedding = nn.Embedding(
             num_embeddings=terminal_vocab_size,
-            embedding_dim=embedding_size
+            embedding_dim=embedding_size,
+            sparse=True
         )
 
         # Recurrent layer that will have (A + B) as an input
