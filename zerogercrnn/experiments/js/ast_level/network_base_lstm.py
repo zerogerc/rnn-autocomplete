@@ -24,7 +24,8 @@ class JSBaseModel(nn.Module):
         # Layer that encodes one-hot vector of non-terminals (A)
         self.non_terminal_embedding = nn.Embedding(
             num_embeddings=non_terminal_vocab_size,
-            embedding_dim=embedding_size
+            embedding_dim=embedding_size,
+            sparse=True
         )
 
         # Layer that encodes one-hot vector of terminals (B)
