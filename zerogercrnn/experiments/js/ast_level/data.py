@@ -262,8 +262,8 @@ class DataReader:
 
                 programs.append(
                     SourceFile(
-                        N=torch.LongTensor(N),
-                        T=torch.LongTensor(T)
+                        N=tensorN,
+                        T=tensorT
                     )
                 )
 
