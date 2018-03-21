@@ -55,4 +55,4 @@ class ASTRoutine(NetworkRoutine):
                 optimizer.step()
             # ct = print_interval_and_update("TIME STEP", ct)
 
-        return loss  # TODO: this is slow
+        return loss.data[0]  # TODO: this is slow
