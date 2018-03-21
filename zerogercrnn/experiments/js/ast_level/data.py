@@ -191,9 +191,16 @@ class DataBucket:
 
 
 class MockDataReader:
-    def __init__(self):
+    def __init__(self, cuda=True):
+        self.cuda = cuda and torch.cuda.is_available()
+
         N = torch.LongTensor([1] * 1000)
         T = torch.LongTensor(np.arange(1000))
+
+        if self.cuda:
+            N = N.cuda()
+            T = T.cuda()
+
         self.data_train = [SourceFile(N, T) for i in range(100)]
         self.data_eval = [SourceFile(N, T) for i in range(100)]
 
@@ -201,15 +208,29 @@ class MockDataReader:
 class DataReader:
     """Reads the data from one-hot encoded files and stores them as array of SourceFiles."""
 
-    def __init__(self, file_training, file_eval, encoding=ENCODING, limit_train=None, limit_eval=None):
+    def __init__(self, file_training, file_eval, encoding=ENCODING, limit_train=None, limit_eval=None, cuda=True):
+        self.cuda = cuda and torch.cuda.is_available()
+
         data_train_limit = 100000 if (limit_train is None) else limit_train
         data_eval_limit = 50000 if (limit_eval is None) else limit_eval
 
-        self.data_train = self.parse_programs(file_training, encoding, total=data_train_limit, label='Train')
-        self.data_eval = self.parse_programs(file_eval, encoding, total=data_eval_limit, label='Eval')
+        self.data_train = self.parse_programs(
+            file_training,
+            encoding,
+            total=data_train_limit,
+            label='Train',
+            cuda=self.cuda
+        )
+        self.data_eval = self.parse_programs(
+            file_eval,
+            encoding,
+            total=data_eval_limit,
+            label='Eval',
+            cuda=self.cuda
+        )
 
     @staticmethod
-    def parse_programs(file, encoding, total, label):
+    def parse_programs(file, encoding, total, label, cuda):
         print('Parsing {}'.format(label))
 
         programs = []
@@ -224,6 +245,14 @@ class DataReader:
                     assert ('N' in node) and ('T' in node)
                     N.append(node['N'])
                     T.append(node['T'])
+
+                # TODO: check if it's faster to allocated tensors on GPU right away
+                tensorN = torch.LongTensor(N)
+                tensorT = torch.LongTensor(T)
+
+                if cuda:
+                    tensorN = tensorN.cuda()
+                    tensorT = tensorT.cuda()
 
                 programs.append(
                     SourceFile(
