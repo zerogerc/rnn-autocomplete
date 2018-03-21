@@ -1,4 +1,3 @@
-import os
 import argparse
 
 import torch
@@ -15,18 +14,20 @@ from zerogercrnn.lib.train.run import TrainEpochRunner
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--config_file', type=str, help='File with training process configuration')
 parser.add_argument('--cuda', action='store_true', help='use cuda?')
+parser.add_argument('--real_data', action='store_true', help='use real data?')
 
 
-def create_data_generator(cfg):
-    # reader = DataReader(
-    #     file_training=cfg.train_file,
-    #     file_eval=cfg.eval_file,
-    #     encoding=cfg.encoding,
-    #     limit_train=cfg.data_train_limit,
-    #     limit_eval=cfg.data_eval_limit
-    # )
-
-    reader = MockDataReader()
+def create_data_generator(cfg, real_data):
+    if real_data:
+        reader = DataReader(
+            file_training=cfg.train_file,
+            file_eval=cfg.eval_file,
+            encoding=cfg.encoding,
+            limit_train=cfg.data_train_limit,
+            limit_eval=cfg.data_eval_limit
+        )
+    else:
+        reader = MockDataReader()
 
     data_generator = ASTDataGenerator(
         data_reader=reader,
@@ -41,14 +42,14 @@ def run_training(cfg, cuda, data_generator, network, criterion, optimizer, sched
     train_routine = ASTRoutine(
         network=network,
         criterion=criterion,
-        optimizer=optimizer,
+        optimizers=[optimizer],
         cuda=cuda
     )
 
     validation_routine = ASTRoutine(
         network=network,
         criterion=criterion,
-        optimizer=optimizer,
+        optimizers=[optimizer],
         cuda=cuda
     )
 
@@ -65,9 +66,9 @@ def run_training(cfg, cuda, data_generator, network, criterion, optimizer, sched
     runner.run(number_of_epochs=cfg.epochs)
 
 
-def main(cuda, cfg):
+def main(cuda, real_data, cfg):
     # Data
-    data_generator = create_data_generator(cfg)
+    data_generator = create_data_generator(cfg, real_data)
 
     # Model
     network = JSBaseModel(
@@ -80,7 +81,7 @@ def main(cuda, cfg):
     )
 
     # Optimizer
-    optimizer = optim.Adam(params=network.parameters(), lr=cfg.learning_rate)
+    optimizer = optim.SGD(params=network.parameters(), lr=cfg.learning_rate)
     scheduler = MultiStepLR(
         optimizer=optimizer,
         milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
@@ -125,7 +126,9 @@ if __name__ == '__main__':
     if cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
 
+    real_data = args.real_data
+
     config = Config()
     config.read_from_file(args.config_file)
 
-    main(cuda, config)
+    main(cuda, real_data, config)

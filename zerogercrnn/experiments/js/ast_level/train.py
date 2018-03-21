@@ -11,10 +11,10 @@ def print_interval_and_update(label, ct):
 
 
 class ASTRoutine(NetworkRoutine):
-    def __init__(self, network, criterion, optimizer=None, cuda=True):
+    def __init__(self, network, criterion, optimizers=None, cuda=True):
         super(ASTRoutine, self).__init__(network)
         self.criterion = criterion
-        self.optimizer = optimizer
+        self.optimizers = optimizers
         self.cuda = cuda and torch.cuda.is_available()
 
     def run(self, iter_num, n_input, n_target):
@@ -48,10 +48,11 @@ class ASTRoutine(NetworkRoutine):
         print("TIME CRITERION: {}".format(1000 * (time.clock() - ct)))
         ct = time.clock()
 
-        if self.optimizer is not None:
+        if self.optimizers is not None:
             loss.backward()
             ct = print_interval_and_update("TIME BACKWARD", ct)
-            self.optimizer.step()
+            for optimizer in self.optimizers:
+                optimizer.step()
             ct = print_interval_and_update("TIME STEP", ct)
 
         return loss  # TODO: this is slow
