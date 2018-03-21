@@ -127,6 +127,10 @@ class ASTDataGenerator(DataGenerator):
             tail_n = torch.LongTensor([source_file_n[-1]]).expand(tail_size)
             tail_t = torch.LongTensor([source_file_t[-1]]).expand(tail_size)
 
+            if reader.cuda:
+                tail_n = tail_n.cuda()
+                tail_t = tail_t.cuda()
+
             assert tail_n.size() == tail_t.size()
 
             data[i].N = torch.cat((data[i].N, tail_n))
