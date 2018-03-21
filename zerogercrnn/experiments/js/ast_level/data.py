@@ -4,6 +4,7 @@ import os
 import numpy as np
 import torch
 from tqdm import tqdm
+tqdm.monitor_interval = 0
 
 from zerogercrnn.experiments.js.ast_level.raw_data import ENCODING
 from zerogercrnn.lib.data.general import DataGenerator
