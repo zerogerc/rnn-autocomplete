@@ -53,6 +53,16 @@ class JSBaseModel(nn.Module):
 
         self._init_params_()
 
+    def sparse_params(self):
+        for layer in [self.non_terminal_embedding, self.terminal_embedding]:
+            for params in layer.parameters():
+                yield params
+
+    def non_sparse_params(self):
+        for layer in [self.lstm, self.h2NT, self.h2T]:
+            for params in layer.parameters():
+                yield params
+
     def _init_params_(self):
         JSBaseModel._init_uniform_(
             min_value=-0.05,
