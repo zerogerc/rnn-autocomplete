@@ -47,6 +47,8 @@ class ASTDataGenerator(DataGenerator):
         self.seq_len = seq_len
         self.batch_size = batch_size
 
+        self.data_reader = data_reader
+
         self.data_train = self._prepare_data_(data_reader.data_train)
         self.data_eval = self._prepare_data_(data_reader.data_eval)
 
@@ -127,7 +129,7 @@ class ASTDataGenerator(DataGenerator):
             tail_n = torch.LongTensor([source_file_n[-1]]).expand(tail_size)
             tail_t = torch.LongTensor([source_file_t[-1]]).expand(tail_size)
 
-            if reader.cuda:
+            if self.data_reader.cuda:
                 tail_n = tail_n.cuda()
                 tail_t = tail_t.cuda()
 
