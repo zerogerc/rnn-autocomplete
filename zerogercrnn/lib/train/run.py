@@ -1,5 +1,6 @@
 import os
 from tqdm import tqdm
+tqdm.monitor_interval = 0
 
 import torch
 import gc
@@ -67,7 +68,7 @@ class TrainEpochRunner:
                 # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
                 train_point_id = 0
-                for n_input, n_target in train_data:
+                for n_input, n_target in tqdm(train_data, total=200000):
                     loss = self.train_routine.run(
                         iter_num=it,
                         n_input=n_input,
@@ -116,7 +117,7 @@ class TrainEpochRunner:
         total_loss = None
         total_count = 0
 
-        for input_tensor, target_tensor in validation_data:
+        for input_tensor, target_tensor in tqdm(validation_data, total=100000):
             current_loss = self.validation_routine.run(
                 iter_num=iter_num,
                 n_input=input_tensor,
