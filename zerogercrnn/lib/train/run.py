@@ -77,19 +77,19 @@ class TrainEpochRunner:
                     # if train_point_id % self.skip_train_points == 0:
                     #     if isinstance(loss, Variable):
                     #         loss = loss.data[0]
-
+                    #
                     # self.plotter.on_new_point(
                     #     label='train',
                     #     x=it,
                     #     y=loss
                     # )
 
-                    count = 0
-                    for obj in gc.get_objects():
-                        if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                            count += 1
-
-                    print("Tensors: {}".format(count))
+                    # count = 0
+                    # for obj in gc.get_objects():
+                    #     if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                    #         count += 1
+                    #
+                    # print("Tensors: {}".format(count))
 
                     it += 1
 
