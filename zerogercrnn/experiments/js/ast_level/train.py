@@ -44,4 +44,4 @@ class ASTRoutine(NetworkRoutine):
                 optimizer.step()
 
         logger.log_time_ms('TIME FOR CRITERION, BACKWARD, OPTIMIZER')
-        return loss
+        return loss.data[0]
