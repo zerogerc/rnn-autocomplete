@@ -29,13 +29,13 @@ class ASTRoutine(NetworkRoutine):
             non_terminal_target = non_terminal_target.cuda()
             terminal_target = terminal_target.cuda()
 
-        logger.log_time_ms('TIME GET DATA')
+        logger.log_time_ms('TIME FOR GET DATA')
 
         self.network.zero_grad()
         n_target = (non_terminal_target, terminal_target)
         n_output = self.network(non_terminal_input, terminal_input)
 
-        logger.log_time_ms('TIME NETWORK')
+        logger.log_time_ms('TIME FOR NETWORK')
 
         loss = self.criterion(n_output, n_target)
         if self.optimizers is not None:
@@ -43,5 +43,5 @@ class ASTRoutine(NetworkRoutine):
             for optimizer in self.optimizers:
                 optimizer.step()
 
-        logger.log_time_ms('TIME CRITERION, BACKWARD, OPTIMIZER')
-        return loss.data[0]
+        logger.log_time_ms('TIME FOR CRITERION, BACKWARD, OPTIMIZER')
+        return loss

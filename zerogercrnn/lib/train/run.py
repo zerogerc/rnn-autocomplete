@@ -1,5 +1,6 @@
 import os
 from tqdm import tqdm
+
 tqdm.monitor_interval = 0
 
 import torch
@@ -26,7 +27,7 @@ class TrainEpochRunner:
             plotter='matplotlib',
             save_dir=None,
             title='TrainRunner',
-            skip_train_points=100
+            skip_train_points=1
     ):
         """Create train runner.
         
@@ -75,23 +76,15 @@ class TrainEpochRunner:
                         n_target=n_target
                     )
 
-                    # if train_point_id % self.skip_train_points == 0:
-                    #     if isinstance(loss, Variable):
-                    #         loss = loss.data[0]
-                    #
-                    # self.plotter.on_new_point(
-                    #     label='train',
-                    #     x=it,
-                    #     y=loss
-                    # )
+                    if train_point_id % self.skip_train_points == 0:
+                        if isinstance(loss, Variable):
+                            loss = loss.data[0]
 
-                    # count = 0
-                    # for obj in gc.get_objects():
-                    #     if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                    #         count += 1
-                    #
-                    # print("Tensors: {}".format(count))
-
+                        self.plotter.on_new_point(
+                            label='train',
+                            x=it,
+                            y=loss
+                        )
                     it += 1
 
                 # validate at the end of epoch
@@ -106,9 +99,8 @@ class TrainEpochRunner:
             print('-' * 89)
             print('Exiting from training early')
         finally:
-            x = 0
             # plot graphs of validation and train losses
-            # self.plotter.on_finish()
+            self.plotter.on_finish()
 
     def validate(self, epoch, iter_num):
         """Perform validation and calculate loss as an average of the whole validation dataset."""
@@ -134,10 +126,10 @@ class TrainEpochRunner:
         if isinstance(total_loss, Variable):
             total_loss = total_loss.data[0]
 
-        # self.plotter.on_new_point(
-        #     label='validation',
-        #     x=iter_num,
-        #     y=total_loss / total_count
-        # )
+        self.plotter.on_new_point(
+            label='validation',
+            x=iter_num,
+            y=total_loss / total_count
+        )
 
         print('Epoch: {}, Average loss: {}'.format(epoch, total_loss / total_count))

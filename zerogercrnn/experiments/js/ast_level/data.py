@@ -1,9 +1,10 @@
 import json
-import os
 
 import numpy as np
 import torch
 from tqdm import tqdm
+
+# hack for tqdm
 tqdm.monitor_interval = 0
 
 from zerogercrnn.experiments.js.ast_level.raw_data import ENCODING
@@ -13,14 +14,6 @@ from zerogercrnn.lib.data.general import DataGenerator
 File that contains utilities that transform sequence of one-hot (Terminal, Non-Terminal) 
 to the tensors that could be fed into models.
 """
-
-DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar/processed'
-
-FILE_TRAINING = os.path.join(DIR_DATASET, 'programs_training_one_hot.json')
-FILE_EVAL = os.path.join(DIR_DATASET, 'programs_eval_one_hot.json')
-
-FILE_TERMINALS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
-FILE_NON_TERMINALS = os.path.join(DIR_DATASET, 'non_terminal_tokens.txt')
 
 
 class SourceFile:
@@ -55,7 +48,7 @@ class ASTDataGenerator(DataGenerator):
 
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(self.seq_len))
+            self.buckets.append(DataBucket(seq_len=self.seq_len))
 
     # override
     def get_train_generator(self):
@@ -63,12 +56,10 @@ class ASTDataGenerator(DataGenerator):
 
     # override
     def get_validation_generator(self):
-        return self._get_batched_epoch_(dataset=self.data_eval, limit=1000)
+        return self._get_batched_epoch_(dataset=self.data_eval)
 
     def _get_random_batch_(self, dataset):
-        """Returns batch of first sequences of random files.
-            TODO: enhance. now it's r
-        """
+        """Returns batch of first sequences of random files."""
         for i in range(self.batch_size):
             self.buckets[i].clear()
             self.buckets[i].add_first_seq_of_source_file(dataset[ASTDataGenerator._get_random_index(len(dataset))])
@@ -198,6 +189,8 @@ class DataBucket:
 
 
 class MockDataReader:
+    """Fast analog of DataReader for testing."""
+
     def __init__(self, cuda=True):
         self.cuda = cuda and torch.cuda.is_available()
 
@@ -253,7 +246,6 @@ class DataReader:
                     N.append(node['N'])
                     T.append(node['T'])
 
-                # TODO: check if it's faster to allocated tensors on GPU right away
                 tensorN = torch.LongTensor(N)
                 tensorT = torch.LongTensor(T)
 
@@ -276,8 +268,4 @@ class DataReader:
 
 
 if __name__ == '__main__':
-    reader = DataReader(
-        file_training=FILE_TRAINING,
-        file_eval=FILE_EVAL,
-        encoding=ENCODING
-    )
+    reader = MockDataReader()
