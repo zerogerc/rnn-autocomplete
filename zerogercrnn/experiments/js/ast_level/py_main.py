@@ -81,6 +81,8 @@ def main(cuda, real_data, cfg):
         dropout=cfg.dropout
     )
 
+    network.init_hidden(cfg.batch_size, cuda)
+
     # Optimizer
     optimizer = optim.SGD(params=network.parameters(), lr=cfg.learning_rate)
     scheduler = MultiStepLR(

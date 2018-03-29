@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 from zerogercrnn.lib.utils.time import logger
 
@@ -18,6 +19,7 @@ class JSBaseModel(nn.Module):
     ):
         super(JSBaseModel, self).__init__()
 
+        self.num_layers = num_layers
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.non_terminal_output_size = non_terminal_vocab_size
@@ -36,6 +38,8 @@ class JSBaseModel(nn.Module):
             embedding_dim=embedding_size,
             sparse=True
         )
+
+        self.lstm_hidden = None
 
         # Recurrent layer that will have (A + B) as an input
         self.lstm = nn.LSTM(
@@ -120,7 +124,7 @@ class JSBaseModel(nn.Module):
         logger.log_time_ms('PLUS')
 
         # output_tensor will be the size of (seq_len, batch_size, hidden_size * num_directions)
-        output_tensor, hidden = self.lstm(lstm_input)
+        output_tensor, hidden = self.lstm(lstm_input, self.lstm_hidden)
         logger.log_time_ms('LSTM')
 
         output_tensor = output_tensor.view(-1, self.hidden_size)  # flatten tensor for linear transformation
@@ -142,3 +146,13 @@ class JSBaseModel(nn.Module):
         logger.log_time_ms('T_OUT_VIEW')
 
         return non_terminal_output, terminal_output
+
+    def init_hidden(self, batch_size, cuda):
+        h = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
+        c = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
+
+        if cuda:
+            h = h.cuda()
+            c = c.cuda()
+
+        self.lstm_hidden = (h, c)
