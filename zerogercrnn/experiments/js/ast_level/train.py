@@ -6,7 +6,7 @@ from zerogercrnn.lib.train.routines import NetworkRoutine
 
 
 def print_interval_and_update(label, ct):
-    # print("{}: {}".format(label, (1000 * (time.clock() - ct))))
+    print("{}: {}".format(label, (1000 * (time.clock() - ct))))
     return time.clock()
 
 
@@ -33,20 +33,19 @@ class ASTRoutine(NetworkRoutine):
             non_terminal_target = non_terminal_target.cuda()
             terminal_target = terminal_target.cuda()
 
-        print("TIME GET DATA: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        ct = print_interval_and_update("TIME GET DATA", ct)
 
         self.network.zero_grad()
+        ct = print_interval_and_update("ZERO_GRAD", ct)
         n_target = (non_terminal_target, terminal_target)
+        ct = print_interval_and_update("CORTAGE", ct)
         n_output = self.network(non_terminal_input, terminal_input)
 
-        print("TIME NETWORK: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        ct = print_interval_and_update("TIME NETWORK", ct)
 
         loss = self.criterion(n_output, n_target)
 
-        print("TIME CRITERION: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        ct = print_interval_and_update("TIME CRITERION", ct)
 
         if self.optimizers is not None:
             loss.backward()
