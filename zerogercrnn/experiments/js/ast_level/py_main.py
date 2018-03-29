@@ -25,7 +25,7 @@ def create_data_generator(cfg, real_data):
             encoding=cfg.encoding,
             limit_train=cfg.data_train_limit,
             limit_eval=cfg.data_eval_limit,
-            cuda=False
+            cuda=True
         )
     else:
         reader = MockDataReader()
