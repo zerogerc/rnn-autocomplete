@@ -42,7 +42,7 @@ class JSBaseModel(nn.Module):
         self.lstm_hidden = None
 
         # Recurrent layer that will have (A + B) as an input
-        self.lstm = nn.LSTM(
+        self.lstm = nn.GRU(
             input_size=self.embedding_size,
             hidden_size=self.hidden_size,
             num_layers=num_layers,
@@ -155,4 +155,4 @@ class JSBaseModel(nn.Module):
             h = h.cuda()
             c = c.cuda()
 
-        self.lstm_hidden = (h, c)
+        self.lstm_hidden = h
