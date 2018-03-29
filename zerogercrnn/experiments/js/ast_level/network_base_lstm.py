@@ -109,41 +109,32 @@ class JSBaseModel(nn.Module):
         logger.reset_time()
         non_terminal_input = torch.squeeze(non_terminal_input)
         terminal_input = torch.squeeze(terminal_input)
-        logger.log_time_ms('SQUEEZE')
 
         # this tensors will be the size of [batch_size, seq_len, embedding_dim]
         non_terminal_emb = self.non_terminal_embedding(non_terminal_input.permute(1, 0))
         terminal_emb = self.terminal_embedding(terminal_input.permute(1, 0))
-        logger.log_time_ms('EMBEDDING')
 
         non_terminal_emb = non_terminal_emb.permute(1, 0, 2)
         terminal_emb = terminal_emb.permute(1, 0, 2)
-        logger.log_time_ms('PERMUTE')
 
         lstm_input = non_terminal_emb + terminal_emb
-        logger.log_time_ms('PLUS')
+        logger.log_time_ms('PRE_IN')
 
         # output_tensor will be the size of (seq_len, batch_size, hidden_size * num_directions)
         output_tensor, hidden = self.lstm(lstm_input, self.lstm_hidden)
-        logger.log_time_ms('LSTM')
+        logger.log_time_ms('RECURRENT')
 
         output_tensor = output_tensor.view(-1, self.hidden_size)  # flatten tensor for linear transformation
-        logger.log_time_ms('OUT_VIEW')
 
         # converting to pair of (N, T)
         non_terminal_output = self.h2NT(output_tensor)
-        logger.log_time_ms('NT_OUT_H2NT')
         non_terminal_output = self.softmaxNT(non_terminal_output)
-        logger.log_time_ms('NT_OUT_SOFTMAX')
         non_terminal_output = non_terminal_output.view(seq_len, batch_size, self.non_terminal_output_size)
-        logger.log_time_ms('NT_OUT_VIEW')
 
         terminal_output = self.h2T(output_tensor)
-        logger.log_time_ms('T_OUT_H2T')
         terminal_output = self.softmaxT(terminal_output)
-        logger.log_time_ms('T_OUT_SOFTMAX')
         terminal_output = terminal_output.view(seq_len, batch_size, self.terminal_output_size)
-        logger.log_time_ms('T_OUT_VIEW')
+        logger.log_time_ms('PRE_OUT')
 
         return non_terminal_output, terminal_output
 
@@ -155,4 +146,7 @@ class JSBaseModel(nn.Module):
             h = h.cuda()
             c = c.cuda()
 
-        self.lstm_hidden = h
+        if isinstance(self.lstm, nn.LSTM):
+            self.lstm_hidden = (h, c)
+        else:
+            self.lstm_hidden = h
