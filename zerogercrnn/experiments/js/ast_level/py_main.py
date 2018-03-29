@@ -10,11 +10,13 @@ from zerogercrnn.experiments.js.ast_level.network_base_lstm import JSBaseModel
 from zerogercrnn.experiments.js.ast_level.train import ASTRoutine
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.train.run import TrainEpochRunner
+from zerogercrnn.lib.utils.time import logger
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--config_file', type=str, help='File with training process configuration')
 parser.add_argument('--cuda', action='store_true', help='use cuda?')
 parser.add_argument('--real_data', action='store_true', help='use real data?')
+parser.add_argument('--log', action='store_true', help='log performance?')
 
 
 def create_data_generator(cfg, real_data):
@@ -124,6 +126,7 @@ def main(cuda, real_data, cfg):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    logger.should_log = args.log
 
     cuda = args.cuda
     if cuda and not torch.cuda.is_available():

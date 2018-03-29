@@ -3,11 +3,7 @@ import torch
 from torch.autograd import Variable
 
 from zerogercrnn.lib.train.routines import NetworkRoutine
-
-
-def print_interval_and_update(label, ct):
-    print("{}: {}".format(label, (1000 * (time.clock() - ct))))
-    return time.clock()
+from zerogercrnn.lib.utils.time import logger
 
 
 class ASTRoutine(NetworkRoutine):
@@ -20,7 +16,7 @@ class ASTRoutine(NetworkRoutine):
     def run(self, iter_num, n_input, n_target):
         """Input and target here are pair of tensors (N, T)"""
 
-        ct = time.clock()
+        logger.reset_time()
         non_terminal_input = Variable(n_input[0].unsqueeze(2))
         terminal_input = Variable(n_target[0].unsqueeze(2))
 
@@ -33,25 +29,19 @@ class ASTRoutine(NetworkRoutine):
             non_terminal_target = non_terminal_target.cuda()
             terminal_target = terminal_target.cuda()
 
-        ct = print_interval_and_update("TIME GET DATA", ct)
+        logger.log_time_ms('TIME GET DATA')
 
         self.network.zero_grad()
-        ct = print_interval_and_update("ZERO_GRAD", ct)
         n_target = (non_terminal_target, terminal_target)
-        ct = print_interval_and_update("CORTAGE", ct)
         n_output = self.network(non_terminal_input, terminal_input)
 
-        ct = print_interval_and_update("TIME NETWORK", ct)
+        logger.log_time_ms('TIME NETWORK')
 
         loss = self.criterion(n_output, n_target)
-
-        ct = print_interval_and_update("TIME CRITERION", ct)
-
         if self.optimizers is not None:
             loss.backward()
-            ct = print_interval_and_update("TIME BACKWARD", ct)
             for optimizer in self.optimizers:
                 optimizer.step()
-            ct = print_interval_and_update("TIME STEP", ct)
 
-        return 0
+        logger.log_time_ms('TIME CRITERION, BACKWARD, OPTIMIZER')
+        return loss.data[0]
