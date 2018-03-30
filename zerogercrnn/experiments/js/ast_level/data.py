@@ -44,7 +44,12 @@ class ASTDataGenerator(DataGenerator):
         self.data_reader = data_reader
 
         self.data_train = self._prepare_data_(data_reader.data_train)
-        self.data_eval = self._prepare_data_(data_reader.data_eval)
+        self.data_validation = self._prepare_data_(data_reader.data_validation)
+
+        # Share indexes between epochs because we want one epoch to be 1/5 of dataset
+        # Map is for storing train/validation separately
+        self.indexes = {}
+        self.current = {}
 
         self.buckets = []
         for i in range(self.batch_size):
@@ -52,11 +57,11 @@ class ASTDataGenerator(DataGenerator):
 
     # override
     def get_train_generator(self):
-        return self._get_batched_epoch_(dataset=self.data_train)
+        return self._get_batched_epoch_(dataset=self.data_train, key='train')
 
     # override
     def get_validation_generator(self):
-        return self._get_batched_epoch_(dataset=self.data_eval)
+        return self._get_batched_epoch_(dataset=self.data_validation, key='validation')
 
     def _get_random_batch_(self, dataset):
         """Returns batch of first sequences of random files."""
@@ -66,15 +71,29 @@ class ASTDataGenerator(DataGenerator):
 
         yield self._retrieve_batch_()
 
-    def _get_batched_epoch_(self, dataset, limit=None):
+    def _get_batched_epoch_(self, dataset, key, limit=None):
         """Returns generator over batched data of all files in the dataset."""
-        indexes = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
-        current = 0
+        if limit is None:
+            limit = len(dataset)
+
+        # Share indexes between epochs because we want one epoch to be 1/5 of dataset
+        if key not in self.indexes:
+            self.indexes[key] = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
+            self.current[key] = 0
+
+        indexes = self.indexes[key]
+        current = self.current[key]
+
+        # Parse programs till this number
+        right = current + limit // 5
+
         while True:
-            cont = True  # indicates if epoch is finished
-            for bucket in self.buckets:  # add SourceFiles from query to the empty buckets.
+            cont = True  # indicates if we need to continue add new programs
+
+            # add SourceFiles from query to the empty buckets.
+            for bucket in self.buckets:
                 if bucket.is_empty():
-                    if current == len(indexes):
+                    if current == right:
                         cont = False
                         break
 
@@ -86,8 +105,11 @@ class ASTDataGenerator(DataGenerator):
             else:
                 break
 
-            if current == limit:
+            if current == right:
                 break
+
+        self.indexes[key] = indexes
+        self.current[key] = current
 
     def _retrieve_batch_(self):
         """Returns pair of two tensors for input and target: (N, T) with sizes [seq_len, batch_size].
@@ -194,15 +216,15 @@ class MockDataReader:
     def __init__(self, cuda=True):
         self.cuda = cuda and torch.cuda.is_available()
 
-        N = torch.LongTensor([1] * 1000)
-        T = torch.LongTensor(np.arange(1000))
+        N = torch.LongTensor([1] * 100)
+        T = torch.LongTensor(np.arange(100))
 
         if self.cuda:
             N = N.cuda()
             T = T.cuda()
 
-        self.data_train = [SourceFile(N, T) for i in range(100)]
-        self.data_eval = [SourceFile(N, T) for i in range(100)]
+        self.data_train = [SourceFile(N, T) for i in range(500)]
+        self.data_validation = [SourceFile(N, T) for i in range(500)]
 
 
 class DataReader:
@@ -214,20 +236,20 @@ class DataReader:
         data_train_limit = 100000 if (limit_train is None) else limit_train
         data_eval_limit = 50000 if (limit_eval is None) else limit_eval
 
-        self.data_train = self.parse_programs(
+        self.data = self.parse_programs(
             file_training,
             encoding,
             total=data_train_limit,
-            label='Train',
+            label='All data',
             cuda=self.cuda
         )
-        self.data_eval = self.parse_programs(
-            file_eval,
-            encoding,
-            total=data_eval_limit,
-            label='Eval',
-            cuda=self.cuda
-        )
+
+        # split data between train/validation 0.8/0.2
+        split_coefficient = 0.8
+        train_examples = int(limit_train * split_coefficient)
+
+        self.data_train = self.data_train[:train_examples]
+        self.data_validation = self.data_train[train_examples:len(self.data_train)]
 
     @staticmethod
     def parse_programs(file, encoding, total, label, cuda):

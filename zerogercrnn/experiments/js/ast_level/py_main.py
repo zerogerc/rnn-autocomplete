@@ -7,13 +7,14 @@ from torch.optim.lr_scheduler import MultiStepLR
 
 from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader, MockDataReader
 from zerogercrnn.experiments.js.ast_level.network_base import JSBaseModel, RecurrentCore
-from zerogercrnn.experiments.js.ast_level.train import ASTRoutine
+from zerogercrnn.experiments.js.ast_level.train_routine import ASTRoutine
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.train.run import TrainEpochRunner
 from zerogercrnn.lib.utils.time import logger
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--config_file', type=str, help='File with training process configuration')
+parser.add_argument('--title', type=str, help='Title for this run')
 parser.add_argument('--cuda', action='store_true', help='use cuda?')
 parser.add_argument('--real_data', action='store_true', help='use real data?')
 parser.add_argument('--log', action='store_true', help='log performance?')
@@ -47,7 +48,7 @@ def create_data_generator(cfg, real_data):
     return data_generator
 
 
-def run_training(cfg, cuda, data_generator, network, criterion, optimizers, scheduler):
+def run_training(cfg, title, cuda, data_generator, network, criterion, optimizers, schedulers):
     train_routine = ASTRoutine(
         network=network,
         criterion=criterion,
@@ -67,15 +68,16 @@ def run_training(cfg, cuda, data_generator, network, criterion, optimizers, sche
         train_routine=train_routine,
         validation_routine=validation_routine,
         data_generator=data_generator,
-        scheduler=scheduler,
+        schedulers=schedulers,
         plotter='tensorboard',
+        title=title,
         save_dir=cfg.model_save_dir
     )
 
     runner.run(number_of_epochs=cfg.epochs)
 
 
-def main(cuda, real_data, cfg):
+def main(title, cuda, real_data, cfg):
     # Data
     data_generator = create_data_generator(cfg, real_data)
 
@@ -103,9 +105,17 @@ def main(cuda, real_data, cfg):
         model = model.cuda()
 
     # Optimizer
-    optimizer = optim.SGD(params=model.parameters(), lr=cfg.learning_rate)
-    scheduler = MultiStepLR(
-        optimizer=optimizer,
+    dense_optimizer = optim.Adam(params=model.dense_params)
+    sparse_optimizer = optim.SparseAdam(params=model.sparse_params)
+    # optimizer = optim.SGD(params=model.parameters(), lr=cfg.learning_rate)
+
+    dense_scheduler = MultiStepLR(
+        optimizer=dense_optimizer,
+        milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
+        gamma=cfg.decay_multiplier
+    )
+    sparse_scheduler = MultiStepLR(
+        optimizer=sparse_optimizer,
         milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
         gamma=cfg.decay_multiplier
     )
@@ -136,20 +146,30 @@ def main(cuda, real_data, cfg):
         return loss_non_terminal + loss_terminal
 
     # Run
-    run_training(cfg, cuda, data_generator, model, criterion, [optimizer], scheduler)
+    run_training(
+        cfg=cfg,
+        title=title,
+        cuda=cuda,
+        data_generator=data_generator,
+        network=model,
+        criterion=criterion,
+        optimizers=[dense_optimizer, sparse_optimizer],
+        schedulers=[dense_scheduler, sparse_scheduler]
+    )
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    logger.should_log = args.log
 
+    assert args.title is not None
     cuda = args.cuda
+    logger.should_log = args.log
+    real_data = args.real_data
+
     if cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
-
-    real_data = args.real_data
 
     config = Config()
     config.read_from_file(args.config_file)
 
-    main(cuda, real_data, config)
+    main(args.title, cuda, real_data, config)

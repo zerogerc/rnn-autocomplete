@@ -69,8 +69,6 @@ class VisdomPlotter(Plotter):
 class TensorboardPlotter(Plotter):
     def __init__(self, title):
         path = TENSORBOARD_DIR + title
-        if os.path.exists(path):
-            os.remove(path)
         self.writer = SummaryWriter(path)
 
     def on_new_point(self, label, x, y):

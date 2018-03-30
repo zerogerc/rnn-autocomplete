@@ -91,29 +91,39 @@ class JSBaseModel(nn.Module):
         self.non_terminal_output_size = non_terminal_vocab_size
         self.terminal_output_size = terminal_vocab_size
 
+        # PyTorch is not able to have one optimizer for sparse and non-sparse layers, so we should split parameters
+        self.dense_params = []
+        self.sparse_params = []
+
         # Layer that encodes one-hot vector of non-terminals (A)
-        self.non_terminal_embedding = nn.Embedding(
+        self.non_terminal_embedding = self.sparse_model(nn.Embedding(
             num_embeddings=non_terminal_vocab_size,
             embedding_dim=embedding_size,
             sparse=True
-        )
+        ))
 
         # Layer that encodes one-hot vector of terminals (B)
-        self.terminal_embedding = nn.Embedding(
+        self.terminal_embedding = self.sparse_model(nn.Embedding(
             num_embeddings=terminal_vocab_size,
             embedding_dim=embedding_size,
             sparse=True
-        )
+        ))
 
         # Recurrent layer that will have (A + B) as an input
-        self.recurrent = recurrent_layer
+        self.recurrent = self.dense_model(
+            recurrent_layer
+        )
 
         # Layer that transforms hidden state of recurrent layer into next non-terminal
-        self.h2NT = nn.Linear(self.recurrent_out_size, self.non_terminal_output_size)
+        self.h2NT = self.dense_model(
+            nn.Linear(self.recurrent_out_size, self.non_terminal_output_size)
+        )
         self.softmaxNT = nn.LogSoftmax(dim=1)
 
         # Layer that transforms hidden state of recurrent layer into next terminal
-        self.h2T = nn.Linear(self.recurrent_out_size, self.terminal_output_size)
+        self.h2T = self.dense_model(
+            nn.Linear(self.recurrent_out_size, self.terminal_output_size)
+        )
         self.softmaxT = nn.LogSoftmax(dim=1)
 
         self._init_params_()
@@ -160,15 +170,13 @@ class JSBaseModel(nn.Module):
 
         return non_terminal_output, terminal_output
 
-    def sparse_params(self):
-        for layer in [self.non_terminal_embedding, self.terminal_embedding]:
-            for params in layer.parameters():
-                yield params
+    def sparse_model(self, model):
+        self.sparse_params += model.parameters()
+        return model
 
-    def non_sparse_params(self):
-        for layer in [self.lstm, self.h2NT, self.h2T]:
-            for params in layer.parameters():
-                yield params
+    def dense_model(self, model):
+        self.dense_params += model.parameters()
+        return model
 
     def _init_params_(self):
         _init_uniform_(
