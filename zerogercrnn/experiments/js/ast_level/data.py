@@ -234,7 +234,7 @@ class DataReader:
         self.cuda = cuda and torch.cuda.is_available()
 
         data_train_limit = 100000 if (limit_train is None) else limit_train
-        data_eval_limit = 50000 if (limit_eval is None) else limit_eval
+        # data_eval_limit = 50000 if (limit_eval is None) else limit_eval
 
         self.data = self.parse_programs(
             file_training,
@@ -243,13 +243,14 @@ class DataReader:
             label='All data',
             cuda=self.cuda
         )
+        data_train_limit = min(len(self.data), data_train_limit)
 
         # split data between train/validation 0.8/0.2
         split_coefficient = 0.8
-        train_examples = int(limit_train * split_coefficient)
+        train_examples = int(data_train_limit * split_coefficient)
 
-        self.data_train = self.data_train[:train_examples]
-        self.data_validation = self.data_train[train_examples:len(self.data_train)]
+        self.data_train = self.data[:train_examples]
+        self.data_validation = self.data[train_examples:data_train_limit]
 
     @staticmethod
     def parse_programs(file, encoding, total, label, cuda):
