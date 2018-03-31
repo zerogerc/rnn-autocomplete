@@ -9,12 +9,12 @@
   "data_eval_limit": 100,
   "seq_len": 50,
   "batch_size": 80,
-  "learning_rate": 0.05,
+  "learning_rate": 0.001,
   "epochs": 10,
-  "decay_after_epoch": 10,
-  "decay_multiplier": 0.95,
+  "decay_after_epoch": 0,
+  "decay_multiplier": 0.9,
   "embedding_size": 100,
-  "hidden_size": 500,
+  "hidden_size": 1000,
   "num_layers": 1,
-  "dropout": 0.01
+  "dropout": 0.03
 }

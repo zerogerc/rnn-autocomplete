@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import visdom
 import numpy as np
@@ -66,7 +68,8 @@ class VisdomPlotter(Plotter):
 
 class TensorboardPlotter(Plotter):
     def __init__(self, title):
-        self.writer = SummaryWriter(TENSORBOARD_DIR + title)
+        path = TENSORBOARD_DIR + title
+        self.writer = SummaryWriter(path)
 
     def on_new_point(self, label, x, y):
         self.writer.add_scalar(

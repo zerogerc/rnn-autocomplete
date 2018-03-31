@@ -1,21 +1,26 @@
-import time
 import torch
 from torch.autograd import Variable
 
 from zerogercrnn.lib.train.routines import NetworkRoutine
+from zerogercrnn.lib.utils.time import logger
 
 
 class ASTRoutine(NetworkRoutine):
-    def __init__(self, network, criterion, optimizer=None, cuda=True):
+    def __init__(self, network, criterion, optimizers=None, cuda=True):
         super(ASTRoutine, self).__init__(network)
+        assert self.network.recurrent is not None
+
+        self.clip_params = self.network.recurrent.parameters()
+        self.clip_value = 5.
+
         self.criterion = criterion
-        self.optimizer = optimizer
+        self.optimizers = optimizers
         self.cuda = cuda and torch.cuda.is_available()
 
     def run(self, iter_num, n_input, n_target):
         """Input and target here are pair of tensors (N, T)"""
 
-        ct = time.clock()
+        logger.reset_time()
         non_terminal_input = Variable(n_input[0].unsqueeze(2))
         terminal_input = Variable(n_target[0].unsqueeze(2))
 
@@ -28,28 +33,26 @@ class ASTRoutine(NetworkRoutine):
             non_terminal_target = non_terminal_target.cuda()
             terminal_target = terminal_target.cuda()
 
-        print("TIME GET DATA: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        logger.log_time_ms('TIME FOR GET DATA')
 
         self.network.zero_grad()
         n_target = (non_terminal_target, terminal_target)
         n_output = self.network(non_terminal_input, terminal_input)
 
-        print("TIME NETWORK: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+        logger.log_time_ms('TIME FOR NETWORK')
 
         loss = self.criterion(n_output, n_target)
-
-        print("TIME CRITERION: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
-
-        if self.optimizer is not None:
+        if self.optimizers is not None:
+            # Backward pass
             loss.backward()
-            self.optimizer.step()
 
-        del non_terminal_input, terminal_input, non_terminal_target, terminal_target
+            # Clip recurrent core of network
+            torch.nn.utils.clip_grad_norm(self.clip_params, self.clip_value)
 
-        print("TIME BACKWARD: {}".format(1000 * (time.clock() - ct)))
-        ct = time.clock()
+            # Optimizer step
+            for optimizer in self.optimizers:
+                optimizer.step()
 
-        return loss  # TODO: this is slow
+        logger.log_time_ms('TIME FOR CRITERION, BACKWARD, OPTIMIZER')
+        # Return loss value
+        return loss.data[0]

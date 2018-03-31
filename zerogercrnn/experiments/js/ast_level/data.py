@@ -1,9 +1,11 @@
 import json
-import os
 
 import numpy as np
 import torch
 from tqdm import tqdm
+
+# hack for tqdm
+tqdm.monitor_interval = 0
 
 from zerogercrnn.experiments.js.ast_level.raw_data import ENCODING
 from zerogercrnn.lib.data.general import DataGenerator
@@ -12,14 +14,6 @@ from zerogercrnn.lib.data.general import DataGenerator
 File that contains utilities that transform sequence of one-hot (Terminal, Non-Terminal) 
 to the tensors that could be fed into models.
 """
-
-DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar/processed'
-
-FILE_TRAINING = os.path.join(DIR_DATASET, 'programs_training_one_hot.json')
-FILE_EVAL = os.path.join(DIR_DATASET, 'programs_eval_one_hot.json')
-
-FILE_TERMINALS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
-FILE_NON_TERMINALS = os.path.join(DIR_DATASET, 'non_terminal_tokens.txt')
 
 
 class SourceFile:
@@ -47,40 +41,59 @@ class ASTDataGenerator(DataGenerator):
         self.seq_len = seq_len
         self.batch_size = batch_size
 
+        self.data_reader = data_reader
+
         self.data_train = self._prepare_data_(data_reader.data_train)
-        self.data_eval = self._prepare_data_(data_reader.data_eval)
+        self.data_validation = self._prepare_data_(data_reader.data_validation)
+
+        # Share indexes between epochs because we want one epoch to be 1/5 of dataset
+        # Map is for storing train/validation separately
+        self.indexes = {}
+        self.current = {}
 
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(self.seq_len))
+            self.buckets.append(DataBucket(seq_len=self.seq_len))
 
     # override
     def get_train_generator(self):
-        return self._get_batched_epoch_(dataset=self.data_train)
+        return self._get_batched_epoch_(dataset=self.data_train, key='train')
 
     # override
     def get_validation_generator(self):
-        return self._get_batched_epoch_(dataset=self.data_eval, limit=1000)
+        return self._get_batched_epoch_(dataset=self.data_validation, key='validation')
 
     def _get_random_batch_(self, dataset):
-        """Returns batch of first sequences of random files.
-            TODO: enhance. now it's r
-        """
+        """Returns batch of first sequences of random files."""
         for i in range(self.batch_size):
             self.buckets[i].clear()
             self.buckets[i].add_first_seq_of_source_file(dataset[ASTDataGenerator._get_random_index(len(dataset))])
 
         yield self._retrieve_batch_()
 
-    def _get_batched_epoch_(self, dataset, limit=None):
+    def _get_batched_epoch_(self, dataset, key, limit=None):
         """Returns generator over batched data of all files in the dataset."""
-        indexes = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
-        current = 0
+        if limit is None:
+            limit = len(dataset)
+
+        # Share indexes between epochs because we want one epoch to be 1/5 of dataset
+        if key not in self.indexes:
+            self.indexes[key] = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
+            self.current[key] = 0
+
+        indexes = self.indexes[key]
+        current = self.current[key]
+
+        # Parse programs till this number
+        right = min(current + limit // 5, limit)
+
         while True:
-            cont = True  # indicates if epoch is finished
-            for bucket in self.buckets:  # add SourceFiles from query to the empty buckets.
+            cont = True  # indicates if we need to continue add new programs
+
+            # add SourceFiles from query to the empty buckets.
+            for bucket in self.buckets:
                 if bucket.is_empty():
-                    if current == len(indexes):
+                    if current == right:
                         cont = False
                         break
 
@@ -92,8 +105,11 @@ class ASTDataGenerator(DataGenerator):
             else:
                 break
 
-            if current == limit:
+            if current == right:
                 break
+
+        self.indexes[key] = indexes
+        self.current[key] = current
 
     def _retrieve_batch_(self):
         """Returns pair of two tensors for input and target: (N, T) with sizes [seq_len, batch_size].
@@ -127,7 +143,7 @@ class ASTDataGenerator(DataGenerator):
             tail_n = torch.LongTensor([source_file_n[-1]]).expand(tail_size)
             tail_t = torch.LongTensor([source_file_t[-1]]).expand(tail_size)
 
-            if reader.cuda:
+            if self.data_reader.cuda:
                 tail_n = tail_n.cuda()
                 tail_t = tail_t.cuda()
 
@@ -195,18 +211,20 @@ class DataBucket:
 
 
 class MockDataReader:
+    """Fast analog of DataReader for testing."""
+
     def __init__(self, cuda=True):
         self.cuda = cuda and torch.cuda.is_available()
 
-        N = torch.LongTensor([1] * 1000)
-        T = torch.LongTensor(np.arange(1000))
+        N = torch.LongTensor([1] * 100)
+        T = torch.LongTensor(np.arange(100))
 
         if self.cuda:
             N = N.cuda()
             T = T.cuda()
 
-        self.data_train = [SourceFile(N, T) for i in range(100)]
-        self.data_eval = [SourceFile(N, T) for i in range(100)]
+        self.data_train = [SourceFile(N, T) for i in range(500)]
+        self.data_validation = [SourceFile(N, T) for i in range(500)]
 
 
 class DataReader:
@@ -216,22 +234,23 @@ class DataReader:
         self.cuda = cuda and torch.cuda.is_available()
 
         data_train_limit = 100000 if (limit_train is None) else limit_train
-        data_eval_limit = 50000 if (limit_eval is None) else limit_eval
+        # data_eval_limit = 50000 if (limit_eval is None) else limit_eval
 
-        self.data_train = self.parse_programs(
+        self.data = self.parse_programs(
             file_training,
             encoding,
             total=data_train_limit,
-            label='Train',
+            label='All data',
             cuda=self.cuda
         )
-        self.data_eval = self.parse_programs(
-            file_eval,
-            encoding,
-            total=data_eval_limit,
-            label='Eval',
-            cuda=self.cuda
-        )
+        data_train_limit = min(len(self.data), data_train_limit)
+
+        # split data between train/validation 0.8/0.2
+        split_coefficient = 0.8
+        train_examples = int(data_train_limit * split_coefficient)
+
+        self.data_train = self.data[:train_examples]
+        self.data_validation = self.data[train_examples:data_train_limit]
 
     @staticmethod
     def parse_programs(file, encoding, total, label, cuda):
@@ -250,7 +269,6 @@ class DataReader:
                     N.append(node['N'])
                     T.append(node['T'])
 
-                # TODO: check if it's faster to allocated tensors on GPU right away
                 tensorN = torch.LongTensor(N)
                 tensorT = torch.LongTensor(T)
 
@@ -260,8 +278,8 @@ class DataReader:
 
                 programs.append(
                     SourceFile(
-                        N=torch.LongTensor(N),
-                        T=torch.LongTensor(T)
+                        N=tensorN,
+                        T=tensorT
                     )
                 )
 
@@ -273,8 +291,4 @@ class DataReader:
 
 
 if __name__ == '__main__':
-    reader = DataReader(
-        file_training=FILE_TRAINING,
-        file_eval=FILE_EVAL,
-        encoding=ENCODING
-    )
+    reader = MockDataReader()
