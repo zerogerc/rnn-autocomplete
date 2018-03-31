@@ -59,7 +59,6 @@ def run_training(cfg, title, cuda, data_generator, network, criterion, optimizer
     validation_routine = ASTRoutine(
         network=network,
         criterion=criterion,
-        optimizers=optimizers,
         cuda=cuda
     )
 

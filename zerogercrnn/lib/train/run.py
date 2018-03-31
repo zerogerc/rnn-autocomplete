@@ -27,7 +27,7 @@ class TrainEpochRunner:
             plotter='matplotlib',
             save_dir=None,
             title='TrainRunner',
-            skip_train_points=1
+            plot_train_every=1
     ):
         """Create train runner.
         
@@ -35,7 +35,7 @@ class TrainEpochRunner:
         :param train_routine: routine that will run on each train input.
         :param validation_routine: routine that will run after each epoch of training on each validation input.
         :param data_generator: generator of data for training and validation
-        :param scheduler: scheduler for learning rate. If None learning rate will be constant
+        :param schedulers: schedulers for learning rate. If None learning rate will be constant
         :param plotter: visualization tool. Either 'matplotlib' or 'visdom'.
         :param save_dir: if specified model will be saved in this directory after each epoch with name "model_epoch_X".
         :param title: used for visualization
@@ -46,7 +46,7 @@ class TrainEpochRunner:
         self.data_generator = data_generator
         self.schedulers = schedulers
         self.save_dir = save_dir
-        self.skip_train_points = skip_train_points
+        self.skip_train_points = plot_train_every
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)

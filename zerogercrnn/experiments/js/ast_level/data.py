@@ -85,7 +85,7 @@ class ASTDataGenerator(DataGenerator):
         current = self.current[key]
 
         # Parse programs till this number
-        right = current + limit // 5
+        right = min(current + limit // 5, limit)
 
         while True:
             cont = True  # indicates if we need to continue add new programs

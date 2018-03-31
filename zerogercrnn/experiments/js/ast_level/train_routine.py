@@ -10,6 +10,9 @@ class ASTRoutine(NetworkRoutine):
         super(ASTRoutine, self).__init__(network)
         assert self.network.recurrent is not None
 
+        self.clip_params = self.network.recurrent.parameters()
+        self.clip_value = 5.
+
         self.criterion = criterion
         self.optimizers = optimizers
         self.cuda = cuda and torch.cuda.is_available()
@@ -44,7 +47,7 @@ class ASTRoutine(NetworkRoutine):
             loss.backward()
 
             # Clip recurrent core of network
-            torch.nn.utils.clip_grad_norm(self.network.recurrent.parameters(), 5)
+            torch.nn.utils.clip_grad_norm(self.clip_params, self.clip_value)
 
             # Optimizer step
             for optimizer in self.optimizers:
