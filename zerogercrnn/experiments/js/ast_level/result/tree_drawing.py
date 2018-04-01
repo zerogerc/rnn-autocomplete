@@ -1,7 +1,7 @@
-import os
 import json
-import random
-from ete3 import Tree, TreeStyle, TextFace, NodeStyle, faces, AttrFace, TreeFace, add_face_to_node
+import os
+
+from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
 
 DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar'
 FILE_TRAINING_DATASET = os.path.join(DIR_DATASET, 'programs_eval.json')

@@ -70,14 +70,13 @@ class TrainEpochRunner:
                 # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
                 epoch_it = 0
-                for n_input, n_target in train_data:
+                for iter_data in train_data:
                     if epoch_it % LOG_EVERY == 0:
                         print('Training... Epoch: {}, Iters: {}'.format(epoch, it))
 
                     loss = self.train_routine.run(
                         iter_num=it,
-                        n_input=n_input,
-                        n_target=n_target
+                        iter_data=iter_data
                     )
 
                     if epoch_it % self.skip_train_points == 0:
@@ -117,13 +116,12 @@ class TrainEpochRunner:
         total_loss = None
         total_count = 0
 
-        for input_tensor, target_tensor in validation_data:
+        for iter_data in validation_data:
             if total_count % LOG_EVERY == 0:
                 print('Validating... Epoch: {} Iters: {}'.format(epoch, total_count))
             current_loss = self.validation_routine.run(
                 iter_num=iter_num,
-                n_input=input_tensor,
-                n_target=target_tensor
+                iter_data=iter_data
             )
 
             if total_loss is None:
