@@ -75,6 +75,7 @@ class ASTDataGenerator(DataGenerator):
         """Returns generator over batched data of all files in the dataset."""
         if limit is None:
             limit = len(dataset)
+        limit = min(limit, len(dataset))
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         if key not in self.indexes:
@@ -110,6 +111,10 @@ class ASTDataGenerator(DataGenerator):
 
         self.indexes[key] = indexes
         self.current[key] = current
+
+        if current >= len(indexes):
+            self.indexes.pop(key)
+            self.current.pop(key)
 
     def _retrieve_batch_(self):
         """Returns pair of two tensors for input and target: (N, T) with sizes [seq_len, batch_size].
@@ -223,8 +228,8 @@ class MockDataReader:
             N = N.cuda()
             T = T.cuda()
 
-        self.data_train = [SourceFile(N, T) for i in range(500)]
-        self.data_validation = [SourceFile(N, T) for i in range(500)]
+        self.data_train = [SourceFile(N, T) for i in range(400)]
+        self.data_validation = [SourceFile(N, T) for i in range(400)]
 
 
 class DataReader:
@@ -233,24 +238,35 @@ class DataReader:
     def __init__(self, file_training, file_eval, encoding=ENCODING, limit_train=None, limit_eval=None, cuda=True):
         self.cuda = cuda and torch.cuda.is_available()
 
-        data_train_limit = 100000 if (limit_train is None) else limit_train
-        # data_eval_limit = 50000 if (limit_eval is None) else limit_eval
+        if file_training is not None:
+            data_train_limit = 100000 if (limit_train is None) else limit_train
 
-        self.data = self.parse_programs(
-            file_training,
-            encoding,
-            total=data_train_limit,
-            label='All data',
-            cuda=self.cuda
-        )
-        data_train_limit = min(len(self.data), data_train_limit)
+            self.data = self.parse_programs(
+                file=file_training,
+                encoding=encoding,
+                total=data_train_limit,
+                label='All data',
+                cuda=self.cuda
+            )
+            data_train_limit = min(len(self.data), data_train_limit)
 
-        # split data between train/validation 0.8/0.2
-        split_coefficient = 0.8
-        train_examples = int(data_train_limit * split_coefficient)
+            # split data between train/validation 0.8/0.2
+            split_coefficient = 0.8
+            train_examples = int(data_train_limit * split_coefficient)
 
-        self.data_train = self.data[:train_examples]
-        self.data_validation = self.data[train_examples:data_train_limit]
+            self.data_train = self.data[:train_examples]
+            self.data_validation = self.data[train_examples:data_train_limit]
+
+        if file_eval is not None:
+            data_eval_limit = 50000 if (limit_eval is None) else limit_eval
+
+            self.data_eval = self.parse_programs(
+                file=file_eval,
+                encoding=encoding,
+                total=data_eval_limit,
+                label='Eval',
+                cuda=self.cuda
+            )
 
     @staticmethod
     def parse_programs(file, encoding, total, label, cuda):

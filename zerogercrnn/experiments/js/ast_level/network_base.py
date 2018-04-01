@@ -138,8 +138,8 @@ class JSBaseModel(nn.Module):
         batch_size = non_terminal_input.size()[1]
 
         logger.reset_time()
-        non_terminal_input = torch.squeeze(non_terminal_input)
-        terminal_input = torch.squeeze(terminal_input)
+        non_terminal_input = torch.squeeze(non_terminal_input, dim=2)
+        terminal_input = torch.squeeze(terminal_input, dim=2)
 
         # this tensors will be the size of [batch_size, seq_len, embedding_dim]
         non_terminal_emb = self.non_terminal_embedding(non_terminal_input.permute(1, 0))
