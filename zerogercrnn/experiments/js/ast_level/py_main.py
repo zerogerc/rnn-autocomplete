@@ -5,12 +5,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader, MockDataReader
-from zerogercrnn.experiments.js.ast_level.network_base import JSBaseModel, RecurrentCore
-from zerogercrnn.experiments.js.ast_level.train_routine import ASTRoutine
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.train.run import TrainEpochRunner
 from zerogercrnn.lib.utils.time import logger
+from zerogercrnn.lib.utils.state import load_if_saved
+
+from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader, MockDataReader
+from zerogercrnn.experiments.js.ast_level.network_base import JSBaseModel, RecurrentCore
+from zerogercrnn.experiments.js.ast_level.train_routine import ASTRoutine
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--config_file', type=str, help='File with training process configuration')
@@ -30,7 +32,7 @@ def create_data_generator(cfg, real_data):
     if real_data:
         reader = DataReader(
             file_training=cfg.train_file,
-            file_eval=cfg.eval_file,
+            file_eval=None,
             encoding=cfg.encoding,
             limit_train=cfg.data_train_limit,
             limit_eval=cfg.data_eval_limit,
@@ -81,7 +83,7 @@ def main(title, cuda, real_data, cfg):
     data_generator = create_data_generator(cfg, real_data)
 
     # Model
-    recurrent_code = RecurrentCore(
+    recurrent_core = RecurrentCore(
         input_size=cfg.embedding_size,
         hidden_size=cfg.hidden_size,
         num_layers=cfg.num_layers,
@@ -89,19 +91,22 @@ def main(title, cuda, real_data, cfg):
         model_type='gru'
     )
     if cuda:
-        recurrent_code = recurrent_code.cuda()
+        recurrent_core = recurrent_core.cuda()
 
-    recurrent_code.init_hidden(cfg.batch_size, cuda)
+    recurrent_core.init_hidden(cfg.batch_size, cuda)
 
     model = JSBaseModel(
         non_terminal_vocab_size=cfg.non_terminals_count,
         terminal_vocab_size=cfg.terminals_count,
         embedding_size=cfg.embedding_size,
-        recurrent_layer=recurrent_code
+        recurrent_layer=recurrent_core
     )
 
     if cuda:
         model = model.cuda()
+
+    if hasattr(cfg, 'saved_model'):
+        load_if_saved(model, cfg.saved_model)
 
     # Optimizer
     dense_optimizer = optim.Adam(params=model.dense_params)
