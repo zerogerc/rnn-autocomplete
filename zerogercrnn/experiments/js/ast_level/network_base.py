@@ -4,6 +4,8 @@ from torch.autograd import Variable
 
 from zerogercrnn.lib.utils.time import logger
 
+"""Base rnn model for JS AST prediction (in use till 01Apr)"""
+
 
 def _init_lstm_(*layers):
     for layer in layers:

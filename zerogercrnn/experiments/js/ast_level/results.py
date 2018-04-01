@@ -10,16 +10,20 @@ from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
 
 MODELS_DIR = '/Users/zerogerc/Documents/gcp_models'
 DATA_DIR = '/Users/zerogerc/Documents/datasets/js_dataset.tar/processed/'
+RESULTS_DIR = '/Users/zerogerc/Documents/diploma/results_tree/'
 
 MODEL_FILE = os.path.join(MODELS_DIR, '31Mar2018/model_epoch_3')
 CONFIG_FILE = os.path.join(MODELS_DIR, '31Mar2018/config.json')
 
 CUDA = False
 
+ENCODING = 'ISO-8859-1'
+
 TRAIN_FILE = os.path.join(DATA_DIR, 'programs_training_one_hot.json')
 EVAL_FILE = os.path.join(DATA_DIR, 'programs_eval_one_hot.json')
-EVAL_LIMIT = 100
+EVAL_LIMIT = 10
 
+RESULTS_FILE = os.path.join(RESULTS_DIR, 'eval_prediction.json')
 
 def load_model(cuda, cfg, model_path):
     # Model
@@ -75,6 +79,43 @@ def main(config_file, cuda, model_file, file_eval, limit_eval):
     reader = create_eval_reader(cuda, cfg, file_eval, limit_eval)
 
     evaluate(cuda, cfg, model, reader)
+
+
+def main_save_prediction(config_file, cuda, model_file, file_eval, limit_eval):
+    cfg = Config()
+    cfg.read_from_file(config_file)
+
+    model = load_model(cuda, cfg, model_file)
+    reader = create_eval_reader(cuda, cfg, file_eval, limit_eval)
+
+    f_write = open(RESULTS_FILE, mode='w', encoding=ENCODING)
+
+    def write_variable_as_json(label, first, variable):
+        f_write.write('"')
+        f_write.write(label)
+        f_write.write('"')
+        f_write.write(':')
+
+        f_write.write('[')
+        f_write.write(str(first))
+        f_write.write(',')
+        f_write.write(','.join([str(x) for x in variable.data]))
+        f_write.write(']')
+
+    for program in reader.data_eval:
+        target, top, = model_top_prediction_for_program(cuda, program, model)
+
+        f_write.write('{')
+        write_variable_as_json('nt_target', program.N[0], target[0])
+        f_write.write(',')
+        write_variable_as_json('t_target', program.T[0], target[1])
+        f_write.write(',')
+
+        write_variable_as_json('nt_prediction', program.N[0], top[0])
+        f_write.write(',')
+        write_variable_as_json('t_prediction', program.T[0], top[1])
+        f_write.write('}\n')
+
 
 
 def evaluate(cuda, cfg, model, reader):
@@ -137,4 +178,4 @@ def model_top_tokens(cuda, program, model):
 
 
 if __name__ == '__main__':
-    main(CONFIG_FILE, CUDA, MODEL_FILE, TRAIN_FILE, EVAL_LIMIT)
+    main_save_prediction(CONFIG_FILE, CUDA, MODEL_FILE, EVAL_FILE, EVAL_LIMIT)
