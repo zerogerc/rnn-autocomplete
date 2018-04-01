@@ -1,76 +1,11 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
+from zerogercrnn.experiments.js.ast_level.model.core import RecurrentCore
+from zerogercrnn.experiments.js.ast_level.model.utils import init_layers_uniform
 from zerogercrnn.lib.utils.time import logger
 
 """Base rnn model for JS AST prediction (in use till 01Apr)"""
-
-
-def _init_lstm_(*layers):
-    for layer in layers:
-        for name, param in layer.named_parameters():
-            if 'bias' in name:
-                nn.init.constant(param, 0.0)
-            elif 'weight' in name:
-                nn.init.xavier_normal(param)
-
-
-def _init_uniform_(min_value, max_value, layers):
-    for layer in layers:
-        for name, param in layer.named_parameters():
-            nn.init.uniform(param, min_value, max_value)
-
-
-class RecurrentCore(nn.Module):
-
-    def __init__(self, input_size, hidden_size, num_layers=1, dropout=0., model_type='gru'):
-        super().__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.dropout = dropout
-        self.model_type = model_type
-
-        if model_type == 'gru':
-            self.recurrent = nn.GRU(
-                input_size=self.input_size,
-                hidden_size=self.hidden_size,
-                num_layers=num_layers,
-                dropout=dropout
-            )
-        elif model_type == 'lstm':
-            self.recurrent = nn.LSTM(
-                input_size=self.input_size,
-                hidden_size=self.hidden_size,
-                num_layers=num_layers,
-                dropout=dropout
-            )
-        else:
-            raise Exception('Unknown model type: {}'.format(model_type))
-
-        self.hidden = None
-        self._init_params_()
-
-    def _init_params_(self):
-        _init_lstm_(self.recurrent)
-
-    def forward(self, input_tensor):
-        output_tensor, hidden_tensor = self.recurrent(input_tensor)
-        return output_tensor
-
-    def init_hidden(self, batch_size, cuda):
-        h = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
-        c = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
-
-        if cuda:
-            h = h.cuda()
-            c = c.cuda()
-
-        if self.model_type == 'lstm':
-            self.hidden = (h, c)
-        else:
-            self.hidden = h
 
 
 class JSBaseModel(nn.Module):
@@ -154,7 +89,7 @@ class JSBaseModel(nn.Module):
         logger.log_time_ms('PRE_IN')
 
         # output_tensor will be the size of (seq_len, batch_size, hidden_size * num_directions)
-        recurrent_output = self.recurrent(recurrent_input)
+        recurrent_output, _ = self.recurrent(recurrent_input)
         logger.log_time_ms('RECURRENT')
 
         # flatten tensor for linear transformation
@@ -181,7 +116,7 @@ class JSBaseModel(nn.Module):
         return model
 
     def _init_params_(self):
-        _init_uniform_(
+        init_layers_uniform(
             min_value=-0.05,
             max_value=0.05,
             layers=[

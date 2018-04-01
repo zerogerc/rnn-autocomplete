@@ -42,6 +42,7 @@ class ASTDataGenerator(DataGenerator):
         self.batch_size = batch_size
 
         self.data_reader = data_reader
+        self.cuda = self.data_reader.cuda
 
         self.data_train = self._prepare_data_(data_reader.data_train)
         self.data_validation = self._prepare_data_(data_reader.data_validation)
@@ -50,6 +51,7 @@ class ASTDataGenerator(DataGenerator):
         # Map is for storing train/validation separately
         self.indexes = {}
         self.current = {}
+        self.forget_vector = {}
 
         self.buckets = []
         for i in range(self.batch_size):
@@ -63,14 +65,6 @@ class ASTDataGenerator(DataGenerator):
     def get_validation_generator(self):
         return self._get_batched_epoch_(dataset=self.data_validation, key='validation')
 
-    def _get_random_batch_(self, dataset):
-        """Returns batch of first sequences of random files."""
-        for i in range(self.batch_size):
-            self.buckets[i].clear()
-            self.buckets[i].add_first_seq_of_source_file(dataset[ASTDataGenerator._get_random_index(len(dataset))])
-
-        yield self._retrieve_batch_()
-
     def _get_batched_epoch_(self, dataset, key, limit=None):
         """Returns generator over batched data of all files in the dataset."""
         if limit is None:
@@ -79,8 +73,7 @@ class ASTDataGenerator(DataGenerator):
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         if key not in self.indexes:
-            self.indexes[key] = ASTDataGenerator._get_shuffled_indexes_(len(dataset))
-            self.current[key] = 0
+            self._init_epoch_state_(key, data_len=len(dataset))
 
         indexes = self.indexes[key]
         current = self.current[key]
@@ -92,17 +85,23 @@ class ASTDataGenerator(DataGenerator):
             cont = True  # indicates if we need to continue add new programs
 
             # add SourceFiles from query to the empty buckets.
-            for bucket in self.buckets:
+            for bn in range(len(self.buckets)):
+                bucket = self.buckets[bn]
+
                 if bucket.is_empty():
                     if current == right:
                         cont = False
                         break
 
+                    self.forget_vector[key][bn][0] = 0.
+
                     bucket.add_source_file(source=dataset[indexes[current]])  # add source file to fill the bucket
                     current += 1
+                else:
+                    self.forget_vector[key][bn][0] = 1.
 
             if cont:
-                yield self._retrieve_batch_()
+                yield self._retrieve_batch_(), self.forget_vector[key]
             else:
                 break
 
@@ -113,8 +112,20 @@ class ASTDataGenerator(DataGenerator):
         self.current[key] = current
 
         if current >= len(indexes):
-            self.indexes.pop(key)
-            self.current.pop(key)
+            self._reset_epoch_state_(key)
+
+    def _init_epoch_state_(self, key, data_len):
+        self.indexes[key] = ASTDataGenerator._get_shuffled_indexes_(data_len)
+        self.current[key] = 0
+        self.forget_vector[key] = torch.ones(self.batch_size, 1)
+
+        if self.cuda:
+            self.forget_vector[key] = self.forget_vector[key].cuda()
+
+    def _reset_epoch_state_(self, key):
+        self.indexes.pop(key)
+        self.current.pop(key)
+        self.forget_vector.pop(key)
 
     def _retrieve_batch_(self):
         """Returns pair of two tensors for input and target: (N, T) with sizes [seq_len, batch_size].

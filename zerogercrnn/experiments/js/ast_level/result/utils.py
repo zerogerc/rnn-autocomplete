@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 
 from zerogercrnn.experiments.js.ast_level.data import DataReader
-from zerogercrnn.experiments.js.ast_level.network_base import RecurrentCore, JSBaseModel
+from zerogercrnn.experiments.js.ast_level.model.nttp import RecurrentCore, JSBaseModel
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
 
@@ -24,6 +24,7 @@ EVAL_FILE = os.path.join(DATA_DIR, 'programs_eval_one_hot.json')
 EVAL_LIMIT = 10
 
 RESULTS_FILE = os.path.join(RESULTS_DIR, 'eval_prediction.json')
+
 
 def load_model(cuda, cfg, model_path):
     # Model
@@ -115,7 +116,6 @@ def main_save_prediction(config_file, cuda, model_file, file_eval, limit_eval):
         f_write.write(',')
         write_variable_as_json('t_prediction', program.T[0], top[1])
         f_write.write('}\n')
-
 
 
 def evaluate(cuda, cfg, model, reader):

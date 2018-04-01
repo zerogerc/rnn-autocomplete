@@ -32,25 +32,24 @@ class RecurrentCore(nn.Module):
         else:
             raise Exception('Unknown model type: {}'.format(model_type))
 
-        self.hidden = None
         self._init_params_()
 
     def _init_params_(self):
         init_recurrent_layers(self.recurrent)
 
-    def forward(self, input_tensor):
-        output_tensor, hidden_tensor = self.recurrent(input_tensor)
-        return output_tensor
+    def forward(self, input_tensor, hidden):
+        output_tensor, hidden = self.recurrent(input_tensor, hidden)
+        return output_tensor, hidden
 
     def init_hidden(self, batch_size, cuda):
-        h = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
-        c = Variable(torch.randn((self.num_layers, batch_size, self.hidden_size)))
+        h = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
+        c = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
 
         if cuda:
             h = h.cuda()
             c = c.cuda()
 
         if self.model_type == 'lstm':
-            self.hidden = (h, c)
+            return h, c
         else:
-            self.hidden = h
+            return h
