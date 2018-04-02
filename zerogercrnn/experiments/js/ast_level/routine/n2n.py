@@ -1,7 +1,7 @@
 import torch
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.js.ast_level.model.nt import NTModel
+from zerogercrnn.experiments.js.ast_level.model.n2n import NTModel
 from zerogercrnn.experiments.js.ast_level.model.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.utils.time import logger

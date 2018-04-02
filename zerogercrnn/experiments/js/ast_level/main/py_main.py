@@ -3,8 +3,8 @@ import argparse
 import torch
 
 from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataReader, MockDataReader
-from zerogercrnn.experiments.js.ast_level.main.nt import nt_run_training
-from zerogercrnn.experiments.js.ast_level.main.nttp import nttp_run_training
+from zerogercrnn.experiments.js.ast_level.main.n2n import nt_run_training
+from zerogercrnn.experiments.js.ast_level.main.nt2nt import nttp_run_training
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.utils.time import logger
 
