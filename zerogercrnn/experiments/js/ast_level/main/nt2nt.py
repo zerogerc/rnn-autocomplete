@@ -1,29 +1,28 @@
 import torch.nn as nn
 
 from zerogercrnn.experiments.js.ast_level.main.common import get_optimizers_and_schedulers, load_if_saved_from_config
-from zerogercrnn.experiments.js.ast_level.model.nt import NTModel, RecurrentCore
-from zerogercrnn.experiments.js.ast_level.routine.nt import NTASTRoutine
+from zerogercrnn.experiments.js.ast_level.model.nt2nt import JSBaseModel, RecurrentCore
+from zerogercrnn.experiments.js.ast_level.routine.nt2nt import ASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
 
-def nt_run_training(cfg, title, cuda, data_generator):
-    criterion = get_criterion(cuda=cuda)
+def nttp_run_training(cfg, title, cuda, data_generator):
+    criterion = get_criterion(cuda)
 
-    model = nt_get_model(cfg, cuda)
-    # load_if_saved_from_config(cfg, model)
+    model = nttp_get_model(cfg, cuda)
+    load_if_saved_from_config(cfg, model)
+
     optimizers, schedulers = get_optimizers_and_schedulers(cfg, model)
 
-    train_routine = NTASTRoutine(
-        model=model,
-        batch_size=cfg.batch_size,
+    train_routine = ASTRoutine(
+        network=model,
         criterion=criterion,
         optimizers=optimizers,
         cuda=cuda
     )
 
-    validation_routine = NTASTRoutine(
-        model=model,
-        batch_size=cfg.batch_size,
+    validation_routine = ASTRoutine(
+        network=model,
         criterion=criterion,
         cuda=cuda
     )
@@ -42,7 +41,7 @@ def nt_run_training(cfg, title, cuda, data_generator):
     runner.run(number_of_epochs=cfg.epochs)
 
 
-def nt_get_model(cfg, cuda):
+def nttp_get_model(cfg, cuda):
     # Model
     recurrent_core = RecurrentCore(
         input_size=cfg.embedding_size,
@@ -54,8 +53,11 @@ def nt_get_model(cfg, cuda):
     if cuda:
         recurrent_core = recurrent_core.cuda()
 
-    model = NTModel(
+    recurrent_core.init_hidden(cfg.batch_size, cuda)
+
+    model = JSBaseModel(
         non_terminal_vocab_size=cfg.non_terminals_count,
+        terminal_vocab_size=cfg.terminals_count,
         embedding_size=cfg.embedding_size,
         recurrent_layer=recurrent_core
     )
@@ -68,7 +70,6 @@ def nt_get_model(cfg, cuda):
 
 def get_criterion(cuda):
     base_criterion = nn.NLLLoss()
-
     if cuda:
         base_criterion = base_criterion.cuda()
 
@@ -76,13 +77,20 @@ def get_criterion(cuda):
         """Expect n_output and n_target to be pair of (N, T).
             Return loss as a sum of NLL losses for non-terminal(N) and terminal(T).
         """
-        sz_non_terminal = n_output.size()[-1]
+        sz_non_terminal = n_output[0].size()[-1]
         # flatten tensors to compute NLLLoss
         loss_non_terminal = base_criterion(
-            n_output.view(-1, sz_non_terminal),
-            n_target.view(-1)
+            n_output[0].view(-1, sz_non_terminal),
+            n_target[0].view(-1)
         )
 
-        return loss_non_terminal
+        sz_terminal = n_output[1].size()[-1]
+        # flatten tensors to compute NLLLoss
+        loss_terminal = base_criterion(
+            n_output[1].view(-1, sz_terminal),
+            n_target[1].view(-1)
+        )
+
+        return loss_non_terminal + loss_terminal
 
     return criterion

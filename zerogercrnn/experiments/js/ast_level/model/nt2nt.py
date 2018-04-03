@@ -89,7 +89,7 @@ class JSBaseModel(nn.Module):
         logger.log_time_ms('PRE_IN')
 
         # output_tensor will be the size of (seq_len, batch_size, hidden_size * num_directions)
-        recurrent_output, _ = self.recurrent(recurrent_input)
+        recurrent_output, _ = self.recurrent(recurrent_input, None)
         logger.log_time_ms('RECURRENT')
 
         # flatten tensor for linear transformation
