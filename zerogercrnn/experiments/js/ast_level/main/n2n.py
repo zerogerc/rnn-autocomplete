@@ -44,12 +44,19 @@ def nt_run_training(cfg, title, cuda, data_generator):
 
 def nt_get_model(cfg, cuda):
     # Model
+    # recurrent_core = RecurrentCore(
+    #     input_size=cfg.embedding_size,
+    #     hidden_size=cfg.hidden_size,
+    #     num_layers=cfg.num_layers,
+    #     dropout=cfg.dropout,
+    #     model_type='gru'
+    # )
     recurrent_core = RecurrentCore(
         input_size=cfg.embedding_size,
         hidden_size=cfg.hidden_size,
         num_layers=cfg.num_layers,
         dropout=cfg.dropout,
-        model_type='gru'
+        model_type='lstm'
     )
     if cuda:
         recurrent_core = recurrent_core.cuda()

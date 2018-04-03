@@ -59,10 +59,12 @@ class TreeDrawer():
             # Value
             # TODO: think if I need to show EMPTY tokens predicions here
             if 'value' in json_node:
-                if self.prediction[T_TARGET][json_node_id] == self.prediction[T_PREDICTION][json_node_id]:
-                    color = 'green'
-                else:
-                    color = 'red'
+                color = 'black'
+                if T_TARGET in self.prediction:
+                    if self.prediction[T_TARGET][json_node_id] == self.prediction[T_PREDICTION][json_node_id]:
+                        color = 'green'
+                    else:
+                        color = 'red'
                 text_value = TextFace(json_node['value'], fsize=14, fgcolor=color, tight_text=False)
                 add_face_to_node(text_value, node, column=0, position='branch-right')
 
