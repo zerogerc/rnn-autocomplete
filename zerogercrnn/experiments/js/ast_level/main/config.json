@@ -4,7 +4,7 @@
   "model_save_dir": "/Users/zerogerc/Documents/saved_models/",
   "saved_model": "/Users/zerogerc/Documents/saved_models/model_epoch_1",
   "encoding": "ISO-8859-1",
-  "prediction_type": "nt",
+  "prediction_type": "nt_attention",
   "non_terminals_count": 97,
   "terminals_count": 50002,
   "data_train_limit": 400,
