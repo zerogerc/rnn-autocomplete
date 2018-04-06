@@ -1,7 +1,8 @@
 import torch.nn as nn
 
 from zerogercrnn.experiments.js.ast_level.main.common import get_optimizers_and_schedulers, load_if_saved_from_config
-from zerogercrnn.experiments.js.ast_level.model.n2n_attention import NTTailAttentionModel, RecurrentCore
+from zerogercrnn.experiments.js.ast_level.model.n2n_attention import NTTailAttentionModel, NTTailAttentionModel2Softmax, \
+    RecurrentCore
 from zerogercrnn.experiments.js.ast_level.routine.n2n_attention import NTTailAttentionASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
@@ -64,7 +65,7 @@ def nt_get_model(cfg, cuda):
     if cuda:
         recurrent_core = recurrent_core.cuda()
 
-    model = NTTailAttentionModel(
+    model = NTTailAttentionModel2Softmax(
         non_terminal_vocab_size=cfg.non_terminals_count,
         embedding_size=cfg.embedding_size,
         recurrent_layer=recurrent_core

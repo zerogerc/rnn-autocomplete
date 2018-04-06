@@ -7,6 +7,36 @@ from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.utils.time import logger
 
 
+def run_model(cuda, batch_size, model, iter_data, hidden):
+    logger.reset_time()
+
+    (n_input, n_target), forget_vector = iter_data
+    assert forget_vector.size()[0] == batch_size
+
+    non_terminal_input = Variable(n_input[0].unsqueeze(2))
+    non_terminal_target = Variable(n_target[0])
+
+    if cuda:
+        non_terminal_input = non_terminal_input.cuda()
+        non_terminal_target = non_terminal_target.cuda()
+
+    logger.log_time_ms('TIME FOR GET DATA')
+
+    model.zero_grad()
+
+    if hidden is None:
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+
+    hidden = forget_hidden_partly(hidden, forget_vector)
+
+    n_output, hidden = model(non_terminal_input, hidden)
+    hidden = repackage_hidden(hidden)
+
+    logger.log_time_ms('TIME FOR NETWORK')
+
+    return n_output, non_terminal_target, hidden
+
+
 class NTASTRoutine(NetworkRoutine):
     def __init__(self, model: NTModel, batch_size, criterion, optimizers=None, cuda=True):
         super(NTASTRoutine, self).__init__(model)
