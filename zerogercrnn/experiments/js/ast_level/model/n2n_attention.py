@@ -166,7 +166,7 @@ class NTTailAttentionModel2Softmax(nn.Module):
         self.h2v = self.dense_model(
             nn.Linear(2 * self.recurrent_out_size, 2 * self.recurrent_out_size)
         )
-        self.softmax_v = nn.LogSoftmax(dim=1)
+        self.softmax_v = nn.Softmax(dim=1)
 
         self.v2o = self.dense_model(
             nn.Linear(2 * self.recurrent_out_size, self.non_terminal_output_size)
