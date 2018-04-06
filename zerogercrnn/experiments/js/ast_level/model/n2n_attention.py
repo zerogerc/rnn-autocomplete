@@ -113,6 +113,7 @@ class NTTailAttentionModel(nn.Module):
             max_value=0.05,
             layers=[
                 self.non_terminal_embedding,
+                self.attn,
                 self.h2NT
             ]
         )
@@ -208,13 +209,15 @@ class NTTailAttentionModel2Softmax(nn.Module):
         # concatenate cntx and hidden from last timestamp
         recurrent_attention_output = torch.cat([cntx, recurrent_last], dim=1)
 
-        # converting to pair of (N, T)
-        non_terminal_output = self.h2NT(recurrent_attention_output)
-        non_terminal_output = self.softmaxNT(non_terminal_output)
+        v = self.h2v(recurrent_attention_output)
+        v = self.softmax_v(v)
+
+        o = self.v2o(v)
+        o = self.softmax_o(o)
 
         logger.log_time_ms('PRE_OUT')
 
-        return non_terminal_output, hidden
+        return o, hidden
 
     def sparse_model(self, model):
         self.sparse_params += model.parameters()
@@ -230,13 +233,14 @@ class NTTailAttentionModel2Softmax(nn.Module):
             max_value=0.05,
             layers=[
                 self.non_terminal_embedding,
-                self.h2NT
+                self.attn,
+                self.h2v,
+                self.v2o
             ]
         )
 
     def init_hidden(self, batch_size, cuda):
         return self.recurrent.init_hidden(batch_size, cuda)
-
 
 
 if __name__ == '__main__':
