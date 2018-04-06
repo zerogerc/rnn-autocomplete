@@ -160,15 +160,10 @@ class NTTailAttentionModel2Softmax(nn.Module):
             bias=False
         ))
 
-        self.cntx_sigmoid = nn.Sigmoid()
+        self.attn_softmax = nn.Softmax(dim=0)
 
         # Layer that transforms hidden state of recurrent layer into next non-terminal
-        self.h2v = self.dense_model(
-            nn.Linear(2 * self.recurrent_out_size, 2 * self.recurrent_out_size)
-        )
-        self.softmax_v = nn.Softmax(dim=1)
-
-        self.v2o = self.dense_model(
+        self.h2o = self.dense_model(
             nn.Linear(2 * self.recurrent_out_size, self.non_terminal_output_size)
         )
         self.softmax_o = nn.LogSoftmax(dim=1)
@@ -201,18 +196,15 @@ class NTTailAttentionModel2Softmax(nn.Module):
         recurrent_besides_last = recurrent_output.narrow(0, 0, recurrent_output.size()[0] - 1)
         recurrent_last = recurrent_output[-1]
         attn_weights = self.attn(recurrent_besides_last).matmul(recurrent_last[-1])
+        attn_weights = self.attn_softmax(attn_weights)
 
         # calc cntx vector as sum of h-s multiplied by alpha, then sigmoid
         cntx = attn_weights.permute(1, 0).unsqueeze(1).matmul(recurrent_besides_last.permute(1, 0, 2)).squeeze(1)
-        cntx = self.cntx_sigmoid(cntx)
 
         # concatenate cntx and hidden from last timestamp
         recurrent_attention_output = torch.cat([cntx, recurrent_last], dim=1)
 
-        v = self.h2v(recurrent_attention_output)
-        v = self.softmax_v(v)
-
-        o = self.v2o(v)
+        o = self.h2o(recurrent_attention_output)
         o = self.softmax_o(o)
 
         logger.log_time_ms('PRE_OUT')
@@ -234,8 +226,7 @@ class NTTailAttentionModel2Softmax(nn.Module):
             layers=[
                 self.non_terminal_embedding,
                 self.attn,
-                self.h2v,
-                self.v2o
+                self.h2o
             ]
         )
 
@@ -250,7 +241,7 @@ if __name__ == '__main__':
         num_layers=1
     )
 
-    model = NTTailAttentionModel(
+    model = NTTailAttentionModel2Softmax(
         non_terminal_vocab_size=1000,
         embedding_size=100,
         recurrent_layer=core
