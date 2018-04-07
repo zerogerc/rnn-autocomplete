@@ -6,7 +6,7 @@ from zerogercrnn.experiments.js.ast_level.routine.nt2nt import ASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
 
-def nttp_run_training(cfg, title, cuda, data_generator):
+def nttp_run_training(cfg, title, cuda, data_generator, model_save_dir):
     criterion = get_criterion(cuda)
 
     model = nttp_get_model(cfg, cuda)
@@ -35,7 +35,7 @@ def nttp_run_training(cfg, title, cuda, data_generator):
         schedulers=schedulers,
         plotter='tensorboard',
         title=title,
-        save_dir=cfg.model_save_dir
+        save_dir=model_save_dir
     )
 
     runner.run(number_of_epochs=cfg.epochs)

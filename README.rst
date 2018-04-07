@@ -1,63 +1,20 @@
 ##################
-Заметки по диплому
+How to run
 ##################
 
-*****************************
-Описания каждого мини-проекта
-*****************************
+Create virtual environment:
+``./venv.sh``
 
-=====
-linux
-=====
+Download data:
+``./scripts/data_download.sh``
 
-**Краткое описание**:
+Process data:
+``./scripts/data_process.sh``
 
-Попытка воспроизвести результаты из [статьи](https://arxiv.org/pdf/1506.02078.pdf).
-В качестве датасета взят linux kernel на 6mb.
+To train model (this will run some model):
+``./scripts/run.sh``
 
-Это первая задача приближенная к теме диплома. Нужно посмотреть, на какие символы реагируют различные cells
-и попытаться найти схожести с реальной грамматикой. Знания полученные при решении этой задачи будут крайне полезны
-для дальнейшей работы.
+To watch results:
+``./scripts/tensorboard.sh``
 
-
-**TODO**:
-
-- Визуализация предсказания
-
-======
-trends
-======
-
-Предсказание последовательности цифр с помощью GRU. В качестве датасета был выбран таймлайн из Google trends
-
-=======
-namegen
-=======
-
-Генерация фамилий различных стран с помощью RNN, LSTM
-
-Туториал:
-   http://pytorch.org/tutorials/intermediate/char_rnn_generation_tutorial.html
-
-
-
-****************
-Полезные команды
-****************
-
-Рекурсивное копирование всех файлов из папки **source** в папку **dest**:
-
-``find source -name "*.[c|h]" -exec cp -i {} dest \;``
-
-Стартануть сервак visdom:
-
-``python3 -m visdom.server``
-
-Tensorboard visualization::
-
-    for name, param in model.named_parameters():
-        writer.add_histogram(name, param.clone().cpu().data.numpy(), n_iter)
-
-Link: https://github.com/lanpa/tensorboard-pytorch
-
-CUDA notes: http://pytorch.org/docs/master/notes/cuda.html
+If you want to train specific model try editing file */scripts/run.sh*.

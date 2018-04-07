@@ -7,14 +7,13 @@ from zerogercrnn.experiments.js.ast_level.routine.n2n_attention import NTTailAtt
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
 
-def nt_at_run_training(cfg, title, cuda, data_generator):
+def nt_at_run_training(cfg, title, cuda, data_generator, model_save_dir):
     criterion = nn.NLLLoss()
 
     if cuda:
         criterion = criterion.cuda()
 
     model = nt_get_model(cfg, cuda)
-    # load_if_saved_from_config(cfg, model)
     optimizers, schedulers = get_optimizers_and_schedulers(cfg, model)
 
     train_routine = NTTailAttentionASTRoutine(
@@ -40,7 +39,7 @@ def nt_at_run_training(cfg, title, cuda, data_generator):
         schedulers=schedulers,
         plotter='tensorboard',
         title=title,
-        save_dir=cfg.model_save_dir
+        save_dir=model_save_dir
     )
 
     runner.run(number_of_epochs=cfg.epochs)
