@@ -2,19 +2,16 @@
 How to run
 ##################
 
-Create virtual environment:
-``./venv.sh``
+Create virtual environment: ``./venv.sh``
 
-Download data:
-``./scripts/data_download.sh``
+Activate virtual environment: ``source env/bin/activate``
 
-Process data:
-``./scripts/data_process.sh``
+Download data: ``./scripts/data_download.sh``
 
-To train model (this will run some model):
-``./scripts/run.sh``
+Process data: ``./scripts/data_process.sh``
 
-To watch results:
-``./scripts/tensorboard.sh``
+To train model (this will run some model): ``./scripts/run.sh``
 
-If you want to train specific model try editing file */scripts/run.sh*.
+To watch results: ``./scripts/tensorboard.sh``
+
+If you want to train specific model try editing file ``/scripts/run.sh*.``
