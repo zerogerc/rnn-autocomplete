@@ -14,7 +14,7 @@ def load_cuda_on_cpu(model, path):
     """Loads CUDA model for testing on non CUDA device."""
     if os.path.isfile(path):
         model.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
-        print('Model resotred from file.')
+        print('Model restored from file.')
 
 
 def save_model(model, path):

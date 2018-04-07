@@ -44,8 +44,14 @@ class ASTDataGenerator(DataGenerator):
         self.data_reader = data_reader
         self.cuda = self.data_reader.cuda
 
-        self.data_train = self._prepare_data_(data_reader.data_train)
-        self.data_validation = self._prepare_data_(data_reader.data_validation)
+        if data_reader.data_train is not None:
+            self.data_train = self._prepare_data_(data_reader.data_train)
+
+        if data_reader.data_train is not None:
+            self.data_validation = self._prepare_data_(data_reader.data_validation)
+
+        if data_reader.data_eval is not None:
+            self.data_test = self._prepare_data_(data_reader.data_eval)
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         # Map is for storing train/validation separately
@@ -64,6 +70,11 @@ class ASTDataGenerator(DataGenerator):
     # override
     def get_validation_generator(self):
         return self._get_batched_epoch_(dataset=self.data_validation, key='validation')
+
+    # override
+    def get_test_generator(self):
+        return self._get_batched_epoch_(dataset=self.data_test, key='test')
+
 
     def _get_batched_epoch_(self, dataset, key, limit=None):
         """Returns generator over batched data of all files in the dataset."""
@@ -241,6 +252,7 @@ class MockDataReader:
 
         self.data_train = [SourceFile(N, T) for i in range(400)]
         self.data_validation = [SourceFile(N, T) for i in range(400)]
+        self.data_eval = [SourceFile(N, T) for i in range(400)]
 
 
 class DataReader:
@@ -248,6 +260,10 @@ class DataReader:
 
     def __init__(self, file_training, file_eval, encoding=ENCODING, limit_train=None, limit_eval=None, cuda=True):
         self.cuda = cuda and torch.cuda.is_available()
+
+        self.data_train = None
+        self.data_validation = None
+        self.data_eval = None
 
         if file_training is not None:
             data_train_limit = 100000 if (limit_train is None) else limit_train
