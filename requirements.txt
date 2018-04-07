@@ -1,0 +1,11 @@
+numpy
+torchvision
+tqdm
+jupyter
+tensorflow
+tensorboard
+tensorboardX
+matplotlib
+visdom
+pylint
+urllib3
