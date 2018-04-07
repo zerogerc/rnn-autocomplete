@@ -8,3 +8,4 @@ tensorboardX
 matplotlib
 visdom
 pylint
+urllib3

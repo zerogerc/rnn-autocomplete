@@ -48,11 +48,13 @@ class OneHotConverter:
 
         self.encoding = encoding
 
-    def convert_file(self, src_file, dst_file):
+    def convert_file(self, src_file, dst_file, lim=None):
         f_read = open(src_file, mode='r', encoding=self.encoding)
         f_write = open(dst_file, mode='w', encoding=self.encoding)
 
+        c = 0
         for l in tqdm(f_read, total=100000):
+            c += 1
             raw_json = json.loads(l)
 
             converted_json = []
@@ -63,8 +65,10 @@ class OneHotConverter:
                 N = node['N']
                 T = node['T']
 
-                assert N in self.non_terminal_idx.keys()
-                assert T in self.terminal_idx.keys()
+                if N not in self.non_terminal_idx.keys():
+                    raise Exception('Unknown non terminal: {}'.format(N))
+                if T not in self.terminal_idx.keys():
+                    raise Exception('Unknown terminal: {}'.format(T))
 
                 converted_json.append({
                     'N': self.non_terminal_idx[N],
@@ -74,6 +78,9 @@ class OneHotConverter:
             f_write.write(json.dumps(converted_json))
             f_write.write('\n')
 
+            if (lim is not None) and (c == lim):
+                break
+
 
 class JsonConverter:
     """Converts raw json of parsed AST to sequence of (N, T) where N means non-terminal and T means corresponding terminal.
@@ -81,18 +88,23 @@ class JsonConverter:
     Output format - json like that: [{"N": "Program01", "T": "_EMP_"}, 0]"""
 
     @staticmethod
-    def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True):
+    def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True, lim=None):
         f_read = open(raw_file, mode='r', encoding=encoding)
         f_write = open(dest_file, mode='w', encoding=encoding)
         terminals = DataUtils.read_lines(file=terminals_file, limit=50000)
 
-        for l in tqdm(f_read, total=100000):
+        c = 0
+        for l in tqdm(f_read, total=min(lim, 100000)):
+            c += 1
             raw_json = json.loads(l)
             converted_json = JsonConverter._convert_json_(raw_json, terminals, append_eof)
 
             converted_json_string = json.dumps(converted_json)
             f_write.write(converted_json_string)
             f_write.write('\n')
+
+            if (lim is not None) and (c == lim):
+                break
 
     @staticmethod
     def _convert_json_(raw_json, terminals, append_eof):
@@ -140,19 +152,32 @@ class TokensRetriever:
         self.non_terminals = {}
         self.terminals = {}
 
-    def get_and_write_tokens(self, dataset, non_terminal_dest, terminal_dest, encoding=ENCODING, append_eof=True):
+    def get_and_write_tokens(
+            self,
+            dataset,
+            non_terminal_dest,
+            terminal_dest,
+            encoding=ENCODING,
+            append_eof=True,
+            lim=None
+    ):
+        c = 0
         with open(dataset, mode='r', encoding=ENCODING) as f:
-            for l in tqdm(f, total=100000):
+            for l in tqdm(f, total=min(lim, 100000)):
+                c += 1
                 self._process_single_json_(json.loads(l), append_eof=append_eof)
+
+                if (lim is not None) and (c == lim):
+                    break
 
         with open(non_terminal_dest, mode='w', encoding=encoding) as f:
             for t in self.non_terminals.keys():
                 f.write('{}\n'.format(t))
 
-        # with open(terminal_dest, mode='w', encoding=encoding) as f:
-        #     sorted_terminals = sorted(self.terminals.keys(), key=lambda key: self.terminals[key], reverse=True)
-        #     for t in sorted_terminals:
-        #         f.write('{}\n'.format(t))
+        with open(terminal_dest, mode='w', encoding=encoding) as f:
+            sorted_terminals = sorted(self.terminals.keys(), key=lambda key: self.terminals[key], reverse=True)
+            for t in sorted_terminals:
+                f.write('{}\n'.format(t))
 
     def _process_single_json_(self, raw_json, append_eof):
         left_child, right_sibling = DataUtils.get_left_child_right_sibling(
