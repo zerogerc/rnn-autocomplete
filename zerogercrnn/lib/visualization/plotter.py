@@ -1,12 +1,11 @@
 import os
 
 import matplotlib.pyplot as plt
-import visdom
 import numpy as np
-
+import visdom
 from tensorboardX import SummaryWriter
 
-TENSORBOARD_DIR = '/tensorboard/runs/'
+TENSORBOARD_DIR = 'tensorboard/runs/'
 
 
 class Plotter:
@@ -68,7 +67,7 @@ class VisdomPlotter(Plotter):
 
 class TensorboardPlotter(Plotter):
     def __init__(self, title):
-        path = TENSORBOARD_DIR + title
+        path = os.path.join(os.getcwd(), TENSORBOARD_DIR + title)
         self.writer = SummaryWriter(path)
 
     def on_new_point(self, label, x, y):
