@@ -1,8 +1,9 @@
 import torch.nn as nn
 
-from zerogercrnn.experiments.js.ast_level.main.common import get_optimizers_and_schedulers, load_if_saved_from_config
-from zerogercrnn.experiments.js.ast_level.model.n2n_attention import NTTailAttentionModel, NTTailAttentionModel2Softmax, \
+from zerogercrnn.experiments.js.ast_level.main.common import get_optimizers_and_schedulers
+from zerogercrnn.experiments.js.ast_level.model.n2n_attention import NTTailAttentionModel2Softmax, \
     RecurrentCore
+from zerogercrnn.experiments.js.ast_level.model.n2n_sum_attention import N2NSumAttentionModel
 from zerogercrnn.experiments.js.ast_level.routine.n2n_attention import NTTailAttentionASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
 
@@ -13,7 +14,7 @@ def nt_at_run_training(cfg, title, cuda, data_generator, model_save_dir):
     if cuda:
         criterion = criterion.cuda()
 
-    model = nt_get_model(cfg, cuda)
+    model = nt_get_model(cfg, cuda, model_type='sum')
     optimizers, schedulers = get_optimizers_and_schedulers(cfg, model)
 
     train_routine = NTTailAttentionASTRoutine(
@@ -45,7 +46,7 @@ def nt_at_run_training(cfg, title, cuda, data_generator, model_save_dir):
     runner.run(number_of_epochs=cfg.epochs)
 
 
-def nt_get_model(cfg, cuda):
+def nt_get_model(cfg, cuda, model_type):
     # Model
     # recurrent_core = RecurrentCore(
     #     input_size=cfg.embedding_size,
@@ -64,11 +65,20 @@ def nt_get_model(cfg, cuda):
     if cuda:
         recurrent_core = recurrent_core.cuda()
 
-    model = NTTailAttentionModel2Softmax(
-        non_terminal_vocab_size=cfg.non_terminals_count,
-        embedding_size=cfg.embedding_size,
-        recurrent_layer=recurrent_core
-    )
+    if model_type == 'tail':
+        model = NTTailAttentionModel2Softmax(
+            non_terminal_vocab_size=cfg.non_terminals_count,
+            embedding_size=cfg.embedding_size,
+            recurrent_layer=recurrent_core
+        )
+    elif model_type == 'sum':
+        model = N2NSumAttentionModel(
+            non_terminal_vocab_size=cfg.non_terminals_count,
+            embedding_size=cfg.embedding_size,
+            recurrent_layer=recurrent_core
+        )
+    else:
+        raise Exception('Unknown model type')
 
     if cuda:
         model = model.cuda()
