@@ -14,7 +14,7 @@ def nt_at_run_training(cfg, title, cuda, data_generator, model_save_dir):
     if cuda:
         criterion = criterion.cuda()
 
-    model = nt_get_model(cfg, cuda, model_type='sum')
+    model = nt_get_model(cfg, cuda, model_type='tail')
     optimizers, schedulers = get_optimizers_and_schedulers(cfg, model)
 
     train_routine = NTTailAttentionASTRoutine(
