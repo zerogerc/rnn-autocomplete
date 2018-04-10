@@ -89,7 +89,9 @@ class NTSumlAttentionModelSequential(nn.Module):
         logger.log_time_ms('EMBEDDING')
 
         # drop hidden state for programs that finished
-        forget_hidden_partly(hidden, forget_vector)
+        # TODO: fix
+        hidden[0].data.mul(forget_vector, out=hidden[0].data)
+        hidden[1].data.mul(forget_vector, out=hidden[1].data)
         recurrent_hidden_state, recurrent_cell_state = self.lstm_cell(
             input_tensor=non_terminal_emb,
             hidden_state=hidden,
