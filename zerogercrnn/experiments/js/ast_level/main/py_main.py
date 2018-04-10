@@ -6,6 +6,7 @@ from zerogercrnn.experiments.js.ast_level.data import ASTDataGenerator, DataRead
 from zerogercrnn.experiments.js.ast_level.main.n2n import nt_run_training
 from zerogercrnn.experiments.js.ast_level.main.n2n_attention import nt_at_run_training
 from zerogercrnn.experiments.js.ast_level.main.nt2nt import nttp_run_training
+from zerogercrnn.experiments.js.ast_level.main.n2n_sequential import nt_seq_sum_attention_run_training
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.utils.time import logger
 
@@ -61,6 +62,8 @@ def main(args, cfg):
         train_fun = nttp_run_training
     elif cfg.prediction_type == 'nt_attention':
         train_fun = nt_at_run_training
+    elif cfg.prediction_type == 'nt_seq_sum_attention':
+        train_fun = nt_seq_sum_attention_run_training
     else:
         raise Exception('Unknown type of prediction. Should be one of: {}'.format('nt, nttp'))
 
