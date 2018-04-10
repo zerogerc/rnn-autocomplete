@@ -6,7 +6,7 @@
   "data_eval_limit": 50000,
   "seq_len": 50,
   "batch_size": 400,
-  "learning_rate": 0.1,
+  "learning_rate": 0.005,
   "epochs": 60,
   "decay_after_epoch": 10,
   "decay_multiplier": 0.9,
