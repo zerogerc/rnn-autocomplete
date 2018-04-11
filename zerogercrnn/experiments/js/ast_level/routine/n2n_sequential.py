@@ -34,6 +34,7 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
     for t in range(n_target[0].size()[0]):
         reinit_dropout = (t == 0)
 
+        hidden = repackage_hidden(hidden)
         cur_output, hidden = model(
             non_terminal_input[t],
             hidden,
