@@ -34,7 +34,9 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
     for t in range(n_target[0].size()[0]):
         reinit_dropout = (t == 0)
 
-        hidden = repackage_hidden(hidden)
+        if t % 5 == 0:
+            hidden = repackage_hidden(hidden)
+
         cur_output, hidden = model(
             non_terminal_input[t],
             hidden,
@@ -51,7 +53,8 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
 
 
 class N2NSequential(NetworkRoutine):
-    def __init__(self, model: NTSumlAttentionModelSequential, batch_size, seq_len, criterion, optimizers=None, cuda=True):
+    def __init__(self, model: NTSumlAttentionModelSequential, batch_size, seq_len, criterion, optimizers=None,
+                 cuda=True):
         super(N2NSequential, self).__init__(model)
 
         self.batch_size = batch_size
