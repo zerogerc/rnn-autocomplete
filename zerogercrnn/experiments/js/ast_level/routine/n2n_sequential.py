@@ -30,7 +30,6 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
 
     # TODO: Maybe not reinit dropout every time?
     n_output, hidden = model(non_terminal_input, hidden, forget_vector=forget_vector, reinit_dropout=True)
-    hidden = repackage_hidden(hidden)
 
     logger.log_time_ms('TIME FOR NETWORK')
 
@@ -63,7 +62,7 @@ class N2NSequential(NetworkRoutine):
         self.hidden = hidden
 
         loss = self.criterion(n_output, n_target)
-        if self.optimizers is not None:
+        if (self.optimizers is not None) and (iter_num % 50 == 0):
             # Backward pass
             loss.backward()
 
@@ -74,6 +73,8 @@ class N2NSequential(NetworkRoutine):
             for optimizer in self.optimizers:
                 optimizer.step()
 
+            self.hidden = repackage_hidden(hidden)
+
         logger.log_time_ms('TIME FOR CRITERION, BACKWARD, OPTIMIZER')
         # Return loss value
-        return 0.1
+        return loss.data[0]
