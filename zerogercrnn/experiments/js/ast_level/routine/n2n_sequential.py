@@ -1,9 +1,8 @@
 import torch
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.js.ast_level.model.n2n_attention import NTTailAttentionModel
 from zerogercrnn.experiments.js.ast_level.model.n2n_sum_attention_sequential import NTSumlAttentionModelSequential
-from zerogercrnn.experiments.js.ast_level.model.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.experiments.js.ast_level.model.utils import repackage_hidden, forget_hidden_partly_lstm_cell
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.utils.time import logger
 
@@ -15,7 +14,7 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
     assert forget_vector.size()[0] == batch_size
 
     non_terminal_input = Variable(n_input[0].unsqueeze(2))
-    non_terminal_target = Variable(n_target[0][0])
+    non_terminal_target = Variable(n_target[0])
 
     if cuda:
         non_terminal_input = non_terminal_input.cuda()
@@ -23,14 +22,28 @@ def run_model(cuda, batch_size, model, iter_data, hidden):
 
     logger.log_time_ms('TIME FOR GET DATA')
 
-    model.zero_grad()
-
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
 
-    # TODO: Maybe not reinit dropout every time?
-    n_output, hidden = model(non_terminal_input, hidden, forget_vector=forget_vector, reinit_dropout=True)
+    hidden = repackage_hidden(hidden)
+    hidden = forget_hidden_partly_lstm_cell(hidden, forget_vector=forget_vector)
+    model.forget_context_partly(forget_vector=forget_vector)
+    model.zero_grad()
 
+    n_output = []
+    for t in range(n_target[0].size()[0]):
+        reinit_dropout = (t == 0)
+
+        cur_output, hidden = model(
+            non_terminal_input[t],
+            hidden,
+            forget_vector=forget_vector,
+            reinit_dropout=reinit_dropout
+        )
+
+        n_output.append(cur_output.unsqueeze(0))
+
+    n_output = torch.cat(n_output, dim=0)
     logger.log_time_ms('TIME FOR NETWORK')
 
     return n_output, non_terminal_target, hidden
@@ -61,8 +74,8 @@ class N2NSequential(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.criterion(n_output, n_target)
-        if (self.optimizers is not None) and (iter_num % 50 == 0):
+        loss = self.criterion(n_output.permute(1, 2, 0), n_target.transpose(1, 0))
+        if self.optimizers is not None:
             # Backward pass
             loss.backward()
 
@@ -73,8 +86,6 @@ class N2NSequential(NetworkRoutine):
             for optimizer in self.optimizers:
                 optimizer.step()
 
-            self.hidden = repackage_hidden(hidden)
-
         logger.log_time_ms('TIME FOR CRITERION, BACKWARD, OPTIMIZER')
         # Return loss value
-        return 0.1
+        return loss.data[0]

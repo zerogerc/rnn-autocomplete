@@ -28,6 +28,11 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
+def forget_hidden_partly_lstm_cell(h, forget_vector):
+    h[0].data.mul(forget_vector, out=h[0].data)
+    h[1].data.mul(forget_vector, out=h[1].data)
+    return h
+
 def forget_hidden_partly(h, forget_vector):
     if type(h) == Variable:
         logger.reset_time()

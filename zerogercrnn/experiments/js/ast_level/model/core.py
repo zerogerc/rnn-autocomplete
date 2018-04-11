@@ -55,7 +55,7 @@ class ContextBasedSumAttention(nn.Module):
             # TODO: check if it's placed on cuda
             cntx = Variable(torch.zeros_like(h_t.data), requires_grad=False)  # no gradients here
         else:
-            self.cntx_matrix = Variable(self.cntx_matrix.data)  # Just for sure =)
+            self.cntx_matrix = Variable(self.cntx_matrix.data) # Just for sure =)
 
             # Calculating attention coefficients
             # * Make batch first and apply W
@@ -141,27 +141,18 @@ class LSTMCellDropout(nn.Module):
         self.hidden_size = hidden_size
         self.dropout = dropout
 
-        self.lstm_cell = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=1,
-            dropout=dropout
-        )
+        self.lstm_cell = nn.LSTMCell(input_size=input_size, hidden_size=hidden_size)
         self.dropout_mask = None
 
     def forward(self, input_tensor, hidden_state, apply_dropout=True, reinit_dropout=False):
-        output, hidden = self.lstm_cell(input_tensor.unsqueeze(0),
-                                        (hidden_state[0].unsqueeze(0), hidden_state[1].unsqueeze(0)))
-        h, c = hidden[0].squeeze(0), hidden[1].squeeze(0)
-        return h, c
-        # if (self.dropout_mask is None) or reinit_dropout:
-        #     self._reinit_dropout_mask(input_tensor.size()[0], input_tensor.is_cuda)
-        #
-        # hidden, cell = self.lstm_cell(input_tensor, hidden_state)
-        # if apply_dropout:
-        #     return hidden * self.dropout_mask, cell
-        # else:
-        #     return hidden, cell
+        if (self.dropout_mask is None) or reinit_dropout:
+            self._reinit_dropout_mask(input_tensor.size()[0], input_tensor.is_cuda)
+
+        hidden, cell = self.lstm_cell(input_tensor, hidden_state)
+        if apply_dropout:
+            return hidden * self.dropout_mask, cell
+        else:
+            return hidden, cell
 
     def init_hidden(self, batch_size, cuda):
         h = Variable(torch.zeros((batch_size, self.hidden_size)))

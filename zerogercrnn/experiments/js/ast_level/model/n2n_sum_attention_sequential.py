@@ -69,6 +69,10 @@ class NTSumlAttentionModelSequential(nn.Module):
 
         self._init_params_()
 
+    def forget_context_partly(self, forget_vector):
+        x = 0
+        # self.sum_attention.forget_context_partly(forget_vector)
+
     def forward(self, non_terminal_input, hidden, forget_vector, reinit_dropout=False):
         """
         :param non_terminal_input: tensor of size [seq_len, batch_size, 1]
@@ -77,10 +81,6 @@ class NTSumlAttentionModelSequential(nn.Module):
                               format: [batch_size, 1] filled with either 0 or 1
         :type reinit_dropout whether to reinit dropout mask of LSTMCell
         """
-        assert non_terminal_input.size()[0] == 1  # seq_len is always one
-
-        non_terminal_input = non_terminal_input[0]  # [batch_size, 1]
-
         logger.reset_time()
 
         non_terminal_input = torch.squeeze(non_terminal_input, dim=1)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     batch_size = 80
 
-    in_tensor = Variable(torch.LongTensor(1, batch_size, 1).zero_())
+    in_tensor = Variable(torch.LongTensor(batch_size, 1).zero_())
     hidden_tensor = model.init_hidden(batch_size, cuda=False)
     forget_vector = torch.ones((batch_size, 1))
 
