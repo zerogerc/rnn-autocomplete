@@ -5,21 +5,26 @@ from zerogercrnn.lib.utils.state import load_if_saved
 
 
 def get_optimizers_and_schedulers(cfg, model):
-    dense_optimizer = optim.Adam(params=model.dense_params, lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
-    sparse_optimizer = optim.SparseAdam(params=model.sparse_params, lr=cfg.learning_rate)
+    optimizers = []
+    schedulers = []
 
-    dense_scheduler = MultiStepLR(
-        optimizer=dense_optimizer,
-        milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
-        gamma=cfg.decay_multiplier
-    )
-    sparse_scheduler = MultiStepLR(
-        optimizer=sparse_optimizer,
-        milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
-        gamma=cfg.decay_multiplier
-    )
+    if len(model.dense_params) != 0:
+        optimizers.append(optim.Adam(params=model.dense_params, lr=cfg.learning_rate, weight_decay=cfg.weight_decay))
+        schedulers.append(MultiStepLR(
+            optimizer=optimizers[-1],
+            milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
+            gamma=cfg.decay_multiplier
+        ))
 
-    return [dense_optimizer, sparse_optimizer], [dense_scheduler, sparse_scheduler]
+    if len(model.sparse_params) != 0:
+        optimizers.append(optim.SparseAdam(params=model.sparse_params, lr=cfg.learning_rate))
+        schedulers.append(MultiStepLR(
+            optimizer=optimizers[-1],
+            milestones=list(range(cfg.decay_after_epoch, cfg.epochs + 1)),
+            gamma=cfg.decay_multiplier
+        ))
+
+    return optimizers, schedulers
 
 
 def load_if_saved_from_config(cfg, model):
