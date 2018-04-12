@@ -49,15 +49,15 @@ class DataChunk:
 class BatchedDataGenerator(DataGenerator):
     """Provides batched data for training and evaluation of model."""
 
-    def __init__(self, data_reader, seq_len, batch_size, switch_data):
+    def __init__(self, data_reader, seq_len, batch_size, cuda, switch_data):
         super(BatchedDataGenerator, self).__init__()
 
         self.data_reader = data_reader
         self.seq_len = seq_len
         self.batch_size = batch_size
+        self.cuda = cuda
         self.switch_data = switch_data
 
-        self.cuda = self.data_reader.cuda
 
         if data_reader.train_data is not None:
             self.data_train = self._prepare_data_(data_reader.train_data)

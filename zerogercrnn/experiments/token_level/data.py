@@ -58,8 +58,8 @@ class TokensDataChunk(DataChunk):
 
 
 class TokensDataGenerator(BatchedDataGenerator):
-    def __init__(self, data_reader: DataReader, seq_len, batch_size):
-        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, switch_data=True)
+    def __init__(self, data_reader: DataReader, seq_len, batch_size, cuda):
+        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda, switch_data=True)
 
     def _retrieve_batch_(self):
         inputs = []
@@ -162,7 +162,8 @@ if __name__ == '__main__':
     data_generator = TokensDataGenerator(
         data_reader=data_reader,
         seq_len=10,
-        batch_size=10
+        batch_size=10,
+        cuda=False
     )
 
     for iter_data in data_generator.get_train_generator():

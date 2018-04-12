@@ -143,7 +143,8 @@ def create_data_generator(args):
     data_generator = TokensDataGenerator(
         data_reader=reader,
         seq_len=args.seq_len,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        cuda=args.cuda
     )
 
     return data_generator
