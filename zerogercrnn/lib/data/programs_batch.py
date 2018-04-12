@@ -188,7 +188,10 @@ class DataBucket:
     def get_next_seq(self):
         """Return DataChunk with len equal to seq_len
         """
-        assert not self.is_empty()
+        if self.is_empty():
+            print(self.source)
+            print(self.index)
+            raise Exception('No data in bucket')
         self.index += self.seq_len
         start = self.index - self.seq_len
         return self.source.get_by_index(start)

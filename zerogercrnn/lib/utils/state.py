@@ -8,6 +8,8 @@ def load_if_saved(model, path):
     if os.path.isfile(path):
         model.load_state_dict(torch.load(path))
         print('Model restored from file.')
+    else:
+        raise Exception('Model file not exists')
 
 
 def load_cuda_on_cpu(model, path):

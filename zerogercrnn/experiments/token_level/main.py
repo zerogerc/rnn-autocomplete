@@ -211,13 +211,13 @@ if __name__ == '__main__':
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if _args.saved_model is not None:
-        raise Exception('Loading of saved model is not supported now')
-
     if _args.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
 
     if _args.task == 'train':
+        if _args.saved_model is not None:
+            raise Exception('Loading of saved model is not supported now')
+
         main(_args)
     elif _args.task == 'accuracy':
         calc_accuracy(_args)
