@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
+from zerogercrnn.lib.utils.state import load_if_saved
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
@@ -23,6 +24,7 @@ parser.add_argument('--saved_model', type=str, help='File with trained model if 
 parser.add_argument('--cuda', action='store_true', help='Use cuda?')
 parser.add_argument('--real_data', action='store_true', help='Use real data?')
 parser.add_argument('--log', action='store_true', help='Log performance?')
+parser.add_argument('--task', type=str, help='One of: train, accuracy')
 
 parser.add_argument('--tokens_count', type=int, help='All possible tokens count')  # 51k now
 parser.add_argument('--seq_len', type=int, help='Recurrent layer time unrolling')
@@ -38,6 +40,35 @@ parser.add_argument('--dropout', type=float, help='Dropout to apply to recurrent
 parser.add_argument('--weight_decay', type=float, help='Weight decay for l2 regularization')
 
 ENCODING = 'ISO-8859-1'
+
+
+def calc_accuracy(args):
+    assert args.eval_file is not None
+
+    data_generator = create_data_generator(args)
+    model = create_model(args)
+    model.eval()
+
+    if args.saved_model is not None:
+        load_if_saved(model, args.saved_model)
+
+    all_tokens = 0
+    correct_tokens = 0
+
+    hidden = None
+    for iter_data in data_generator.get_eval_generator():
+        prediction, target, hidden = run_model(model, iter_data, hidden, args.batch_size, args.cuda)
+
+        _, predicted = torch.max(prediction, dim=2)
+
+        cur_all = target.size()[0] * target.size()[1]
+        cur_incorrect = torch.nonzero(target - predicted).size()[0]
+        cur_correct = cur_all - cur_incorrect
+
+        all_tokens += cur_all
+        cur_all += cur_correct
+
+    print('Accuracy: {}'.format(float(correct_tokens) / all_tokens))
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda):
@@ -185,4 +216,9 @@ if __name__ == '__main__':
     if _args.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
 
-    main(_args)
+    if _args.task == 'train':
+        main(_args)
+    elif _args.task == 'accuracy':
+        calc_accuracy(_args)
+    else:
+        raise Exception('Not supported task')

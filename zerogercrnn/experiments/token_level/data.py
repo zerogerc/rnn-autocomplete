@@ -48,6 +48,14 @@ class TokensDataChunk(DataChunk):
     def size(self):
         return self.emb_tensor.size()[0]
 
+    def cuda(self):
+        self.emb_tensor.cuda()
+        self.one_hot_tensor.cuda()
+
+    def cpu(self):
+        self.emb_tensor.cpu()
+        self.one_hot_tensor.cpu()
+
 
 class TokensDataGenerator(BatchedDataGenerator):
     def __init__(self, data_reader: DataReader, seq_len, batch_size):
@@ -93,7 +101,7 @@ class TokensDataReader(DataReader):
         self.eval_file = eval_file
         self.embeddings = embeddings
         self.seq_len = seq_len
-        self.cuda = cuda
+        self.cuda = False  # for now
 
         if self.cuda:
             self.embeddings.cuda()

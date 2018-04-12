@@ -37,16 +37,25 @@ class DataChunk:
     def size(self):
         pass
 
+    @abstractmethod
+    def cuda(self):
+        pass
+
+    @abstractmethod
+    def cpu(self):
+        pass
+
 
 class BatchedDataGenerator(DataGenerator):
     """Provides batched data for training and evaluation of model."""
 
-    def __init__(self, data_reader, seq_len, batch_size):
+    def __init__(self, data_reader, seq_len, batch_size, switch_data):
         super(BatchedDataGenerator, self).__init__()
 
         self.data_reader = data_reader
         self.seq_len = seq_len
         self.batch_size = batch_size
+        self.switch_data = switch_data
 
         self.cuda = self.data_reader.cuda
 
@@ -67,7 +76,7 @@ class BatchedDataGenerator(DataGenerator):
 
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(seq_len=self.seq_len))
+            self.buckets.append(DataBucket(seq_len=self.seq_len, cuda=self.cuda))
 
     @abstractmethod
     def _retrieve_batch_(self):
@@ -157,15 +166,24 @@ class BatchedDataGenerator(DataGenerator):
 class DataBucket:
     """Bucket with DataChunks."""
 
-    def __init__(self, seq_len):
+    def __init__(self, seq_len, cuda):
         self.seq_len = seq_len
+        self.cuda = cuda
         self.source: DataChunk = None
         self.index = 0
 
     def add_chunk(self, data_chunk: DataChunk):
         """Adds the whole source file to the bucket."""
         assert data_chunk.size() % self.seq_len == 0
+
+        if self.cuda and (self.source is not None):
+            self.source.cpu()
+
         self.source = data_chunk
+
+        if self.cuda:
+            self.source.cuda()
+
         self.index = 0
 
     def get_next_seq(self):
