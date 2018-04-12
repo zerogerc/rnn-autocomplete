@@ -178,12 +178,11 @@ class DataBucket:
         assert data_chunk.size() % self.seq_len == 0
 
         if self.switch_data and self.cuda:
-            if self.source is not None:
-                del self.source
-            data_chunk = data_chunk.cuda()
-
-        self.source = data_chunk
-
+            # if self.source is not None:
+            #     del self.source
+            self.source = data_chunk.cuda()
+        else:
+            self.source = data_chunk
         self.index = 0
 
     def get_next_seq(self):
