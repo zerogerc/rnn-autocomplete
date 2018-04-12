@@ -41,7 +41,7 @@ class NTSumlAttentionModelSequential(nn.Module):
             )
         )
 
-        # Recurrent layer that will have A as an input
+        # Recurrent layer that will have (A) as an input
         self.lstm_cell = self.dense_model(
             LSTMCellDropout(
                 input_size=self.embedding_size,
@@ -70,8 +70,7 @@ class NTSumlAttentionModelSequential(nn.Module):
         self._init_params_()
 
     def forget_context_partly(self, forget_vector):
-        x = 0
-        # self.sum_attention.forget_context_partly(forget_vector)
+        self.sum_attention.forget_context_partly(forget_vector)
 
     def forward(self, non_terminal_input, hidden, forget_vector, reinit_dropout=False):
         """
@@ -88,10 +87,6 @@ class NTSumlAttentionModelSequential(nn.Module):
 
         logger.log_time_ms('EMBEDDING')
 
-        # drop hidden state for programs that finished
-        # TODO: fix
-        hidden[0].data.mul(forget_vector, out=hidden[0].data)
-        hidden[1].data.mul(forget_vector, out=hidden[1].data)
         recurrent_hidden_state, recurrent_cell_state = self.lstm_cell(
             input_tensor=non_terminal_emb,
             hidden_state=hidden,
