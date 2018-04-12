@@ -76,7 +76,7 @@ class BatchedDataGenerator(DataGenerator):
 
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(seq_len=self.seq_len, cuda=self.cuda))
+            self.buckets.append(DataBucket(seq_len=self.seq_len, switch_data=switch_data, cuda=self.cuda))
 
     @abstractmethod
     def _retrieve_batch_(self):
@@ -166,8 +166,9 @@ class BatchedDataGenerator(DataGenerator):
 class DataBucket:
     """Bucket with DataChunks."""
 
-    def __init__(self, seq_len, cuda):
+    def __init__(self, seq_len, switch_data, cuda):
         self.seq_len = seq_len
+        self.switch_data = switch_data
         self.cuda = cuda
         self.source: DataChunk = None
         self.index = 0
@@ -176,13 +177,12 @@ class DataBucket:
         """Adds the whole source file to the bucket."""
         assert data_chunk.size() % self.seq_len == 0
 
-        if self.cuda and (self.source is not None):
-            self.source.cpu()
+        if self.switch_data and self.cuda:
+            if self.source is not None:
+                del self.source
+            data_chunk = data_chunk.cuda()
 
         self.source = data_chunk
-
-        if self.cuda:
-            self.source.cuda()
 
         self.index = 0
 
