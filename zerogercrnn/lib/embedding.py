@@ -8,7 +8,6 @@ class Embeddings:
     def __init__(self, embeddings_size, vector_file):
         self.vector_file = vector_file
         self.unk_embedding = None
-        self.embedding_size = embeddings_size
         self.embeddings = {}
 
         self._read_embeddings(vector_file)
@@ -20,9 +19,9 @@ class Embeddings:
             return self.unk_embedding
 
     def cuda(self):
-        self.unk_embedding.cuda()
-        for e in self.embeddings.values():
-            e.cuda()
+        self.unk_embedding = self.unk_embedding.cuda()
+        for k in self.embeddings.keys():
+            self.embeddings[k] = self.embeddings[k].cuda()
 
     def _read_embeddings(self, vector_file):
         self.embeddings = {}

@@ -124,11 +124,10 @@ class TokensDataReader(DataReader):
 
             tokens = json.loads(l)
             emb_tensor = torch.cat([self.embeddings.get_embedding(x).unsqueeze(0) for x in tokens], dim=0)
-            one_hot = torch.LongTensor(tokens)
-
             if self.cuda:
-                emb_tensor.cuda()
-                one_hot.cuda()
+                one_hot = torch.cuda.LongTensor(tokens)
+            else:
+                one_hot = torch.LongTensor(tokens)
 
             data.append(TokensDataChunk(
                 emb_tensor=emb_tensor,
