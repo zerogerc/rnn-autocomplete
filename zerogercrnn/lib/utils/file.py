@@ -10,7 +10,6 @@ import numpy as np
 
 from zerogercrnn.lib.utils.split import get_split_indexes
 
-
 DEFAULT_ENCODING = 'ISO-8859-1'
 
 all_letters = string.ascii_letters + " .,;'-"
@@ -28,12 +27,19 @@ def find_files(root, patterns):
     return files
 
 
-def read_lines(filename):
+def read_lines(filename, encoding):
     """
     Read a file and split into lines
     """
-    lines = open(filename, encoding=DEFAULT_ENCODING).read().strip().split('\n')
-    return [unicode_to_ascii(line) for line in lines]
+    """Read first *limit* lines from file and returns list of them."""
+    lines = []
+    with open(filename, mode='r', encoding=encoding) as f:
+        for l in f:
+            if l[-1] == '\n':
+                lines.append(l[:-1])
+            else:
+                lines.append(l)
+    return lines
 
 
 def unicode_to_ascii(s):

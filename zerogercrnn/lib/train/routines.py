@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 from torch.autograd import Variable
 
 
@@ -7,6 +9,7 @@ class NetworkRoutine:
     def __init__(self, network):
         self.network = network
 
+    @abstractmethod
     def run(self, iter_num, iter_data):
         """ Run routine and return value of loss function.
         
