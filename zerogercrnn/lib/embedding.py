@@ -6,7 +6,9 @@ ENCODING = 'ISO-8859-1'
 class Embeddings:
 
     def __init__(self, embeddings_size, vector_file):
+        self.embedding_size = embeddings_size
         self.vector_file = vector_file
+
         self.unk_embedding = None
         self.embeddings = {}
 
