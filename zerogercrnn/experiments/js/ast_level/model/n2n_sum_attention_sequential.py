@@ -51,12 +51,12 @@ class NTSumlAttentionModelSequential(nn.Module):
         )
 
         # Layer that applies attention to past self.cntx hidden states of contexts
-        # self.sum_attention = self.dense_model(
-        #     ContextBasedSumAttention(
-        #         seq_len=self.seq_len,
-        #         hidden_size=self.hidden_size
-        #     )
-        # )
+        self.sum_attention = self.dense_model(
+            ContextBasedSumAttention(
+                seq_len=self.seq_len,
+                hidden_size=self.hidden_size
+            )
+        )
 
         # Layer that transforms context output layer into next non-terminal
         self.h2o = self.dense_model(
@@ -104,16 +104,16 @@ class NTSumlAttentionModelSequential(nn.Module):
         # drop context for programs that finished
         # self.sum_attention.forget_context_partly(forget_vector)
 
-        # attention_hidden = self.sum_attention(recurrent_hidden_state)
+        attention_hidden = self.sum_attention(recurrent_hidden_state)
         logger.log_time_ms('ATTENTION')
 
-        prediction = self.h2o(recurrent_hidden_state)
+        prediction = self.h2o(attention_hidden)
 
         logger.log_time_ms('OUTPUT')
 
         # attention_hidden instead of recurrent_hidden here is main idea of network.
         # We will propagate only needed information to the next layer.
-        return prediction, (recurrent_hidden_state, recurrent_cell_state)
+        return prediction, (attention_hidden, recurrent_cell_state)
 
     def sparse_model(self, model):
         self.sparse_params += model.parameters()
