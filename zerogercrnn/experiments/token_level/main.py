@@ -71,15 +71,19 @@ def calc_accuracy(args):
     print('Accuracy: {}'.format(float(correct_tokens) / all_tokens))
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda):
+def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     (n_input, n_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    n_input = Variable(n_input)
-    n_target = Variable(n_target)
+    if no_grad:
+        n_input = Variable(n_input, volatile=True)
+        n_target = Variable(n_target, volatile=True)
+    else:
+        n_input = Variable(n_input)
+        n_target = Variable(n_target)
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
 
     model.zero_grad()
     prediction, hidden = model(n_input, hidden, forget_vector=forget_vector)
@@ -106,7 +110,8 @@ class TokenLevelRoutine(NetworkRoutine):
             iter_data=iter_data,
             hidden=self.hidden,
             batch_size=self.batch_size,
-            cuda=self.cuda
+            cuda=self.cuda,
+            no_grad=self.optimizers is None
         )
         self.hidden = hidden
 
