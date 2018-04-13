@@ -20,19 +20,27 @@ ENCODING = 'ISO-8859-1'
 class TokensDataChunk(DataChunk):
     """Wrapper on tensor of size [program_len, embedding_size]."""
 
-    def __init__(self, emb_tensor, one_hot_tensor):
+    def __init__(self, one_hot_tensor, embeddings: Embeddings):
         super().__init__()
-        assert emb_tensor.size()[0] == one_hot_tensor.size()[0]
 
-        self.emb_tensor = emb_tensor
+        self.embeddings = embeddings
         self.one_hot_tensor = one_hot_tensor
+        self.emb_tensor = None
         self.seq_len = None
 
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
         ln = self.size() - self.size() % seq_len
-        self.emb_tensor = self.emb_tensor.narrow(dimension=0, start=0, length=ln)
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
+
+    def on_start(self):
+        self.emb_tensor = torch.cat(
+            [self.embeddings.get_embedding(x).unsqueeze(0) for x in self.one_hot_tensor.view(-1)],
+            dim=0
+        )
+
+    def on_finish(self):
+        self.emb_tensor = None
 
     def get_by_index(self, index):
         if self.seq_len is None:
@@ -46,15 +54,7 @@ class TokensDataChunk(DataChunk):
         return in_tensor, target_tensor
 
     def size(self):
-        return self.emb_tensor.size()[0]
-
-    def cuda(self):
-        self.emb_tensor.cuda()
-        self.one_hot_tensor.cuda()
-
-    def cpu(self):
-        self.emb_tensor.cpu()
-        self.one_hot_tensor.cpu()
+        return self.one_hot_tensor.size()[0]
 
 
 class TokensDataGenerator(BatchedDataGenerator):
@@ -101,7 +101,7 @@ class TokensDataReader(DataReader):
         self.eval_file = eval_file
         self.embeddings = embeddings
         self.seq_len = seq_len
-        self.cuda = False  # for now
+        self.cuda = cuda  # for now
 
         if self.cuda:
             self.embeddings.cuda()
@@ -131,15 +131,14 @@ class TokensDataReader(DataReader):
             it += 1
 
             tokens = json.loads(l)
-            emb_tensor = torch.cat([self.embeddings.get_embedding(x).unsqueeze(0) for x in tokens], dim=0)
             if self.cuda:
                 one_hot = torch.cuda.LongTensor(tokens)
             else:
                 one_hot = torch.LongTensor(tokens)
 
             data.append(TokensDataChunk(
-                emb_tensor=emb_tensor,
-                one_hot_tensor=one_hot
+                one_hot_tensor=one_hot,
+                embeddings=self.embeddings
             ))
 
             if (limit is not None) and (it == limit):

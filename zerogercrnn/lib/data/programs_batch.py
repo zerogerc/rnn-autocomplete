@@ -30,19 +30,19 @@ class DataChunk:
         pass
 
     @abstractmethod
+    def on_start(self):
+        pass
+
+    @abstractmethod
+    def on_finish(self):
+        pass
+
+    @abstractmethod
     def get_by_index(self, index):
         pass
 
     @abstractmethod
     def size(self):
-        pass
-
-    @abstractmethod
-    def cuda(self):
-        pass
-
-    @abstractmethod
-    def cpu(self):
         pass
 
 
@@ -57,7 +57,6 @@ class BatchedDataGenerator(DataGenerator):
         self.batch_size = batch_size
         self.cuda = cuda
         self.switch_data = switch_data
-
 
         if data_reader.train_data is not None:
             self.data_train = self._prepare_data_(data_reader.train_data)
@@ -176,13 +175,9 @@ class DataBucket:
     def add_chunk(self, data_chunk: DataChunk):
         """Adds the whole source file to the bucket."""
         assert data_chunk.size() % self.seq_len == 0
+        data_chunk.on_start()
 
-        if self.switch_data and self.cuda:
-            # if self.source is not None:
-            #     del self.source
-            self.source = data_chunk.cuda()
-        else:
-            self.source = data_chunk
+        self.source = data_chunk
         self.index = 0
 
     def get_next_seq(self):
@@ -202,5 +197,7 @@ class DataBucket:
 
     def clear(self):
         """Remove attached SourceFile from this bucket."""
+        if self.source is not None:
+            self.source.on_finish()
         self.source = None
         self.index = 0
