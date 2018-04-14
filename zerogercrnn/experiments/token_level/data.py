@@ -25,7 +25,6 @@ class TokensDataChunk(DataChunk):
 
         self.embeddings = embeddings
         self.one_hot_tensor = one_hot_tensor
-        self.emb_tensor = None
         self.seq_len = None
 
     def prepare_data(self, seq_len):
@@ -33,22 +32,20 @@ class TokensDataChunk(DataChunk):
         ln = self.size() - self.size() % seq_len
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
 
-    def on_start(self):
-        self.emb_tensor = torch.cat(
-            [self.embeddings.get_embedding(x).unsqueeze(0) for x in self.one_hot_tensor.view(-1)],
-            dim=0
-        )
-
-    def on_finish(self):
-        self.emb_tensor = None
-
     def get_by_index(self, index):
         if self.seq_len is None:
             raise Exception('You should call prepare_data with specified seq_len first')
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
 
-        in_tensor = self.emb_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
+        in_tensor = self.one_hot_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
+        # convert one-hot to embeddings matrix
+        # TODO: faster way
+        in_tensor = torch.cat(
+            [self.embeddings.get_embedding(x).unsqueeze(0) for x in in_tensor],
+            dim=0
+        )
+
         target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
         return in_tensor, target_tensor

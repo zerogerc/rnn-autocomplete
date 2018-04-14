@@ -30,14 +30,6 @@ class DataChunk:
         pass
 
     @abstractmethod
-    def on_start(self):
-        pass
-
-    @abstractmethod
-    def on_finish(self):
-        pass
-
-    @abstractmethod
     def get_by_index(self, index):
         pass
 
@@ -175,8 +167,6 @@ class DataBucket:
     def add_chunk(self, data_chunk: DataChunk):
         """Adds the whole source file to the bucket."""
         assert data_chunk.size() % self.seq_len == 0
-        data_chunk.on_start()
-
         self.source = data_chunk
         self.index = 0
 
@@ -197,7 +187,5 @@ class DataBucket:
 
     def clear(self):
         """Remove attached SourceFile from this bucket."""
-        if self.source is not None:
-            self.source.on_finish()
         self.source = None
         self.index = 0
