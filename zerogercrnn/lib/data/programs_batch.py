@@ -118,6 +118,7 @@ class BatchedDataGenerator(DataGenerator):
         """Returns generator over batched data of all files in the dataset."""
 
         self.current_key = key
+        self.epoch_finished = False
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         if key not in self.indexes:
