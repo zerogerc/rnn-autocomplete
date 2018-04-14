@@ -108,6 +108,12 @@ class TokenLevelRoutine(NetworkRoutine):
 
         self.hidden = None
 
+    def calc_loss(self, prediction, n_target):
+        return self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))
+
+    def get_value_from_loss(self, loss):
+        return loss.data[0]
+
     def run(self, iter_num, iter_data):
         prediction, n_target, hidden = run_model(
             model=self.model,
@@ -119,7 +125,7 @@ class TokenLevelRoutine(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))
+        loss = self.calc_loss(prediction, n_target)
         if self.optimizers is not None:
             # Backward pass
             loss.backward()
@@ -129,7 +135,7 @@ class TokenLevelRoutine(NetworkRoutine):
                 optimizer.step()
 
         # Return loss value
-        return loss.data[0]
+        return self.get_value_from_loss(loss)
 
 
 def create_data_generator(args):
