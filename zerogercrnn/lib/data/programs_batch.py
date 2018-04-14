@@ -85,11 +85,15 @@ class BatchedDataGenerator(DataGenerator):
     def get_eval_generator(self):
         return self._get_batched_epoch_(dataset=self.data_eval, key='eval')
 
+    def _add_chunk(self, bucket, dataset, indexes, current):
+        bucket.add_chunk(data_chunk=dataset[indexes[current]])
+
     def _refill_buckets(self, dataset, key, indexes, current, right):
         cont = True  # indicates if we need to continue add new chunks or finish epoch
 
         # Refill empty buckets.
-        for bn in range(len(self.buckets)):
+        bn = 0
+        while bn <= len(self.buckets):
             bucket = self.buckets[bn]
 
             if bucket.is_empty():
@@ -100,13 +104,15 @@ class BatchedDataGenerator(DataGenerator):
                 # Chunk changed need to forget hidden state
                 self.forget_vector[key][bn][0] = 0.
 
-                bucket.add_chunk(data_chunk=dataset[indexes[current]])
+                self._add_chunk(bucket, dataset, indexes, current)
                 current += 1
                 if current % 1000 == 0:
                     print('Processed {} programs'.format(current))
             else:
                 # Pass states to the next iteration (i.e. hidden state)
                 self.forget_vector[key][bn][0] = 1.
+
+            bn += 1
 
         return current, cont
 
