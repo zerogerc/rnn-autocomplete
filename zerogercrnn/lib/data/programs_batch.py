@@ -30,7 +30,7 @@ class DataChunk:
         pass
 
     @abstractmethod
-    def get_by_index(self, index):
+    def get_by_index(self, index, additional):
         pass
 
     @abstractmethod
@@ -69,7 +69,7 @@ class BatchedDataGenerator(DataGenerator):
             self.buckets.append(DataBucket(seq_len=self.seq_len, cuda=self.cuda))
 
     @abstractmethod
-    def _retrieve_batch_(self):
+    def _retrieve_batch_(self, key):
         """Here you could suppose that you have non-empty buckets and you could extract data."""
         pass
 
@@ -122,7 +122,7 @@ class BatchedDataGenerator(DataGenerator):
                     self.forget_vector[key][bn][0] = 1.
 
             if cont:
-                yield self._retrieve_batch_(), self.forget_vector[key]
+                yield self._retrieve_batch_(key), self.forget_vector[key]
             else:
                 break
 
@@ -170,7 +170,7 @@ class DataBucket:
         self.source = data_chunk
         self.index = 0
 
-    def get_next_seq(self):
+    def get_next_index(self):
         """Return input and target tensors from attached DataChunk with lenghts seq_len - 1."""
         if self.is_empty():
             print(self.source)
@@ -178,7 +178,7 @@ class DataBucket:
             raise Exception('No data in bucket')
         self.index += self.seq_len
         start = self.index - self.seq_len
-        return self.source.get_by_index(start)
+        return start
 
     def is_empty(self):
         """Indicates whether this bucket contains at least one more sequence."""

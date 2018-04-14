@@ -16,6 +16,15 @@ from zerogercrnn.lib.train.routines import NetworkRoutine
 LOG_EVERY = 1000
 
 
+def save_current_model(model, dir, name):
+    if dir is not None:
+        print('Saving model: {}'.format(name))
+        save_model(
+            model=model,
+            path=os.path.join(dir, name)
+        )
+        print('Saved!')
+
 class TrainEpochRunner:
     def __init__(
             self,
@@ -95,13 +104,7 @@ class TrainEpochRunner:
                 # validate at the end of epoch
                 self.validate(epoch=epoch, iter_num=it)
 
-                if self.save_dir is not None:
-                    print('Saving model: {}'.format('model_epoch_{}'.format(epoch)))
-                    save_model(
-                        model=self.network,
-                        path=os.path.join(self.save_dir, 'model_epoch_{}'.format(epoch))
-                    )
-                    print('Saved!')
+                save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(epoch))
         except KeyboardInterrupt:
             print('-' * 89)
             print('Exiting from training early')

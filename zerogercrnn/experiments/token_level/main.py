@@ -149,6 +149,7 @@ def create_data_generator(args):
         data_reader=reader,
         seq_len=args.seq_len,
         batch_size=args.batch_size,
+        embeddings_size=args.embedding_size,
         cuda=args.cuda
     )
 

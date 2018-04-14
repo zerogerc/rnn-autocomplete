@@ -10,14 +10,15 @@ from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator,
 tqdm.monitor_interval = 0
 
 from zerogercrnn.lib.embedding import Embeddings
+# TODO: this is temp file
 
-VECTOR_FILE = 'data/tokens/vectors.txt'
-TRAIN_FILE = 'data/tokens/file_train.json'
-EVAL_FILE = 'data/tokens/file_eval.json'
+VECTOR_FILE = 'data/ast/vectors.txt'
+TRAIN_FILE = 'data/ast/file_train.json'
+EVAL_FILE = 'data/ast/file_eval.json'
 ENCODING = 'ISO-8859-1'
 
 
-class TokensDataChunk(DataChunk):
+class ASTDataChunk(DataChunk):
     """Wrapper on tensor of size [program_len, embedding_size]."""
 
     def __init__(self, one_hot_tensor, embeddings: Embeddings):
@@ -32,52 +33,43 @@ class TokensDataChunk(DataChunk):
         ln = self.size() - self.size() % seq_len
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
 
-    def get_by_index(self, index, additional=None):
+    def get_by_index(self, index):
         if self.seq_len is None:
             raise Exception('You should call prepare_data with specified seq_len first')
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
 
-        batch_number, input_buffer, target_buffer = additional
+        in_tensor = self.one_hot_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
+        # convert one-hot to embeddings matrix
+        # TODO: faster way
+        in_tensor = torch.cat(
+            [self.embeddings.get_embedding(x).unsqueeze(0) for x in in_tensor],
+            dim=0
+        )
 
-        for i in range(0, self.seq_len - 1):
-            input_buffer[i, batch_number] = self.embeddings.get_embedding(self.one_hot_tensor[index + i])
+        target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
-        target_buffer[:, batch_number] = \
-            self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
+        return in_tensor, target_tensor
 
     def size(self):
         return self.one_hot_tensor.size()[0]
 
 
-class TokensDataGenerator(BatchedDataGenerator):
-    def __init__(self, data_reader: DataReader, seq_len, batch_size, embeddings_size, cuda):
+class ASTDataGenerator(BatchedDataGenerator):
+    def __init__(self, data_reader: DataReader, seq_len, batch_size, cuda):
         super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
 
-        self.embeddings_size = embeddings_size
-        self.buffer_input = {}
-        self.buffer_target = {}
+    def _retrieve_batch_(self):
+        inputs = []
+        targets = []
 
-    def _retrieve_batch_(self, key):
-        b_id = 0
-
-        input_tensor = self.buffer_input[key]
-        target_tensor = self.buffer_target[key]
         for b in self.buckets:
-            index = b.get_next_index()
-            b.source.get_by_index(index, (b_id, input_tensor, target_tensor))
-            b_id += 1
+            i, t = b.get_next_seq()
 
-        return input_tensor, target_tensor
+            inputs.append(i.unsqueeze(1))
+            targets.append(t.unsqueeze(1))
 
-    def _init_epoch_state_(self, key, data_len):
-        super()._init_epoch_state_(key, data_len)
-        self.buffer_input[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
-        self.buffer_target[key] = torch.LongTensor(self.seq_len - 1, self.batch_size)
-
-        if self.cuda:
-            self.buffer_input[key] = self.buffer_input[key].cuda()
-            self.buffer_target[key] = self.buffer_target[key].cuda()
+        return torch.cat(inputs, dim=1), torch.cat(targets, dim=1)
 
 
 class MockDataReader:
@@ -93,12 +85,12 @@ class MockDataReader:
             e_t.cuda()
             o_t.cude()
 
-        self.data_train = [TokensDataChunk(e_t, o_t) for i in range(400)]
-        self.data_validation = [TokensDataChunk(e_t, o_t) for i in range(400)]
-        self.data_eval = [TokensDataChunk(e_t, o_t) for i in range(400)]
+        self.data_train = [ASTDataChunk(e_t, o_t) for i in range(400)]
+        self.data_validation = [ASTDataChunk(e_t, o_t) for i in range(400)]
+        self.data_eval = [ASTDataChunk(e_t, o_t) for i in range(400)]
 
 
-class TokensDataReader(DataReader):
+class ASTDataReader(DataReader):
     """Reads the data from file and transform it to torch Tensors."""
 
     def __init__(self, train_file, eval_file, embeddings: Embeddings, seq_len, cuda, limit=100000):
@@ -137,11 +129,12 @@ class TokensDataReader(DataReader):
             it += 1
 
             tokens = json.loads(l)
-            one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                one_hot = one_hot.pin_memory()
+                one_hot = torch.cuda.LongTensor(tokens)
+            else:
+                one_hot = torch.LongTensor(tokens)
 
-            data.append(TokensDataChunk(
+            data.append(ASTDataChunk(
                 one_hot_tensor=one_hot,
                 embeddings=self.embeddings
             ))
@@ -154,7 +147,7 @@ class TokensDataReader(DataReader):
 
 if __name__ == '__main__':
     emb = Embeddings(embeddings_size=50, vector_file=VECTOR_FILE)
-    data_reader = TokensDataReader(
+    data_reader = ASTDataReader(
         train_file=TRAIN_FILE,
         eval_file=None,
         embeddings=emb,
@@ -163,7 +156,7 @@ if __name__ == '__main__':
         limit=1000
     )
 
-    data_generator = TokensDataGenerator(
+    data_generator = ASTDataGenerator(
         data_reader=data_reader,
         seq_len=10,
         batch_size=10,
