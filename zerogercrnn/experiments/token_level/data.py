@@ -56,7 +56,7 @@ class TokensDataChunk(DataChunk):
 
 class TokensDataGenerator(BatchedDataGenerator):
     def __init__(self, data_reader: DataReader, seq_len, batch_size, cuda):
-        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda, switch_data=True)
+        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
 
     def _retrieve_batch_(self):
         inputs = []
@@ -98,7 +98,7 @@ class TokensDataReader(DataReader):
         self.eval_file = eval_file
         self.embeddings = embeddings
         self.seq_len = seq_len
-        self.cuda = cuda  # for now
+        self.cuda = cuda
 
         if self.cuda:
             self.embeddings.cuda()

@@ -2,8 +2,6 @@ import os
 
 from tqdm import tqdm
 
-import torch
-
 # hack for tqdm
 tqdm.monitor_interval = 0
 

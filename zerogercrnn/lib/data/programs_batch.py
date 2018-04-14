@@ -41,14 +41,13 @@ class DataChunk:
 class BatchedDataGenerator(DataGenerator):
     """Provides batched data for training and evaluation of model."""
 
-    def __init__(self, data_reader, seq_len, batch_size, cuda, switch_data):
+    def __init__(self, data_reader, seq_len, batch_size, cuda):
         super(BatchedDataGenerator, self).__init__()
 
         self.data_reader = data_reader
         self.seq_len = seq_len
         self.batch_size = batch_size
         self.cuda = cuda
-        self.switch_data = switch_data
 
         if data_reader.train_data is not None:
             self.data_train = self._prepare_data_(data_reader.train_data)
@@ -67,7 +66,7 @@ class BatchedDataGenerator(DataGenerator):
 
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(seq_len=self.seq_len, switch_data=switch_data, cuda=self.cuda))
+            self.buckets.append(DataBucket(seq_len=self.seq_len, cuda=self.cuda))
 
     @abstractmethod
     def _retrieve_batch_(self):
@@ -157,9 +156,8 @@ class BatchedDataGenerator(DataGenerator):
 class DataBucket:
     """Bucket with DataChunks."""
 
-    def __init__(self, seq_len, switch_data, cuda):
+    def __init__(self, seq_len, cuda):
         self.seq_len = seq_len
-        self.switch_data = switch_data
         self.cuda = cuda
         self.source: DataChunk = None
         self.index = 0
@@ -171,8 +169,7 @@ class DataBucket:
         self.index = 0
 
     def get_next_seq(self):
-        """Return DataChunk with len equal to seq_len
-        """
+        """Return input and target tensors from attached DataChunk with lenghts seq_len - 1."""
         if self.is_empty():
             print(self.source)
             print(self.index)
