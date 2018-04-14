@@ -15,14 +15,14 @@ parser.add_argument('--file_eval', type=str, help='One-hot eval file')
 parser.add_argument('--file_glove_map', type=str, help='File from glove_tokens.py stroing map from token to number')
 parser.add_argument('--file_glove_vocab', type=str, help='Vocabulary of trained Glove vectors')
 parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals file of Glove')
-parser.add_argument('--file_glove_vectors', type=str, help='File with Glove embedding ')
-parser.add_argument('--file_glove_terminal_emb', type=str, help='Where to put one-hot terminal embeddings of Glove')
 
 LIM = 1000000
 
 """
 Script that forms one-hot sequences of (N, T) from JS dataset.
 """
+
+
 def create_glove_terminals_file(args):
     json_data = open(args.file_glove_map).read()
     term2id = json.loads(json_data)
@@ -38,6 +38,7 @@ def create_glove_terminals_file(args):
 
     glove_terminals = open(args.file_glove_terminals, mode='w', encoding=ENCODING)
     glove_terminals.write('\n'.join(terminals))
+
 
 def get_tokens(args):
     TokensRetriever().get_and_write_tokens(

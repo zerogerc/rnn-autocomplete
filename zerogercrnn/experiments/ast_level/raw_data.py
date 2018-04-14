@@ -68,8 +68,7 @@ class OneHotConverter:
                 if N not in self.non_terminal_idx.keys():
                     raise Exception('Unknown non terminal: {}'.format(N))
                 if T not in self.terminal_idx.keys():
-                    T = UNKNOWN_TOKEN
-                    # raise Exception('Unknown terminal: {}'.format(T))
+                    raise Exception('Unknown terminal: {}'.format(T))
 
                 converted_json.append({
                     'N': self.non_terminal_idx[N],

@@ -10,7 +10,7 @@ parser.add_argument('--token_map_file', type=str, help='Map from token name to i
 
 LIM = 100000
 ENCODING = 'ISO-8859-1'
-EMP_TOKEN = '<emp>'
+EMP_TOKEN = 'EMP'
 
 def write_map(file, raw_map):
     f_write = open(file, mode='w', encoding=ENCODING)
