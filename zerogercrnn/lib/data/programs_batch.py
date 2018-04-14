@@ -93,7 +93,7 @@ class BatchedDataGenerator(DataGenerator):
 
         # Refill empty buckets.
         bn = 0
-        while bn <= len(self.buckets):
+        while bn < len(self.buckets):
             bucket = self.buckets[bn]
 
             if bucket.is_empty():
