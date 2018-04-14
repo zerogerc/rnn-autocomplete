@@ -32,7 +32,7 @@ class TokensDataChunk(DataChunk):
         ln = self.size() - self.size() % seq_len
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
 
-    def get_by_index(self, index, additional=None):
+    def get_by_index(self, index):
         if self.seq_len is None:
             raise Exception('You should call prepare_data with specified seq_len first')
         if index + self.seq_len > self.size():
@@ -50,6 +50,7 @@ class TokensDataChunk(DataChunk):
 
 
 class TokensDataGenerator(BatchedDataGenerator):
+
     def __init__(self, data_reader: DataReader, seq_len, batch_size, embeddings_size, cuda):
         super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
 
@@ -57,36 +58,16 @@ class TokensDataGenerator(BatchedDataGenerator):
         self.buffer_input = {}
         self.buffer_target = {}
 
-    def _retrieve_batch_(self, key):
-        b_id = 0
-
-        # input_tensor = self.buffer_input[key]
-        # target_tensor = self.buffer_target[key]
-
+    def _retrieve_batch(self, buckets):
         inputs = []
         targets = []
-        for b in self.buckets:
-            index = b.get_next_index()
-
-            i, t = b.source.get_by_index(index)
-            # b_id += 1
-
-            if b.is_empty():
-                b.try_refill()
+        for b in buckets:
+            i, t = b.get_next()
 
             inputs.append(i)
             targets.append(t)
 
         return torch.stack(inputs, dim=1), torch.stack(targets, dim=1)
-
-    def _init_epoch_state_(self, key, data_len):
-        super()._init_epoch_state_(key, data_len)
-        # self.buffer_input[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
-        # self.buffer_target[key] = torch.LongTensor(self.seq_len - 1, self.batch_size)
-        #
-        # if self.cuda:
-        #     self.buffer_input[key] = self.buffer_input[key].cuda()
-        #     self.buffer_target[key] = self.buffer_target[key].cuda()
 
 
 class MockDataReader:
