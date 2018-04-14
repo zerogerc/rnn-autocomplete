@@ -60,13 +60,43 @@ class BatchedDataGenerator(DataGenerator):
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         # Map is for storing train/validation separately
+        self.datasets = {
+            'train': self.data_train,
+            'validation': self.data_validation,
+            'eval': self.data_eval
+        }
         self.indexes = {}
         self.current = {}
         self.forget_vector = {}
 
+        self.current_key = 'train'
+        self.epoch_finished = False
+
+        def getter():
+            indexes = self.indexes[self.current_key]
+            current = self.current[self.current_key]
+            dataset = self.datasets[self.current_key]
+
+            # Parse programs till this number
+            right = min(current + len(dataset) // 5, len(dataset))
+
+            if current == right:
+                self.epoch_finished = True
+                return None
+
+            chunk = dataset[indexes[current]]
+            self.current[self.current_key] = current + 1
+
+            return chunk
+
         self.buckets = []
         for i in range(self.batch_size):
-            self.buckets.append(DataBucket(seq_len=self.seq_len, cuda=self.cuda))
+            self.buckets.append(
+                DataBucket(
+                    seq_len=self.seq_len,
+                    cuda=self.cuda,
+                    getter=getter
+                ))
 
     @abstractmethod
     def _retrieve_batch_(self, key):
@@ -85,65 +115,30 @@ class BatchedDataGenerator(DataGenerator):
     def get_eval_generator(self):
         return self._get_batched_epoch_(dataset=self.data_eval, key='eval')
 
-    def _add_chunk(self, bucket, dataset, indexes, current):
-        bucket.add_chunk(data_chunk=dataset[indexes[current]])
-
-    def _refill_buckets(self, dataset, key, indexes, current, right):
-        cont = True  # indicates if we need to continue add new chunks or finish epoch
-
-        # Refill empty buckets.
-        bn = 0
-        while bn < len(self.buckets):
-            bucket = self.buckets[bn]
-
-            if bucket.is_empty():
-                if current == right:
-                    cont = False
-                    break
-
-                # Chunk changed need to forget hidden state
-                self.forget_vector[key][bn][0] = 0.
-
-                self._add_chunk(bucket, dataset, indexes, current)
-                current += 1
-                if current % 1000 == 0:
-                    print('Processed {} programs'.format(current))
-            else:
-                # Pass states to the next iteration (i.e. hidden state)
-                self.forget_vector[key][bn][0] = 1.
-
-            bn += 1
-
-        return current, cont
-
     def _get_batched_epoch_(self, dataset, key):
         """Returns generator over batched data of all files in the dataset."""
+
+        self.current_key = key
 
         # Share indexes between epochs because we want one epoch to be 1/5 of dataset
         if key not in self.indexes:
             self._init_epoch_state_(key, data_len=len(dataset))
 
-        indexes = self.indexes[key]
-        current = self.current[key]
-
-        # Parse programs till this number
-        right = min(current + len(dataset) // 5, len(dataset))
+        for b in self.buckets:
+            if b.is_empty():
+                b.try_refill()
 
         while True:
-            current, cont = self._refill_buckets(dataset, key, indexes, current, right)
+            current = self.current[self.current_key]
+            if current % 1000 == 0:
+                print('Processed {} programs'.format(current))
 
-            if cont:
+            if not self.epoch_finished:
                 yield self._retrieve_batch_(key), self.forget_vector[key]
             else:
                 break
 
-            if current == right:
-                break
-
-        self.indexes[key] = indexes
-        self.current[key] = current
-
-        if current >= len(indexes):
+        if current >= len(self.indexes[self.current_key]):
             self._reset_epoch_state_(key)
 
     def _prepare_data_(self, data):
@@ -169,10 +164,11 @@ class BatchedDataGenerator(DataGenerator):
 class DataBucket:
     """Bucket with DataChunks."""
 
-    def __init__(self, seq_len, cuda):
+    def __init__(self, seq_len, cuda, getter):
         self.seq_len = seq_len
         self.cuda = cuda
         self.source: DataChunk = None
+        self.getter = getter
         self.index = 0
 
     def add_chunk(self, data_chunk: DataChunk):
@@ -190,6 +186,14 @@ class DataBucket:
         self.index += self.seq_len
         start = self.index - self.seq_len
         return start
+
+    def try_refill(self):
+        source = self.getter()
+        if source is None:
+            self.source = None
+            self.index = 0
+        else:
+            self.add_chunk(source)
 
     def is_empty(self):
         """Indicates whether this bucket contains at least one more sequence."""

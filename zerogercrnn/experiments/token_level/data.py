@@ -67,8 +67,12 @@ class TokensDataGenerator(BatchedDataGenerator):
         targets = []
         for b in self.buckets:
             index = b.get_next_index()
+
             i, t = b.source.get_by_index(index)
             # b_id += 1
+
+            if b.is_empty():
+                b.try_refill()
 
             inputs.append(i)
             targets.append(t)
