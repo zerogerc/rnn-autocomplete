@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
+from zerogercrnn.lib.utils.state import load_if_saved
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
@@ -23,6 +24,7 @@ parser.add_argument('--saved_model', type=str, help='File with trained model if 
 parser.add_argument('--cuda', action='store_true', help='Use cuda?')
 parser.add_argument('--real_data', action='store_true', help='Use real data?')
 parser.add_argument('--log', action='store_true', help='Log performance?')
+parser.add_argument('--task', type=str, help='One of: train, accuracy')
 
 parser.add_argument('--tokens_count', type=int, help='All possible tokens count')  # 51k now
 parser.add_argument('--seq_len', type=int, help='Recurrent layer time unrolling')
@@ -40,15 +42,48 @@ parser.add_argument('--weight_decay', type=float, help='Weight decay for l2 regu
 ENCODING = 'ISO-8859-1'
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda):
+def calc_accuracy(args):
+    assert args.eval_file is not None
+
+    data_generator = create_data_generator(args)
+    model = create_model(args)
+    model.eval()
+
+    if args.saved_model is not None:
+        load_if_saved(model, args.saved_model)
+
+    all_tokens = 0
+    correct_tokens = 0
+
+    hidden = None
+    for iter_data in data_generator.get_eval_generator():
+        prediction, target, hidden = run_model(model, iter_data, hidden, args.batch_size, args.cuda)
+
+        _, predicted = torch.max(prediction, dim=2)
+
+        cur_all = target.size()[0] * target.size()[1]
+        cur_incorrect = torch.nonzero(target - predicted).size()[0]
+        cur_correct = cur_all - cur_incorrect
+
+        all_tokens += cur_all
+        cur_all += cur_correct
+
+    print('Accuracy: {}'.format(float(correct_tokens) / all_tokens))
+
+
+def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     (n_input, n_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    n_input = Variable(n_input)
-    n_target = Variable(n_target)
+    if no_grad:
+        n_input = Variable(n_input, volatile=True)
+        n_target = Variable(n_target, volatile=True)
+    else:
+        n_input = Variable(n_input)
+        n_target = Variable(n_target)
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
 
     model.zero_grad()
     prediction, hidden = model(n_input, hidden, forget_vector=forget_vector)
@@ -75,7 +110,8 @@ class TokenLevelRoutine(NetworkRoutine):
             iter_data=iter_data,
             hidden=self.hidden,
             batch_size=self.batch_size,
-            cuda=self.cuda
+            cuda=self.cuda,
+            no_grad=self.optimizers is None
         )
         self.hidden = hidden
 
@@ -112,7 +148,8 @@ def create_data_generator(args):
     data_generator = TokensDataGenerator(
         data_reader=reader,
         seq_len=args.seq_len,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        cuda=args.cuda
     )
 
     return data_generator
@@ -179,10 +216,15 @@ if __name__ == '__main__':
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if _args.saved_model is not None:
-        raise Exception('Loading of saved model is not supported now')
-
     if _args.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
 
-    main(_args)
+    if _args.task == 'train':
+        if _args.saved_model is not None:
+            raise Exception('Loading of saved model is not supported now')
+
+        main(_args)
+    elif _args.task == 'accuracy':
+        calc_accuracy(_args)
+    else:
+        raise Exception('Not supported task')

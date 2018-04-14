@@ -59,7 +59,7 @@ class TrainEpochRunner:
 
     def run(self, number_of_epochs):
         it = 0
-        # self.validate(epoch=-1, iter_num=it)  # first validation for plot.
+        self.validate(epoch=-1, iter_num=it)  # first validation for plot.
 
         try:
             for epoch in range(number_of_epochs):

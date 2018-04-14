@@ -211,9 +211,13 @@ class RecurrentCore(nn.Module):
         output_tensor, hidden = self.recurrent(input_tensor, hidden)
         return output_tensor, hidden
 
-    def init_hidden(self, batch_size, cuda):
-        h = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
-        c = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        if no_grad:
+            h = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)), volatile=True)
+            c = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)), volatile=True)
+        else:
+            h = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
+            c = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
 
         if cuda:
             h = h.cuda()
