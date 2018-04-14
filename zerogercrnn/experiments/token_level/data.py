@@ -38,13 +38,12 @@ class TokensDataChunk(DataChunk):
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
 
-        batch_number, input_buffer, target_buffer = additional
+        input_tensor_one_hot = self.one_hot_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
+        input_tensor_emb = self.embeddings.index_select(input_tensor_one_hot)
 
-        for i in range(0, self.seq_len - 1):
-            input_buffer[i, batch_number] = self.embeddings.get_embedding(self.one_hot_tensor[index + i])
+        target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
-        target_buffer[:, batch_number] = \
-            self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
+        return input_tensor_emb, target_tensor
 
     def size(self):
         return self.one_hot_tensor.size()[0]
@@ -61,23 +60,29 @@ class TokensDataGenerator(BatchedDataGenerator):
     def _retrieve_batch_(self, key):
         b_id = 0
 
-        input_tensor = self.buffer_input[key]
-        target_tensor = self.buffer_target[key]
+        # input_tensor = self.buffer_input[key]
+        # target_tensor = self.buffer_target[key]
+
+        inputs = []
+        targets = []
         for b in self.buckets:
             index = b.get_next_index()
-            b.source.get_by_index(index, (b_id, input_tensor, target_tensor))
-            b_id += 1
+            i, t = b.source.get_by_index(index)
+            # b_id += 1
 
-        return input_tensor, target_tensor
+            inputs.append(i)
+            targets.append(t)
+
+        return torch.stack(inputs, dim=1), torch.stack(targets, dim=1)
 
     def _init_epoch_state_(self, key, data_len):
         super()._init_epoch_state_(key, data_len)
-        self.buffer_input[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
-        self.buffer_target[key] = torch.LongTensor(self.seq_len - 1, self.batch_size)
-
-        if self.cuda:
-            self.buffer_input[key] = self.buffer_input[key].cuda()
-            self.buffer_target[key] = self.buffer_target[key].cuda()
+        # self.buffer_input[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
+        # self.buffer_target[key] = torch.LongTensor(self.seq_len - 1, self.batch_size)
+        #
+        # if self.cuda:
+        #     self.buffer_input[key] = self.buffer_input[key].cuda()
+        #     self.buffer_target[key] = self.buffer_target[key].cuda()
 
 
 class MockDataReader:
@@ -139,7 +144,7 @@ class TokensDataReader(DataReader):
             tokens = json.loads(l)
             one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                one_hot = one_hot.pin_memory()
+                one_hot = one_hot.cuda()
 
             data.append(TokensDataChunk(
                 one_hot_tensor=one_hot,
@@ -153,23 +158,29 @@ class TokensDataReader(DataReader):
 
 
 if __name__ == '__main__':
+    # x = torch.FloatTensor(5, 4)
+    # ids = torch.LongTensor([0, 0, 1, 2, 1])
+    #
+    # print(torch.index_select(x, dim=0, index=ids))
+
     emb = Embeddings(embeddings_size=50, vector_file=VECTOR_FILE)
-    data_reader = TokensDataReader(
-        train_file=TRAIN_FILE,
-        eval_file=None,
-        embeddings=emb,
-        seq_len=10,
-        cuda=False,
-        limit=1000
-    )
-
-    data_generator = TokensDataGenerator(
-        data_reader=data_reader,
-        seq_len=10,
-        batch_size=10,
-        cuda=False
-    )
-
-    for iter_data in data_generator.get_train_generator():
-        print(iter_data)
-        break
+    x = 0
+    # data_reader = TokensDataReader(
+    #     train_file=TRAIN_FILE,
+    #     eval_file=None,
+    #     embeddings=emb,
+    #     seq_len=10,
+    #     cuda=False,
+    #     limit=1000
+    # )
+    #
+    # data_generator = TokensDataGenerator(
+    #     data_reader=data_reader,
+    #     seq_len=10,
+    #     batch_size=10,
+    #     cuda=False
+    # )
+    #
+    # for iter_data in data_generator.get_train_generator():
+    #     print(iter_data)
+    #     break
