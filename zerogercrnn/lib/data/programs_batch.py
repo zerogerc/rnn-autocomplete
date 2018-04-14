@@ -67,6 +67,7 @@ class BatchedDataGenerator(DataGenerator):
         }
         self.indexes = {}
         self.current = {}
+        self.right = {}
         self.forget_vector = {}
 
         self.current_key = 'train'
@@ -76,9 +77,7 @@ class BatchedDataGenerator(DataGenerator):
             indexes = self.indexes[self.current_key]
             current = self.current[self.current_key]
             dataset = self.datasets[self.current_key]
-
-            # Parse programs till this number
-            right = min(current + len(dataset) // 5, len(dataset))
+            right = self.right[self.current_key]
 
             if current == right:
                 self.epoch_finished = True
@@ -138,6 +137,8 @@ class BatchedDataGenerator(DataGenerator):
             else:
                 break
 
+        self.right[key] = min(self.current[key] + len(self.datasets[key]) // 5, len(self.datasets))
+
         if current >= len(self.indexes[self.current_key]):
             self._reset_epoch_state_(key)
 
@@ -150,6 +151,7 @@ class BatchedDataGenerator(DataGenerator):
     def _init_epoch_state_(self, key, data_len):
         self.indexes[key] = get_shuffled_indexes(data_len)
         self.current[key] = 0
+        self.right[key] = len(self.datasets[key]) // 5
         self.forget_vector[key] = torch.ones(self.batch_size, 1)
 
         if self.cuda:
@@ -159,6 +161,7 @@ class BatchedDataGenerator(DataGenerator):
         self.indexes.pop(key)
         self.current.pop(key)
         self.forget_vector.pop(key)
+        self.right.pop(key)
 
 
 class DataBucket:
