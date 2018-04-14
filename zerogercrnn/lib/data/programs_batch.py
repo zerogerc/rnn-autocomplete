@@ -115,6 +115,8 @@ class BatchedDataGenerator(DataGenerator):
 
                     bucket.add_chunk(data_chunk=dataset[indexes[current]])
                     current += 1
+                    if current % 1000 == 0:
+                        print('Processed {} programs'.format(current))
                 else:
                     # Pass states to the next iteration (i.e. hidden state)
                     self.forget_vector[key][bn][0] = 1.
