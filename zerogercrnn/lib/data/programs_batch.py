@@ -85,6 +85,31 @@ class BatchedDataGenerator(DataGenerator):
     def get_eval_generator(self):
         return self._get_batched_epoch_(dataset=self.data_eval, key='eval')
 
+    def _refill_buckets(self, dataset, key, indexes, current, right):
+        cont = True  # indicates if we need to continue add new chunks or finish epoch
+
+        # Refill empty buckets.
+        for bn in range(len(self.buckets)):
+            bucket = self.buckets[bn]
+
+            if bucket.is_empty():
+                if current == right:
+                    cont = False
+                    break
+
+                # Chunk changed need to forget hidden state
+                self.forget_vector[key][bn][0] = 0.
+
+                bucket.add_chunk(data_chunk=dataset[indexes[current]])
+                current += 1
+                if current % 1000 == 0:
+                    print('Processed {} programs'.format(current))
+            else:
+                # Pass states to the next iteration (i.e. hidden state)
+                self.forget_vector[key][bn][0] = 1.
+
+        return current, cont
+
     def _get_batched_epoch_(self, dataset, key):
         """Returns generator over batched data of all files in the dataset."""
 
@@ -99,27 +124,7 @@ class BatchedDataGenerator(DataGenerator):
         right = min(current + len(dataset) // 5, len(dataset))
 
         while True:
-            cont = True  # indicates if we need to continue add new chunks or finish epoch
-
-            # Refill empty buckets.
-            for bn in range(len(self.buckets)):
-                bucket = self.buckets[bn]
-
-                if bucket.is_empty():
-                    if current == right:
-                        cont = False
-                        break
-
-                    # Chunk changed need to forget hidden state
-                    self.forget_vector[key][bn][0] = 0.
-
-                    bucket.add_chunk(data_chunk=dataset[indexes[current]])
-                    current += 1
-                    if current % 1000 == 0:
-                        print('Processed {} programs'.format(current))
-                else:
-                    # Pass states to the next iteration (i.e. hidden state)
-                    self.forget_vector[key][bn][0] = 1.
+            current, cont = self._refill_buckets(dataset, key, indexes, current, right)
 
             if cont:
                 yield self._retrieve_batch_(key), self.forget_vector[key]
