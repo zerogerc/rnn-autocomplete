@@ -23,9 +23,9 @@ FILE_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
 # ENCODING = 'latin-1'
 ENCODING = 'ISO-8859-1'
 
-EMPTY_TOKEN = '_EMP_'  # token means that for particular terminal there are no corresponding non-terminal
-UNKNOWN_TOKEN = '_UNK_'  # token means that non-terminal token is rare
-EOF_TOKEN = '_EOF_'  # token indicating end of program
+EMPTY_TOKEN = 'EMP'  # token means that for particular terminal there are no corresponding non-terminal
+UNKNOWN_TOKEN = '<unk>'  # token means that non-terminal token is rare
+EOF_TOKEN = 'EOF'  # token indicating end of program
 
 
 class OneHotConverter:
@@ -68,7 +68,8 @@ class OneHotConverter:
                 if N not in self.non_terminal_idx.keys():
                     raise Exception('Unknown non terminal: {}'.format(N))
                 if T not in self.terminal_idx.keys():
-                    raise Exception('Unknown terminal: {}'.format(T))
+                    T = UNKNOWN_TOKEN
+                    # raise Exception('Unknown terminal: {}'.format(T))
 
                 converted_json.append({
                     'N': self.non_terminal_idx[N],
@@ -207,7 +208,6 @@ class DataUtils:
     @staticmethod
     def read_terminals(file, limit, encoding=ENCODING):
         terminals = DataUtils.read_lines(file=file, limit=limit, encoding=encoding)
-        terminals.append(EMPTY_TOKEN)
         terminals.append(UNKNOWN_TOKEN)
 
         terminal_idx = {}

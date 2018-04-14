@@ -1,0 +1,8 @@
+run glove_terminals.sh
+
+use data/ast/glove_terminals.txt as a corpus to train Glove embeddings.
+
+copy glove embeddings vectors.txt into data/ast/vectors.txt
+
+copy glove embeddings vocab.txt into data/ast/vocab.txt
+
