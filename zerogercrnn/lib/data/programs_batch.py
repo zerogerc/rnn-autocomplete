@@ -68,6 +68,10 @@ class DataChunksPool:
         else:
             cur = self.current
             self.current += 1
+
+            if self.current % 1000 == 0:
+                print('Processed {} programs'.format(self.current))
+
             return self.chunks[self.indexes[cur]]
 
     def is_epoch_finished(self):
