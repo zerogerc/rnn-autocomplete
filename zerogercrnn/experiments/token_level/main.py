@@ -120,7 +120,7 @@ class TokenLevelRoutine(NetworkRoutine):
             optimizer.step()
 
     def get_value_from_loss(self, loss):
-        return 0
+        return loss
 
     def run(self, iter_num, iter_data):
         prediction, n_target, hidden = run_model(
@@ -219,7 +219,8 @@ def main(args):
         schedulers=schedulers,
         plotter='tensorboard',
         save_dir=args.model_save_dir,
-        title=args.title
+        title=args.title,
+        plot_train_every=50
     )
 
     runner.run(number_of_epochs=args.epochs)

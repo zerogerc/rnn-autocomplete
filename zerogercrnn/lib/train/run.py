@@ -55,7 +55,7 @@ class TrainEpochRunner:
         self.data_generator = data_generator
         self.schedulers = schedulers
         self.save_dir = save_dir
-        self.skip_train_points = plot_train_every
+        self.plot_train_every = plot_train_every
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)
@@ -88,7 +88,7 @@ class TrainEpochRunner:
                         iter_data=iter_data
                     )
 
-                    if epoch_it % self.skip_train_points == 0:
+                    if epoch_it % self.plot_train_every == 0:
                         if isinstance(loss, Variable):
                             loss = loss.data[0]
 
