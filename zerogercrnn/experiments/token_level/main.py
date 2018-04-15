@@ -120,7 +120,7 @@ class TokenLevelRoutine(NetworkRoutine):
             optimizer.step()
 
     def get_value_from_loss(self, loss):
-        return loss
+        return Variable(loss.data)
 
     def run(self, iter_num, iter_data):
         prediction, n_target, hidden = run_model(
