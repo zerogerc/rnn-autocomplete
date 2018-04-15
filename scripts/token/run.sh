@@ -10,6 +10,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/token_level/main.py \
     --data_limit 100000 \
     --model_save_dir saved/$1 \
     --real_data \
+    --cuda \
     --tokens_count 51000 \
     --seq_len 50 \
     --batch_size 100 \
