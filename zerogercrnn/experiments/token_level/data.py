@@ -20,17 +20,34 @@ ENCODING = 'ISO-8859-1'
 class TokensDataChunk(DataChunk):
     """Wrapper on tensor of size [program_len, embedding_size]."""
 
-    def __init__(self, one_hot_tensor, embeddings: Embeddings):
+    def __init__(self, one_hot_tensor, embeddings: Embeddings, cuda):
         super().__init__()
 
         self.embeddings = embeddings
+        self.embeddings_cache = None
         self.one_hot_tensor = one_hot_tensor
         self.seq_len = None
+        self.cuda = cuda
 
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
         ln = self.size() - self.size() % seq_len
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
+
+    def init_cache(self):
+        self.one_hot_tensor = self.one_hot_tensor.narrow(
+            dimension=0,
+            start=0,
+            length=min(self.one_hot_tensor.size()[0], 20 * self.seq_len)
+        )
+        self.embeddings_cache = self.embeddings.index_select(self.one_hot_tensor)
+
+        if self.cuda:
+            self.one_hot_tensor.cuda()
+            self.embeddings_cache.cuda()
+
+    def drop_cache(self):
+        self.embeddings_cache = None
 
     def get_by_index(self, index):
         if self.seq_len is None:
@@ -38,37 +55,41 @@ class TokensDataChunk(DataChunk):
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
 
-        in_tensor = self.one_hot_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
-        # convert one-hot to embeddings matrix
-        # TODO: faster way
-        in_tensor = torch.cat(
-            [self.embeddings.get_embedding(x).unsqueeze(0) for x in in_tensor],
-            dim=0
-        )
+        if index == 0:
+            self.init_cache()
 
+        input_tensor_emb = self.embeddings_cache.narrow(dimension=0, start=index, length=self.seq_len - 1)
         target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
-        return in_tensor, target_tensor
+        if index + self.seq_len + self.seq_len > self.size():
+            self.drop_cache()
+
+        return input_tensor_emb, target_tensor
 
     def size(self):
         return self.one_hot_tensor.size()[0]
 
 
 class TokensDataGenerator(BatchedDataGenerator):
-    def __init__(self, data_reader: DataReader, seq_len, batch_size, cuda):
+
+    def __init__(self, data_reader: DataReader, seq_len, batch_size, embeddings_size, cuda):
         super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
 
-    def _retrieve_batch_(self):
+        self.embeddings_size = embeddings_size
+
+    def _retrieve_batch(self, key, buckets):
         inputs = []
         targets = []
 
-        for b in self.buckets:
-            i, t = b.get_next_seq()
+        for b in buckets:
+            id, chunk = b.get_next_index_with_chunk()
 
-            inputs.append(i.unsqueeze(1))
-            targets.append(t.unsqueeze(1))
+            i, t = chunk.get_by_index(id)
 
-        return torch.cat(inputs, dim=1), torch.cat(targets, dim=1)
+            inputs.append(i)
+            targets.append(t)
+
+        return torch.stack(inputs, dim=1), torch.stack(targets, dim=1)
 
 
 class MockDataReader:
@@ -128,14 +149,14 @@ class TokensDataReader(DataReader):
             it += 1
 
             tokens = json.loads(l)
+            one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                one_hot = torch.cuda.LongTensor(tokens)
-            else:
-                one_hot = torch.LongTensor(tokens)
+                one_hot = one_hot.cuda()
 
             data.append(TokensDataChunk(
                 one_hot_tensor=one_hot,
-                embeddings=self.embeddings
+                embeddings=self.embeddings,
+                cuda=self.cuda
             ))
 
             if (limit is not None) and (it == limit):
@@ -145,23 +166,29 @@ class TokensDataReader(DataReader):
 
 
 if __name__ == '__main__':
+    # x = torch.FloatTensor(5, 4)
+    # ids = torch.LongTensor([0, 0, 1, 2, 1])
+    #
+    # print(torch.index_select(x, dim=0, index=ids))
+
     emb = Embeddings(embeddings_size=50, vector_file=VECTOR_FILE)
-    data_reader = TokensDataReader(
-        train_file=TRAIN_FILE,
-        eval_file=None,
-        embeddings=emb,
-        seq_len=10,
-        cuda=False,
-        limit=1000
-    )
-
-    data_generator = TokensDataGenerator(
-        data_reader=data_reader,
-        seq_len=10,
-        batch_size=10,
-        cuda=False
-    )
-
-    for iter_data in data_generator.get_train_generator():
-        print(iter_data)
-        break
+    x = 0
+    # data_reader = TokensDataReader(
+    #     train_file=TRAIN_FILE,
+    #     eval_file=None,
+    #     embeddings=emb,
+    #     seq_len=10,
+    #     cuda=False,
+    #     limit=1000
+    # )
+    #
+    # data_generator = TokensDataGenerator(
+    #     data_reader=data_reader,
+    #     seq_len=10,
+    #     batch_size=10,
+    #     cuda=False
+    # )
+    #
+    # for iter_data in data_generator.get_train_generator():
+    #     print(iter_data)
+    #     break

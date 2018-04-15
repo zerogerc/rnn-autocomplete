@@ -7,7 +7,8 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
-from zerogercrnn.lib.utils.state import load_if_saved
+from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.results import AccuracyMeasurer
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
@@ -50,25 +51,34 @@ def calc_accuracy(args):
     model.eval()
 
     if args.saved_model is not None:
-        load_if_saved(model, args.saved_model)
+        if args.cuda:
+            load_if_saved(model, args.saved_model)
+        else:
+            load_cuda_on_cpu(model, args.saved_model)
 
-    all_tokens = 0
-    correct_tokens = 0
-
+    measurer = AccuracyMeasurer()
     hidden = None
+    it = 0
     for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(model, iter_data, hidden, args.batch_size, args.cuda)
+        prediction, target, hidden = run_model(
+            model=model,
+            iter_data=iter_data,
+            hidden=hidden,
+            batch_size=args.batch_size,
+            cuda=args.cuda,
+            no_grad=False
+        )
 
         _, predicted = torch.max(prediction, dim=2)
 
-        cur_all = target.size()[0] * target.size()[1]
-        cur_incorrect = torch.nonzero(target - predicted).size()[0]
-        cur_correct = cur_all - cur_incorrect
+        measurer.add_predictions(prediction=predicted, target=target)
 
-        all_tokens += cur_all
-        cur_all += cur_correct
+        print('Iter: {}, Accuracy: {}'.format(it, measurer.get_current_accuracy()))
+        it += 1
+        if it == 100:
+            break
 
-    print('Accuracy: {}'.format(float(correct_tokens) / all_tokens))
+    print('Accuracy: {}'.format(measurer.get_current_accuracy()))
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
@@ -81,6 +91,10 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     else:
         n_input = Variable(n_input)
         n_target = Variable(n_target)
+
+    if cuda:
+        n_input = n_input.cuda()
+        n_target = n_target.cuda()
 
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
@@ -104,6 +118,17 @@ class TokenLevelRoutine(NetworkRoutine):
 
         self.hidden = None
 
+    def calc_loss(self, prediction, n_target):
+        return self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))
+
+    def optimize(self, loss):
+        # Backward pass
+        loss.backward()
+
+        # Optimizer step
+        for optimizer in self.optimizers:
+            optimizer.step()
+
     def run(self, iter_num, iter_data):
         prediction, n_target, hidden = run_model(
             model=self.model,
@@ -115,17 +140,11 @@ class TokenLevelRoutine(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))
+        loss = self.calc_loss(prediction, n_target)
         if self.optimizers is not None:
-            # Backward pass
-            loss.backward()
+            self.optimize(loss)
 
-            # Optimizer step
-            for optimizer in self.optimizers:
-                optimizer.step()
-
-        # Return loss value
-        return loss.data[0]
+        return Variable(loss.data)
 
 
 def create_data_generator(args):
@@ -149,6 +168,7 @@ def create_data_generator(args):
         data_reader=reader,
         seq_len=args.seq_len,
         batch_size=args.batch_size,
+        embeddings_size=args.embedding_size,
         cuda=args.cuda
     )
 
@@ -170,8 +190,11 @@ def create_model(args):
     return model
 
 
-def main(args):
+def train(args):
     model = create_model(args)
+
+    if args.saved_model is not None:
+        load_if_saved(model=model, path=args.saved_model)
 
     optimizers = [get_optimizer_args(args, model)]
     schedulers = [get_scheduler_args(args, optimizers[-1])]
@@ -205,7 +228,9 @@ def main(args):
         schedulers=schedulers,
         plotter='tensorboard',
         save_dir=args.model_save_dir,
-        title=args.title
+        title=args.title,
+        plot_train_every=50,
+        save_iter_model_every=2000
     )
 
     runner.run(number_of_epochs=args.epochs)
@@ -220,10 +245,7 @@ if __name__ == '__main__':
         raise Exception("No GPU found, please run without --cuda")
 
     if _args.task == 'train':
-        if _args.saved_model is not None:
-            raise Exception('Loading of saved model is not supported now')
-
-        main(_args)
+        train(_args)
     elif _args.task == 'accuracy':
         calc_accuracy(_args)
     else:

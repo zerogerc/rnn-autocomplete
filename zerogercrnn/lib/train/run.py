@@ -16,6 +16,15 @@ from zerogercrnn.lib.train.routines import NetworkRoutine
 LOG_EVERY = 1000
 
 
+def save_current_model(model, dir, name):
+    if dir is not None:
+        print('Saving model: {}'.format(name))
+        save_model(
+            model=model,
+            path=os.path.join(dir, name)
+        )
+        print('Saved!')
+
 class TrainEpochRunner:
     def __init__(
             self,
@@ -27,7 +36,8 @@ class TrainEpochRunner:
             plotter='matplotlib',
             save_dir=None,
             title='TrainRunner',
-            plot_train_every=1
+            plot_train_every=1,
+            save_iter_model_every=None
     ):
         """Create train runner.
         
@@ -46,7 +56,8 @@ class TrainEpochRunner:
         self.data_generator = data_generator
         self.schedulers = schedulers
         self.save_dir = save_dir
-        self.skip_train_points = plot_train_every
+        self.plot_train_every = plot_train_every
+        self.save_iter_model_every = save_iter_model_every
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)
@@ -74,12 +85,15 @@ class TrainEpochRunner:
                     if epoch_it % LOG_EVERY == 0:
                         print('Training... Epoch: {}, Iters: {}'.format(epoch, it))
 
+                    if (self.save_iter_model_every is not None) and (epoch_it % self.save_iter_model_every == 0):
+                        save_current_model(self.network, self.save_dir, name='model_iter_{}'.format(epoch_it))
+
                     loss = self.train_routine.run(
                         iter_num=it,
                         iter_data=iter_data
                     )
 
-                    if epoch_it % self.skip_train_points == 0:
+                    if epoch_it % self.plot_train_every == 0:
                         if isinstance(loss, Variable):
                             loss = loss.data[0]
 
@@ -95,13 +109,7 @@ class TrainEpochRunner:
                 # validate at the end of epoch
                 self.validate(epoch=epoch, iter_num=it)
 
-                if self.save_dir is not None:
-                    print('Saving model: {}'.format('model_epoch_{}'.format(epoch)))
-                    save_model(
-                        model=self.network,
-                        path=os.path.join(self.save_dir, 'model_epoch_{}'.format(epoch))
-                    )
-                    print('Saved!')
+                save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(epoch))
         except KeyboardInterrupt:
             print('-' * 89)
             print('Exiting from training early')

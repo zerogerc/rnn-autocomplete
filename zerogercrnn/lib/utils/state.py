@@ -9,7 +9,7 @@ def load_if_saved(model, path):
         model.load_state_dict(torch.load(path))
         print('Model restored from file.')
     else:
-        raise Exception('Model file not exists')
+        raise Exception('Model file not exists File: {}'.format(path))
 
 
 def load_cuda_on_cpu(model, path):
@@ -17,6 +17,8 @@ def load_cuda_on_cpu(model, path):
     if os.path.isfile(path):
         model.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
         print('Model restored from file.')
+    else:
+        raise Exception('Model file not exists. File: {}'.format(path))
 
 
 def save_model(model, path):
