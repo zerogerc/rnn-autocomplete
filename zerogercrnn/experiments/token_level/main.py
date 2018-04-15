@@ -7,7 +7,8 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
-from zerogercrnn.lib.utils.state import load_if_saved
+from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.results import AccuracyMeasurer
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
@@ -50,25 +51,34 @@ def calc_accuracy(args):
     model.eval()
 
     if args.saved_model is not None:
-        load_if_saved(model, args.saved_model)
+        if args.cuda:
+            load_if_saved(model, args.saved_model)
+        else:
+            load_cuda_on_cpu(model, args.saved_model)
 
-    all_tokens = 0
-    correct_tokens = 0
-
+    measurer = AccuracyMeasurer()
     hidden = None
+    it = 0
     for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(model, iter_data, hidden, args.batch_size, args.cuda)
+        prediction, target, hidden = run_model(
+            model=model,
+            iter_data=iter_data,
+            hidden=hidden,
+            batch_size=args.batch_size,
+            cuda=args.cuda,
+            no_grad=False
+        )
 
         _, predicted = torch.max(prediction, dim=2)
 
-        cur_all = target.size()[0] * target.size()[1]
-        cur_incorrect = torch.nonzero(target - predicted).size()[0]
-        cur_correct = cur_all - cur_incorrect
+        measurer.add_predictions(prediction=predicted, target=target)
 
-        all_tokens += cur_all
-        cur_all += cur_correct
+        print('Iter: {}, Accuracy: {}'.format(it, measurer.get_current_accuracy()))
+        it += 1
+        if it == 100:
+            break
 
-    print('Accuracy: {}'.format(float(correct_tokens) / all_tokens))
+    print('Accuracy: {}'.format(measurer.get_current_accuracy()))
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
