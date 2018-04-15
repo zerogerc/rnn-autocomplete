@@ -84,7 +84,8 @@ class TokensDataGenerator(BatchedDataGenerator):
         if key not in self.embeddings_buffer.keys():
             self.embeddings_buffer[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
             if self.cuda:
-                self.embeddings_buffer[key] = self.embeddings_buffer[key].cuda()
+                self.embeddings_buffer[key] = self.embeddings_buffer[key].pin_memory()
+                # self.embeddings_buffer[key] = self.embeddings_buffer[key].cuda()
 
 
 class MockDataReader:
