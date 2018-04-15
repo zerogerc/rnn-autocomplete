@@ -118,7 +118,8 @@ class TokensDataReader(DataReader):
         self.cuda = cuda
 
         if self.cuda:
-            self.embeddings.cuda()
+            self.embeddings.pin_memory()
+            # self.embeddings.cuda()
 
         print('Start data reading')
         if self.train_file is not None:
