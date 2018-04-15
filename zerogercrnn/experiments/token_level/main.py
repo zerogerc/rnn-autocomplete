@@ -187,6 +187,9 @@ def create_model(args):
 def main(args):
     model = create_model(args)
 
+    if args.saved_model is not None:
+        load_if_saved(model=model, path=args.saved_model)
+
     optimizers = [get_optimizer_args(args, model)]
     schedulers = [get_scheduler_args(args, optimizers[-1])]
     criterion = nn.NLLLoss()
@@ -236,8 +239,8 @@ if __name__ == '__main__':
         raise Exception("No GPU found, please run without --cuda")
 
     if _args.task == 'train':
-        if _args.saved_model is not None:
-            raise Exception('Loading of saved model is not supported now')
+        # if _args.saved_model is not None:
+        #     raise Exception('Loading of saved model is not supported now')
 
         main(_args)
     elif _args.task == 'accuracy':
