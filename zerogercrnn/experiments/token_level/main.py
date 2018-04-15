@@ -82,9 +82,9 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
         n_input = Variable(n_input)
         n_target = Variable(n_target)
 
-    # if cuda:
-    #     n_input = n_input.cuda()
-    #     n_target = n_target.cuda()
+    if cuda:
+        n_input = n_input.cuda()
+        n_target = n_target.cuda()
 
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
