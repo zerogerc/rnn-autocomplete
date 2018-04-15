@@ -17,8 +17,8 @@ class Embeddings:
             print('Return <unk> for id: {}'.format(id))
             return self.unk_embedding
 
-    def index_select(self, index):
-        return torch.index_select(self.embeddings_tensor, dim=0, index=index)
+    def index_select(self, index, out=None):
+        return torch.index_select(self.embeddings_tensor, dim=0, index=index, out=out)
 
     def cuda(self):
         self.embeddings_tensor = self.embeddings_tensor.cuda()

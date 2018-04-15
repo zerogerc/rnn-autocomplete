@@ -85,7 +85,7 @@ class DataBucket:
         self.chunk = None
         self.index = 0
 
-    def get_next(self):
+    def get_next_index_with_chunk(self):
         """Returns next index to get data from DataChunk."""
         if self.is_empty():
             print('Chunk: {}, Index: {}'.format(self.chunk, self.index))
@@ -95,11 +95,12 @@ class DataBucket:
             self.on_new_chunk()
 
         start = self.index
-        self.index += self.seq_len
+        chunk = self.chunk
 
-        data = self.chunk.get_by_index(start)
+        self.index += self.seq_len
         self.refill_if_necessary()
-        return data
+
+        return start, chunk
 
     def is_empty(self):
         """Indicates whether this bucket contains at least one more sequence."""
@@ -173,23 +174,23 @@ class BatchedDataGenerator(DataGenerator):
             self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size, self.cuda)
 
     @abstractmethod
-    def _retrieve_batch(self, buckets):
+    def _retrieve_batch(self, key, buckets):
         pass
 
-    def _get_batched_epoch(self, batcher):
-        return batcher.get_epoch(retriever=lambda buckets: self._retrieve_batch(buckets))
+    def _get_batched_epoch(self, key, batcher):
+        return batcher.get_epoch(retriever=lambda buckets: self._retrieve_batch(key, buckets))
 
     # override
     def get_train_generator(self):
-        return self._get_batched_epoch(self.train_batcher)
+        return self._get_batched_epoch('train', self.train_batcher)
 
     # override
     def get_validation_generator(self):
-        return self._get_batched_epoch(self.validation_batcher)
+        return self._get_batched_epoch('validation', self.validation_batcher)
 
     # override
     def get_eval_generator(self):
-        return self._get_batched_epoch(self.eval_batcher)
+        return self._get_batched_epoch('eval', self.eval_batcher)
 
     def _prepare_data_(self, data):
         for i in tqdm(range(len(data))):
