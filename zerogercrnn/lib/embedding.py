@@ -21,11 +21,12 @@ class Embeddings:
         return torch.index_select(self.embeddings_tensor, dim=0, index=index, out=out)
 
     def pin_memory(self):
-        self.embeddings_tensor = self.embeddings_tensor.pin_memory()
+        raise Exception('Use cuda for this')
+        # self.embeddings_tensor = self.embeddings_tensor.pin_memory()
 
     def cuda(self):
-        raise Exception('Use pinned memory for this')
-        # self.embeddings_tensor = self.embeddings_tensor.cuda()
+        # raise Exception('Use pinned memory for this')
+        self.embeddings_tensor = self.embeddings_tensor.cuda()
 
         # self.unk_embedding = self.unk_embedding.cuda()
         # for k in self.embeddings.keys():

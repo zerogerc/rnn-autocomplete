@@ -20,13 +20,15 @@ ENCODING = 'ISO-8859-1'
 class TokensDataChunk(DataChunk):
     """Wrapper on tensor of size [program_len, embedding_size]."""
 
-    def __init__(self, one_hot_tensor, embeddings: Embeddings):
+    def __init__(self, one_hot_tensor, embeddings: Embeddings, cuda):
         super().__init__()
 
         self.embeddings = embeddings
         self.embeddings_buffer = None
+        self.embeddings_cache = None
         self.one_hot_tensor = one_hot_tensor
         self.seq_len = None
+        self.cuda = cuda
 
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
@@ -36,6 +38,21 @@ class TokensDataChunk(DataChunk):
     def set_embeddings_buffer(self, buffer):
         self.embeddings_buffer = buffer
 
+    def init_cache(self):
+        self.one_hot_tensor = self.one_hot_tensor.narrow(
+            dimension=0,
+            start=0,
+            length=min(self.one_hot_tensor.size()[0], 20 * self.seq_len)
+        )
+        self.embeddings_cache = self.embeddings.index_select(self.one_hot_tensor)
+
+        if self.cuda:
+            self.one_hot_tensor.cuda()
+            self.embeddings_cache.cuda()
+
+    def drop_cache(self):
+        self.embeddings_cache = None
+
     def get_by_index(self, index):
         if self.seq_len is None:
             raise Exception('You should call prepare_data with specified seq_len first')
@@ -44,12 +61,16 @@ class TokensDataChunk(DataChunk):
         if self.embeddings_buffer is None:
             raise Exception('You should set embeddings buffer first')
 
-        input_tensor_one_hot = self.one_hot_tensor.narrow(dimension=0, start=index, length=self.seq_len - 1)
-        input_tensor_emb = self.embeddings.index_select(input_tensor_one_hot, out=self.embeddings_buffer)
+        if index == 0:
+            self.init_cache()
 
+        input_tensor_emb = self.embeddings_cache.narrow(dimension=0, start=index, length=self.seq_len - 1)
         target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
-        return input_tensor_emb.cuda(async=True), target_tensor.cuda(async=True)
+        if index + self.seq_len + self.seq_len > self.size():
+            self.drop_cache()
+
+        return input_tensor_emb, target_tensor
 
     def size(self):
         return self.one_hot_tensor.size()[0]
@@ -118,8 +139,8 @@ class TokensDataReader(DataReader):
         self.cuda = cuda
 
         if self.cuda:
-            self.embeddings.pin_memory()
-            # self.embeddings.cuda()
+            # self.embeddings.pin_memory()
+            self.embeddings.cuda()
 
         print('Start data reading')
         if self.train_file is not None:
@@ -148,12 +169,13 @@ class TokensDataReader(DataReader):
             tokens = json.loads(l)
             one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                one_hot = one_hot.pin_memory()
-                # one_hot = one_hot.cuda()
+                # one_hot = one_hot.pin_memory()
+                one_hot = one_hot.cuda()
 
             data.append(TokensDataChunk(
                 one_hot_tensor=one_hot,
-                embeddings=self.embeddings
+                embeddings=self.embeddings,
+                cuda=self.cuda
             ))
 
             if (limit is not None) and (it == limit):
