@@ -36,7 +36,8 @@ class TrainEpochRunner:
             plotter='matplotlib',
             save_dir=None,
             title='TrainRunner',
-            plot_train_every=1
+            plot_train_every=1,
+            save_iter_model_every=None
     ):
         """Create train runner.
         
@@ -56,6 +57,7 @@ class TrainEpochRunner:
         self.schedulers = schedulers
         self.save_dir = save_dir
         self.plot_train_every = plot_train_every
+        self.save_iter_model_every = save_iter_model_every
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)
@@ -82,6 +84,9 @@ class TrainEpochRunner:
                 for iter_data in train_data:
                     if epoch_it % LOG_EVERY == 0:
                         print('Training... Epoch: {}, Iters: {}'.format(epoch, it))
+
+                    if (self.save_iter_model_every is not None) and (epoch_it % self.save_iter_model_every == 0):
+                        save_current_model(self.network, self.save_dir, name='model_iter_{}'.format(epoch_it))
 
                     loss = self.train_routine.run(
                         iter_num=it,
