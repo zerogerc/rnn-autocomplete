@@ -8,8 +8,9 @@ class Embeddings:
     def __init__(self, embeddings_size, vector_file):
         self.embedding_size = embeddings_size
         self.vector_file = vector_file
-        self._read_embeddings(vector_file)
         self.embeddings_tensor = None
+
+        self._read_embeddings(vector_file)
 
     def index_select(self, index, out=None):
         """Make sure that ther is no <unk> in dataset. Also embeddings for non-vocabulary words will be zero.
@@ -33,7 +34,7 @@ class Embeddings:
             if id == '<unk>':
                 self.unk_embedding = cur_emb
             else:
-                assert int(id) not in self.embeddings.keys()
+                assert int(id) not in embeddings.keys()
                 max_emb_id = max(int(id), max_emb_id)
                 embeddings[int(id)] = cur_emb
 
