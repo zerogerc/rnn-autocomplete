@@ -4,11 +4,10 @@ mkdir saved
 mkdir saved/$1
 PYTHONPATH=. python3 zerogercrnn/experiments/token_level/main.py \
     --title $1 \
-    --task accuracy \
-    --eval_file "data/tokens/file_eval.json" \
+    --task train \
+    --train_file "data/tokens/file_train.json" \
     --embeddings_file "data/tokens/vectors.txt" \
-    --saved_model "/Users/zerogerc/Documents/gcp_models/15Apr_token_level/model_epoch_0" \
-    --data_limit 10000 \
+    --data_limit 100000 \
     --model_save_dir saved/$1 \
     --real_data \
     --tokens_count 51000 \
