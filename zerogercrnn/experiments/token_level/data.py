@@ -24,7 +24,6 @@ class TokensDataChunk(DataChunk):
         super().__init__()
 
         self.embeddings = embeddings
-        self.embeddings_buffer = None
         self.embeddings_cache = None
         self.one_hot_tensor = one_hot_tensor
         self.seq_len = None
@@ -34,9 +33,6 @@ class TokensDataChunk(DataChunk):
         self.seq_len = seq_len
         ln = self.size() - self.size() % seq_len
         self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
-
-    def set_embeddings_buffer(self, buffer):
-        self.embeddings_buffer = buffer
 
     def init_cache(self):
         self.one_hot_tensor = self.one_hot_tensor.narrow(
@@ -58,8 +54,6 @@ class TokensDataChunk(DataChunk):
             raise Exception('You should call prepare_data with specified seq_len first')
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
-        if self.embeddings_buffer is None:
-            raise Exception('You should set embeddings buffer first')
 
         if index == 0:
             self.init_cache()
@@ -82,31 +76,20 @@ class TokensDataGenerator(BatchedDataGenerator):
         super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
 
         self.embeddings_size = embeddings_size
-        self.embeddings_buffer = {}
 
     def _retrieve_batch(self, key, buckets):
         inputs = []
         targets = []
 
-        self._init_buffer_if_necessary(key)
-
         for b in buckets:
             id, chunk = b.get_next_index_with_chunk()
 
-            chunk.set_embeddings_buffer(self.embeddings_buffer[key])
             i, t = chunk.get_by_index(id)
 
             inputs.append(i)
             targets.append(t)
 
         return torch.stack(inputs, dim=1), torch.stack(targets, dim=1)
-
-    def _init_buffer_if_necessary(self, key):
-        if key not in self.embeddings_buffer.keys():
-            self.embeddings_buffer[key] = torch.FloatTensor(self.seq_len - 1, self.batch_size, self.embeddings_size)
-            if self.cuda:
-                self.embeddings_buffer[key] = self.embeddings_buffer[key].pin_memory()
-                # self.embeddings_buffer[key] = self.embeddings_buffer[key].cuda()
 
 
 class MockDataReader:
@@ -139,7 +122,6 @@ class TokensDataReader(DataReader):
         self.cuda = cuda
 
         if self.cuda:
-            # self.embeddings.pin_memory()
             self.embeddings.cuda()
 
         print('Start data reading')
@@ -169,7 +151,6 @@ class TokensDataReader(DataReader):
             tokens = json.loads(l)
             one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                # one_hot = one_hot.pin_memory()
                 one_hot = one_hot.cuda()
 
             data.append(TokensDataChunk(

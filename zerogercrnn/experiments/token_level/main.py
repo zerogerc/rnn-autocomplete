@@ -129,9 +129,6 @@ class TokenLevelRoutine(NetworkRoutine):
         for optimizer in self.optimizers:
             optimizer.step()
 
-    def get_value_from_loss(self, loss):
-        return Variable(loss.data)
-
     def run(self, iter_num, iter_data):
         prediction, n_target, hidden = run_model(
             model=self.model,
@@ -147,8 +144,7 @@ class TokenLevelRoutine(NetworkRoutine):
         if self.optimizers is not None:
             self.optimize(loss)
 
-        # Return loss value
-        return self.get_value_from_loss(loss)
+        return Variable(loss.data)
 
 
 def create_data_generator(args):
@@ -194,7 +190,7 @@ def create_model(args):
     return model
 
 
-def main(args):
+def train(args):
     model = create_model(args)
 
     if args.saved_model is not None:
@@ -249,10 +245,7 @@ if __name__ == '__main__':
         raise Exception("No GPU found, please run without --cuda")
 
     if _args.task == 'train':
-        # if _args.saved_model is not None:
-        #     raise Exception('Loading of saved model is not supported now')
-
-        main(_args)
+        train(_args)
     elif _args.task == 'accuracy':
         calc_accuracy(_args)
     else:

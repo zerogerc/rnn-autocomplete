@@ -2,6 +2,7 @@ import torch
 
 
 class AccuracyMeasurer:
+    """Accuray measurer for models that have one int as target."""
     def __init__(self):
         self.hits = 0
         self.misses = 0
@@ -11,7 +12,7 @@ class AccuracyMeasurer:
         self.reported += 1
 
         current_misses = torch.nonzero(prediction - target).size()[0]
-        current_hits = target.size()[0] - current_misses
+        current_hits = target.view(-1).size()[0] - current_misses
 
         self.hits += current_hits
         self.misses += current_misses
