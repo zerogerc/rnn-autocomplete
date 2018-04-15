@@ -49,7 +49,7 @@ class TokensDataChunk(DataChunk):
 
         target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
 
-        return input_tensor_emb, target_tensor
+        return input_tensor_emb.cuda(async=True), target_tensor.cuda(async=True)
 
     def size(self):
         return self.one_hot_tensor.size()[0]

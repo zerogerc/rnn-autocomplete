@@ -24,7 +24,8 @@ class Embeddings:
         self.embeddings_tensor = self.embeddings_tensor.pin_memory()
 
     def cuda(self):
-        self.embeddings_tensor = self.embeddings_tensor.cuda()
+        raise Exception('Use pinned memory for this')
+        # self.embeddings_tensor = self.embeddings_tensor.cuda()
 
         # self.unk_embedding = self.unk_embedding.cuda()
         # for k in self.embeddings.keys():
