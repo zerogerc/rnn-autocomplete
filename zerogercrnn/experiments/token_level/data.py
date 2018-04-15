@@ -146,7 +146,8 @@ class TokensDataReader(DataReader):
             tokens = json.loads(l)
             one_hot = torch.LongTensor(tokens)
             if self.cuda:
-                one_hot = one_hot.cuda()
+                one_hot = one_hot.pin_memory()
+                # one_hot = one_hot.cuda()
 
             data.append(TokensDataChunk(
                 one_hot_tensor=one_hot,

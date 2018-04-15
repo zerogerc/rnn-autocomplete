@@ -20,12 +20,15 @@ class Embeddings:
     def index_select(self, index, out=None):
         return torch.index_select(self.embeddings_tensor, dim=0, index=index, out=out)
 
+    def pin_memory(self):
+        self.embeddings_tensor = self.embeddings_tensor.pin_memory()
+
     def cuda(self):
         self.embeddings_tensor = self.embeddings_tensor.cuda()
 
-        self.unk_embedding = self.unk_embedding.cuda()
-        for k in self.embeddings.keys():
-            self.embeddings[k] = self.embeddings[k].cuda()
+        # self.unk_embedding = self.unk_embedding.cuda()
+        # for k in self.embeddings.keys():
+        #     self.embeddings[k] = self.embeddings[k].cuda()
 
     def _read_embeddings(self, vector_file):
         self.embeddings = {}
