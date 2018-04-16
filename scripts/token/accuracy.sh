@@ -6,7 +6,6 @@ PYTHONPATH=. python3 zerogercrnn/experiments/token_level/main.py \
     --title $1 \
     --task accuracy \
     --eval_file "data/tokens/file_eval.json" \
-    --saved_model saved/$1/model_epoch_$2 \
     --embeddings_file "data/tokens/vectors.txt" \
     --data_limit 10000 \
     --model_save_dir saved/$1 \

@@ -4,11 +4,12 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
-from zerogercrnn.lib.metrics import AccuracyMeasurer
+from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
@@ -56,7 +57,9 @@ def calc_accuracy(args):
         else:
             load_cuda_on_cpu(model, args.saved_model)
 
-    measurer = AccuracyMeasurer()
+    measurer = AccuracyMetrics()
+    measurer.drop_state()
+
     hidden = None
     it = 0
     for iter_data in data_generator.get_eval_generator():
@@ -69,16 +72,14 @@ def calc_accuracy(args):
             no_grad=False
         )
 
-        _, predicted = torch.max(prediction, dim=2)
+        measurer.report((prediction, target))
 
-        measurer.add_predictions(prediction=predicted, target=target)
-
-        print('Iter: {}, Accuracy: {}'.format(it, measurer.get_current_accuracy()))
+        print('Iter: {}, Accuracy: {}'.format(it, measurer.get_current_value()))
         it += 1
-        if it == 100:
+        if it == 1000:
             break
 
-    print('Accuracy: {}'.format(measurer.get_current_accuracy()))
+    print('Accuracy: {}'.format(measurer.get_current_value()))
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
@@ -144,7 +145,7 @@ class TokenLevelRoutine(NetworkRoutine):
         if self.optimizers is not None:
             self.optimize(loss)
 
-        return Variable(loss.data)
+        return prediction, n_target
 
 
 def create_data_generator(args):
@@ -224,6 +225,7 @@ def train(args):
         network=model,
         train_routine=train_routine,
         validation_routine=validation_routine,
+        metrics=AccuracyMetrics(),
         data_generator=data_generator,
         schedulers=schedulers,
         plotter='tensorboard',
