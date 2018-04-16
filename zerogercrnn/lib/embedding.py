@@ -5,12 +5,15 @@ ENCODING = 'ISO-8859-1'
 
 class Embeddings:
 
-    def __init__(self, embeddings_size, vector_file):
+    def __init__(self, embeddings_size, vector_file, squeeze=False):
         self.embedding_size = embeddings_size
         self.vector_file = vector_file
         self.embeddings_tensor = None
 
-        self._read_embeddings(vector_file)
+        if squeeze:
+            self._read_embeddings_squeezed(vector_file)
+        else:
+            self._read_embeddings(vector_file)
 
     def index_select(self, index, out=None):
         """Make sure that ther is no <unk> in dataset. Also embeddings for non-vocabulary words will be zero.
@@ -20,6 +23,15 @@ class Embeddings:
 
     def cuda(self):
         self.embeddings_tensor = self.embeddings_tensor.cuda()
+
+    def _read_embeddings_squeezed(self, vector_file):
+        embeddings = []
+        for l in open(vector_file, mode='r', encoding=ENCODING):
+            numbers = l.split()
+            assert len(numbers) == self.embedding_size + 1
+            embeddings.append(torch.FloatTensor([float(x) for x in numbers[1:]]))
+
+        self.embeddings_tensor = torch.stack(embeddings, dim=0)
 
     def _read_embeddings(self, vector_file):
         embeddings = {}
