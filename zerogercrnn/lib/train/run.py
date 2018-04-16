@@ -2,6 +2,8 @@ import os
 
 from tqdm import tqdm
 
+from zerogercrnn.lib.metrics import Metrics, AccuracyMetrics
+
 # hack for tqdm
 tqdm.monitor_interval = 0
 
@@ -32,6 +34,7 @@ class TrainEpochRunner:
             network: nn.Module,
             train_routine: NetworkRoutine,
             validation_routine: NetworkRoutine,
+            metrics: Metrics,
             data_generator: DataGenerator,
             schedulers=None,
             plotter='matplotlib',
@@ -54,11 +57,15 @@ class TrainEpochRunner:
         self.network = network
         self.train_routine = train_routine
         self.validation_routine = validation_routine
+        self.metrics = metrics
         self.data_generator = data_generator
         self.schedulers = schedulers
         self.save_dir = save_dir
         self.plot_train_every = plot_train_every
         self.save_iter_model_every = save_iter_model_every
+
+        self.epoch = None  # current epoch
+        self.it = None  # current iteration
 
         if plotter == 'matplotlib':
             self.plotter = MatplotlibPlotter(title=title)
@@ -70,45 +77,18 @@ class TrainEpochRunner:
             raise Exception('Unknown plotter')
 
     def run(self, number_of_epochs):
-        it = 0
-        self.validate(epoch=-1, iter_num=it)  # first validation for plot.
+        self.epoch = -1
+        self.it = 0
+        self.validate()  # first validation for plot.
 
         try:
             for epoch in range(number_of_epochs):
                 if self.schedulers is not None:
                     for scheduler in self.schedulers:
                         scheduler.step()
-                train_data = self.data_generator.get_train_generator()
-                # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
-                epoch_it = 0
-                for iter_data in train_data:
-                    if epoch_it % LOG_EVERY == 0:
-                        print('Training... Epoch: {}, Iters: {}'.format(epoch, it))
-
-                    if (self.save_iter_model_every is not None) and (epoch_it % self.save_iter_model_every == 0):
-                        save_current_model(self.network, self.save_dir, name='model_iter_{}'.format(epoch_it))
-
-                    loss = self.train_routine.run(
-                        iter_num=it,
-                        iter_data=iter_data
-                    )
-
-                    if epoch_it % self.plot_train_every == 0:
-                        if isinstance(loss, Variable):
-                            loss = loss.data[0]
-
-                        self.plotter.on_new_point(
-                            label='train',
-                            x=it,
-                            y=loss
-                        )
-
-                    epoch_it += 1
-                    it += 1
-
-                # validate at the end of epoch
-                self.validate(epoch=epoch, iter_num=it)
+                self._run_for_epoch()
+                self.validate()
 
                 save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(epoch))
         except KeyboardInterrupt:
@@ -118,35 +98,57 @@ class TrainEpochRunner:
             # plot graphs of validation and train losses
             self.plotter.on_finish()
 
-    def validate(self, epoch, iter_num):
-        """Perform validation and calculate loss as an average of the whole validation dataset."""
-        validation_data = self.data_generator.get_validation_generator()
+    def _run_for_epoch(self):
+        train_data = self.data_generator.get_train_generator()
+        # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
-        total_loss = None
-        total_count = 0
+        for iter_data in train_data:
+            if self.it % LOG_EVERY == 0:
+                print('Training... Epoch: {}, Iters: {}'.format(self.epoch, self.it))
 
-        for iter_data in validation_data:
-            if total_count % LOG_EVERY == 0:
-                print('Validating... Epoch: {} Iters: {}'.format(epoch, total_count))
-            current_loss = self.validation_routine.run(
-                iter_num=iter_num,
+            if (self.save_iter_model_every is not None) and (self.it % self.save_iter_model_every == 0):
+                save_current_model(self.network, self.save_dir, name='model_iter_{}'.format(self.it))
+
+            metrics_values = self.train_routine.run(
+                iter_num=self.it,
                 iter_data=iter_data
             )
 
-            if total_loss is None:
-                total_loss = current_loss
-            else:
-                total_loss += current_loss
+            if self.it % self.plot_train_every == 0:
+                self.metrics.drop_state()
+                self.metrics.report(metrics_values)
+                self.plotter.on_new_point(
+                    label='train',
+                    x=self.it,
+                    y=self.metrics.get_current_value()
+                )
 
-            total_count += 1
+            self.it += 1
 
-        if isinstance(total_loss, Variable):
-            total_loss = total_loss.data[0]
+    def validate(self):
+        """Perform validation and calculate loss as an average of the whole validation dataset."""
+        validation_data = self.data_generator.get_validation_generator()
+
+        self.metrics.drop_state()
+
+        validation_it = 0
+        for iter_data in validation_data:
+            if validation_it % LOG_EVERY == 0:
+                print('Validating... Epoch: {} Iters: {}'.format(self.epoch, validation_it))
+
+            metrics_values = self.validation_routine.run(
+                iter_num=self.it,
+                iter_data=iter_data
+            )
+
+            self.metrics.report(metrics_values)
+
+            validation_it += 1
 
         self.plotter.on_new_point(
             label='validation',
-            x=iter_num,
-            y=total_loss / total_count
+            x=self.it,
+            y=self.metrics.get_current_value()
         )
 
-        print('Validation done. Epoch: {}, Average loss: {}'.format(epoch, total_loss / total_count))
+        print('Validation done. Epoch: {}, Metrics: {}'.format(self.epoch, self.metrics.get_current_value()))

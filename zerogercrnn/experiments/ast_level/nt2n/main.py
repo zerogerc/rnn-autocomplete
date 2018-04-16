@@ -6,6 +6,7 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
+from zerogercrnn.lib.metrics import LossMetrics, AccuracyMetrics
 
 from zerogercrnn.lib.train.run import TrainEpochRunner
 from zerogercrnn.lib.train.routines import NetworkRoutine
@@ -93,7 +94,7 @@ class ASTRoutine(NetworkRoutine):
         if self.optimizers is not None:
             self.optimize(loss)
 
-        return Variable(loss.data)
+        return prediction, target
 
 
 def create_terminal_embeddings(args):
@@ -168,13 +169,13 @@ def train(args):
         network=model,
         train_routine=train_routine,
         validation_routine=validation_routine,
+        metrics=AccuracyMetrics(),
         data_generator=data_generator,
         schedulers=schedulers,
         plotter='tensorboard',
         save_dir=args.model_save_dir,
         title=args.title,
-        plot_train_every=50,
-        save_iter_model_every=2000
+        plot_train_every=50
     )
 
     runner.run(number_of_epochs=args.epochs)
