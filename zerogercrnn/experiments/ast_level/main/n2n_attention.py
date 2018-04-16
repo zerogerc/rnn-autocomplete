@@ -1,8 +1,8 @@
 import torch.nn as nn
 
 from zerogercrnn.experiments.ast_level.main.common import get_optimizers_and_schedulers
-from zerogercrnn.experiments.ast_level.model.n2n_attention import NTTailAttentionModel2Softmax, \
-    RecurrentCore
+from zerogercrnn.experiments.ast_level.model.n2n_attention import NTTailAttentionModel2Softmax
+from zerogercrnn.lib.core import RecurrentCore
 from zerogercrnn.experiments.ast_level.model.n2n_sum_attention import N2NSumAttentionModel
 from zerogercrnn.experiments.ast_level.routine.n2n_attention import NTTailAttentionASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner

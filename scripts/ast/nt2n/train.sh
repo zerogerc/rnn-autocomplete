@@ -2,10 +2,10 @@
 
 mkdir saved
 mkdir saved/$1
-PYTHONPATH=. python3 zerogercrnn/experiments/token_level/main.py \
+PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/nt2n/main.py \
     --title $1 \
     --train_file "data/ast/file_train.json" \
-    --data_limit 100000 \
+    --data_limit 10000 \
     --model_save_dir saved/$1 \
     --cuda \
     --real_data \

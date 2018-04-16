@@ -1,5 +1,5 @@
 from zerogercrnn.experiments.ast_level.data import DataReader
-from zerogercrnn.experiments.ast_level.model.core import RecurrentCore
+from zerogercrnn.lib.core import RecurrentCore
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
 
 

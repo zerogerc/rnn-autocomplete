@@ -129,9 +129,10 @@ class ASTDataChunk(DataChunk):
 
 class ASTDataReader(DataReader):
 
-    def __init__(self, file_train, file_eval, cuda, number_of_seq=20, limit=None):
+    def __init__(self, file_train, file_eval, cuda, seq_len, number_of_seq=20, limit=None):
         super().__init__()
         self.cuda = cuda
+        self.seq_len = seq_len
         self.number_of_seq = number_of_seq
 
         if file_train is not None:
@@ -165,7 +166,7 @@ class ASTDataReader(DataReader):
                     number_of_seq=self.number_of_seq
                 ))
 
-        return chunks
+        return list(filter(lambda d: d.size() >= self.seq_len, chunks))
 
 
 class ASTDataGenerator(BatchedDataGenerator):
@@ -206,6 +207,7 @@ if __name__ == '__main__':
         file_train=file_train,
         file_eval=None,
         cuda=False,
+        seq_len=10,
         number_of_seq=20,
         limit=200
     )

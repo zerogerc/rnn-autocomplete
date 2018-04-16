@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.model.core import RecurrentCore
-from zerogercrnn.experiments.ast_level.model.utils import init_layers_uniform
+from zerogercrnn.lib.core import RecurrentCore
+from zerogercrnn.experiments.utils import init_layers_uniform
 from zerogercrnn.lib.utils.time import logger
 
 """Base rnn model for JS AST prediction (in use since 01Apr till 01Apr)"""

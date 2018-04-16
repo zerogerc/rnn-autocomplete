@@ -8,7 +8,7 @@ from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, ge
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
-from zerogercrnn.lib.results import AccuracyMeasurer
+from zerogercrnn.lib.metrics import AccuracyMeasurer
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner

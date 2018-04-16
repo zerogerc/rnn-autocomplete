@@ -11,7 +11,7 @@ class NetworkRoutine:
 
     @abstractmethod
     def run(self, iter_num, iter_data):
-        """ Run routine and return value of loss function.
+        """ Run routine and return value for plotting.
         
         :param iter_num: number of iteration
         :param iter_data: data for this iteration
