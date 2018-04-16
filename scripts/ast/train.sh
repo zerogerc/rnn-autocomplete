@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir saved
-mkdir saved/$1
+mkdir saved/$2
 PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --title $2 \
     --prediction $1 \
