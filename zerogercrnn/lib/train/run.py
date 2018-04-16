@@ -25,6 +25,7 @@ def save_current_model(model, dir, name):
         )
         print('Saved!')
 
+
 class TrainEpochRunner:
     def __init__(
             self,

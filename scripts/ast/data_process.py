@@ -98,13 +98,13 @@ def main():
     args = parser.parse_args()
 
     print('Retrieving Glove terminals')
-    create_glove_terminals_file(args)
+    # create_glove_terminals_file(args)
 
     print('Retrieving tokens ...')
-    get_tokens(args)
+    # get_tokens(args)
 
     print('Converting to sequences ...')
-    convert_files(args)
+    # convert_files(args)
 
     print('Forming one-hot ...')
     form_one_hot(args)
