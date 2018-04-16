@@ -37,14 +37,14 @@ def create_glove_terminals_file(args):
             terminals.append(id2term[int(t[0])])
 
     glove_terminals = open(args.file_glove_terminals, mode='w', encoding=ENCODING)
-    glove_terminals.write('\n'.join(terminals))
+    glove_terminals.write(json.dumps(terminals))
 
 
 def get_tokens(args):
     TokensRetriever().get_and_write_tokens(
         dataset=args.file_train_raw,
         non_terminal_dest=args.file_non_terminals,
-        terminal_dest=args.file_glove_terminals,
+        terminal_dest=args.file_terminals,
         encoding=ENCODING,
         append_eof=True,
         lim=LIM
@@ -76,8 +76,7 @@ def convert_files(args):
 def form_one_hot(args):
     converter = OneHotConverter(
         file_non_terminals=args.file_non_terminals,
-        file_terminals=args.file_glove_terminals,
-        encoding=ENCODING
+        file_terminals=args.file_glove_terminals
     )
 
     print('Train')

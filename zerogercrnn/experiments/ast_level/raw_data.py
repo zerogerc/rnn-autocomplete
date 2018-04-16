@@ -23,7 +23,7 @@ FILE_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
 # ENCODING = 'latin-1'
 ENCODING = 'ISO-8859-1'
 
-EMPTY_TOKEN = 'EMP'  # token means that for particular terminal there are no corresponding non-terminal
+EMPTY_TOKEN = '<emp>'  # token means that for particular terminal there are no corresponding non-terminal
 UNKNOWN_TOKEN = '<unk>'  # token means that non-terminal token is rare
 EOF_TOKEN = 'EOF'  # token indicating end of program
 
@@ -31,26 +31,13 @@ EOF_TOKEN = 'EOF'  # token indicating end of program
 class OneHotConverter:
     """Converts tokenized sequence from JsonConverter into one-hot using token files provided by TokenRetriever."""
 
-    def __init__(self, file_terminals, file_non_terminals, encoding=ENCODING):
-        # dataset was already converted using this limit.
-        # TODO: do not use limit when converting dataset
-
-        self.terminals, self.terminal_idx = DataUtils.read_terminals(
-            file=file_terminals,
-            limit=50000,
-            encoding=encoding
-        )
-
-        self.non_terminals, self.non_terminal_idx = DataUtils.read_non_terminals(
-            file=file_non_terminals,
-            encoding=encoding
-        )
-
-        self.encoding = encoding
+    def __init__(self, file_terminals, file_non_terminals):
+        self.terminals, self.terminal_idx = DataUtils.read_terminals_json(file_terminals)
+        self.non_terminals, self.non_terminal_idx = DataUtils.read_non_terminals_json(file_non_terminals)
 
     def convert_file(self, src_file, dst_file, lim=None):
-        f_read = open(src_file, mode='r', encoding=self.encoding)
-        f_write = open(dst_file, mode='w', encoding=self.encoding)
+        f_read = open(src_file, mode='r', encoding=ENCODING)
+        f_write = open(dst_file, mode='w', encoding=ENCODING)
 
         c = 0
         for l in tqdm(f_read, total=100000):
@@ -91,7 +78,7 @@ class JsonConverter:
     def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True, lim=None):
         f_read = open(raw_file, mode='r', encoding=encoding)
         f_write = open(dest_file, mode='w', encoding=encoding)
-        terminals = DataUtils.read_lines(file=terminals_file, limit=50000)
+        terminals = DataUtils.read_json(file=terminals_file)
 
         c = 0
         for l in tqdm(f_read, total=min(lim, 100000)):
@@ -171,13 +158,11 @@ class TokensRetriever:
                     break
 
         with open(non_terminal_dest, mode='w', encoding=encoding) as f:
-            for t in self.non_terminals.keys():
-                f.write('{}\n'.format(t))
+            f.write(json.dumps(list(self.non_terminals.keys())))
 
         with open(terminal_dest, mode='w', encoding=encoding) as f:
             sorted_terminals = sorted(self.terminals.keys(), key=lambda key: self.terminals[key], reverse=True)
-            for t in sorted_terminals:
-                f.write('{}\n'.format(t))
+            f.write(json.dumps(sorted_terminals))
 
     def _process_single_json_(self, raw_json, append_eof):
         left_child, right_sibling = DataUtils.get_left_child_right_sibling(
@@ -205,8 +190,8 @@ class TokensRetriever:
 
 class DataUtils:
     @staticmethod
-    def read_terminals(file, limit, encoding=ENCODING):
-        terminals = DataUtils.read_lines(file=file, limit=limit, encoding=encoding)
+    def read_terminals_json(file):
+        terminals = DataUtils.read_json(file)
         terminals.append(UNKNOWN_TOKEN)
 
         terminal_idx = {}
@@ -216,8 +201,8 @@ class DataUtils:
         return terminals, terminal_idx
 
     @staticmethod
-    def read_non_terminals(file, encoding=ENCODING):
-        non_terminals = DataUtils.read_lines(file=file, limit=None, encoding=encoding)
+    def read_non_terminals_json(file):
+        non_terminals = DataUtils.read_json(file)
         non_terminals.append(EOF_TOKEN)
 
         non_terminal_idx = {}
@@ -227,24 +212,8 @@ class DataUtils:
         return non_terminals, non_terminal_idx
 
     @staticmethod
-    def read_lines(file, limit, encoding=ENCODING):
-        """Read first *limit* lines from file and returns list of them."""
-        lines = []
-        with open(file, mode='r', encoding=encoding) as f:
-            times = limit
-
-            for l in tqdm(f, total=limit):
-                if l[-1] == '\n':
-                    lines.append(l[:-1])
-                else:
-                    lines.append(l)
-
-                if times is not None:
-                    times -= 1
-                    if times == 0:
-                        break
-
-        return lines
+    def read_json(file):
+        return json.loads(open(file, mode='r', encoding=ENCODING).read())
 
     @staticmethod
     def get_left_child_right_sibling(raw_json, append_eof=True):
@@ -311,8 +280,7 @@ if __name__ == '__main__':
     elif c == 2:
         converter = OneHotConverter(
             file_terminals=FILE_TERMINAL_TOKENS,
-            file_non_terminals=FILE_NON_TERMINAL_TOKENS,
-            encoding=ENCODING
+            file_non_terminals=FILE_NON_TERMINAL_TOKENS
         )
         # converter.convert_file(
         #     src_file=FILE_EVAL_PROCESSED,

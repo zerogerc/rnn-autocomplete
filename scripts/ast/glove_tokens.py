@@ -10,7 +10,8 @@ parser.add_argument('--token_map_file', type=str, help='Map from token name to i
 
 LIM = 100000
 ENCODING = 'ISO-8859-1'
-EMP_TOKEN = 'EMP'
+EMP_TOKEN = '<emp>'
+
 
 def write_map(file, raw_map):
     f_write = open(file, mode='w', encoding=ENCODING)
@@ -18,7 +19,10 @@ def write_map(file, raw_map):
 
 
 def create_terminals_file(args, lim=LIM):
-    """Create file for terminals consisiting of sequence of token numbers.
+    """Create file for terminals consisiting of sequence of token numbers. Each token is mapped into it's number.
+        i.e. data.x.y -> 0 1 2 1 3
+
+        NB: token numbers can have a big values. (Number of different tokens in data)
         No unk tokens here.
     """
 
@@ -56,7 +60,6 @@ def create_terminals_file(args, lim=LIM):
                 break
 
     write_map(args.token_map_file, terminals)
-
 
 if __name__ == '__main__':
     args = parser.parse_args()
