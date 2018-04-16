@@ -99,7 +99,7 @@ class ASTRoutine(NetworkRoutine):
 
 
 def create_terminal_embeddings(args):
-    return Embeddings(embeddings_size=args.terminal_embeddings_file, vector_file=args.terminal_embeddings_file, squeeze=True)
+    return Embeddings(embeddings_size=args.terminal_embedding_dim, vector_file=args.terminal_embeddings_file, squeeze=True)
 
 
 def create_data_generator(args):
