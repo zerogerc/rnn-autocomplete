@@ -1,7 +1,8 @@
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.main.common import get_optimizers_and_schedulers, load_if_saved_from_config
-from zerogercrnn.experiments.ast_level.model.n2n import NTModel, RecurrentCore
+from zerogercrnn.experiments.ast_level.main.common import get_optimizers_and_schedulers
+from zerogercrnn.experiments.ast_level.model.n2n import NTModel
+from zerogercrnn.lib.core import RecurrentCore
 from zerogercrnn.experiments.ast_level.routine.n2n import NTASTRoutine
 from zerogercrnn.lib.train.run import TrainEpochRunner
 

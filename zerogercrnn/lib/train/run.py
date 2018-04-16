@@ -91,7 +91,7 @@ class TrainEpochRunner:
                 self._run_for_epoch()
                 self.validate()
 
-                save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(epoch))
+                save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(self.epoch))
         except KeyboardInterrupt:
             print('-' * 89)
             print('Exiting from training early')

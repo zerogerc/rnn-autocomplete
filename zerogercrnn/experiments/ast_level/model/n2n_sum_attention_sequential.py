@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.ast_level.model.core import LSTMCellDropout, LogSoftmaxOutputLayer, \
-    ContextBasedSumAttention
-from zerogercrnn.experiments.ast_level.model.utils import init_layers_uniform, forget_hidden_partly
+from zerogercrnn.lib.core import LSTMCellDropout, LogSoftmaxOutputLayer, ContextBasedSumAttention
+from zerogercrnn.experiments.utils import init_layers_uniform
 from zerogercrnn.lib.utils.time import logger
 
 

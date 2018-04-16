@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 
 from zerogercrnn.experiments.ast_level.data import DataReader
-from zerogercrnn.experiments.ast_level.model.core import RecurrentCore
+from zerogercrnn.lib.core import RecurrentCore
 from zerogercrnn.experiments.ast_level.model.n2n import NTModel
 from zerogercrnn.lib.train.config import Config
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu

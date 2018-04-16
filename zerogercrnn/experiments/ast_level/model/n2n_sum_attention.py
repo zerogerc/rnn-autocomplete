@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.ast_level.model.core import RecurrentCore
-from zerogercrnn.experiments.ast_level.model.utils import init_layers_uniform
+from zerogercrnn.lib.core import RecurrentCore
+from zerogercrnn.experiments.utils import init_layers_uniform
 from zerogercrnn.lib.utils.time import logger
 
 """Model with sum attention applied to every timestamp. (in use since 08Apr till --Apr)"""

@@ -2,7 +2,7 @@ import torch
 from torch.autograd import Variable
 
 from zerogercrnn.experiments.ast_level.model.n2n_sum_attention_sequential import NTSumlAttentionModelSequential
-from zerogercrnn.experiments.ast_level.model.utils import repackage_hidden, forget_hidden_partly_lstm_cell
+from zerogercrnn.experiments.utils import repackage_hidden, forget_hidden_partly_lstm_cell
 from zerogercrnn.lib.train.routines import NetworkRoutine
 from zerogercrnn.lib.utils.time import logger
 

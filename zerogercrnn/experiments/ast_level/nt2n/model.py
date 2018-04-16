@@ -1,48 +1,10 @@
 import torch
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.model.utils import init_layers_uniform, forget_hidden_partly, repackage_hidden
-from zerogercrnn.experiments.ast_level.model.core import RecurrentCore, LogSoftmaxOutputLayer
+from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
+    LogSoftmaxOutputLayer
 from zerogercrnn.lib.embedding import Embeddings
-
-
-class PretrainedEmbeddingsModule(nn.Module):
-
-    def __init__(self, embeddings: Embeddings):
-        super().__init__()
-
-        self.num_embeddings = embeddings.embeddings_tensor.size()[0]
-        self.embedding_dim = embeddings.embeddings_tensor.size()[1]
-
-        self.embed = nn.Embedding(
-            num_embeddings=embeddings.embeddings_tensor.size()[0],
-            embedding_dim=embeddings.embeddings_tensor.size()[1]
-        )
-
-        self.embed.weight.data.copy_(embeddings.embeddings_tensor)
-        self.embed.weight.requires_grad = False
-
-    def forward(self, model_input):
-        return self.embed(model_input)
-
-
-class EmbeddingsModule(nn.Module):
-    def __init__(self, num_embeddings, embedding_dim):
-        super().__init__()
-
-        self.model = nn.Embedding(
-            num_embeddings=num_embeddings,
-            embedding_dim=embedding_dim
-        )
-
-        init_layers_uniform(
-            min_value=-0.1,
-            max_value=0.1,
-            layers=[self.model]
-        )
-
-    def forward(self, model_input):
-        return self.model(model_input)
 
 
 class NT2NBaseModel(nn.Module):
