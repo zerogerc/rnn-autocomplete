@@ -9,57 +9,6 @@ from zerogercrnn.lib.utils.time import tqdm_lim
 ENCODING = 'ISO-8859-1'
 
 
-class ASTEmbeddedChunk(DataChunk):
-    def __init__(self, terminals_one_hot, embeddings: Embeddings, cuda, number_of_seq):
-        self.terminals_one_hot = terminals_one_hot
-        self.embeddings = embeddings
-        self.cuda = cuda
-        self.number_of_seq = number_of_seq
-
-        self.embeddings_cache = None
-        self.seq_len = None
-
-    def prepare_data(self, seq_len):
-        self.seq_len = seq_len
-
-        ln = min(self.size() - self.size() % seq_len, self.number_of_seq * self.seq_len)
-        if ln == 0:
-            raise Exception('Chunk is too small. Consider filtering it out')
-
-        self.terminals_one_hot = self.terminals_one_hot.narrow(dimension=0, start=0, length=ln)
-
-        if self.cuda:
-            self.terminals_one_hot = self.terminals_one_hot.cuda()
-
-    def init_cache_if_needed(self, cur_index):
-        if cur_index != 0:
-            return
-
-        self.embeddings_cache = self.embeddings.index_select(self.terminals_one_hot)
-        if self.cuda:
-            self.embeddings_cache = self.embeddings_cache.cuda()
-
-    def drop_cache_if_needed(self, cur_index):
-        if cur_index + 2 * self.seq_len > self.size():
-            self.embeddings_cache = None
-
-    def get_by_index(self, index):
-        if self.seq_len is None:
-            raise Exception('You should call prepare_data with specified seq_len first')
-        if index + self.seq_len > self.size():
-            raise Exception('Not enough data in chunk')
-        self.init_cache_if_needed(index)
-
-        input_tensor_emb = self.embeddings_cache.narrow(dimension=0, start=index, length=self.seq_len - 1)
-        target_tensor = self.terminals_one_hot.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
-
-        self.drop_cache_if_needed(index)
-        return input_tensor_emb, target_tensor
-
-    def size(self):
-        return self.terminals_one_hot.size()[0]
-
-
 class ASTOneHotChunk(DataChunk):
     def __init__(self, data_one_hot, cuda, number_of_seq):
         self.data_one_hot = data_one_hot
@@ -71,7 +20,7 @@ class ASTOneHotChunk(DataChunk):
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
 
-        ln = min(self.size() - self.size() % seq_len, self.number_of_seq * self.seq_len)
+        ln = self.size() - self.size() % seq_len
         if ln == 0:
             raise Exception('Chunk is too small. Consider filtering it out')
 
