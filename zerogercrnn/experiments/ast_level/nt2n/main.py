@@ -7,6 +7,7 @@ from zerogercrnn.experiments.argutils import add_general_arguments, add_batching
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.lib.metrics import LossMetrics, AccuracyMetrics
+from zerogercrnn.lib.utils.state import load_cuda_on_cpu, load_if_saved
 
 from zerogercrnn.lib.train.run import TrainEpochRunner
 from zerogercrnn.lib.train.routines import NetworkRoutine
@@ -144,6 +145,12 @@ def train(args):
     optimizers = [get_optimizer_args(args, model)]
     schedulers = [get_scheduler_args(args, optimizers[-1])]
     criterion = nn.NLLLoss()
+
+    if args.saved_model is not None:
+        if args.cuda:
+            load_if_saved(model, args.saved_model)
+        else:
+            load_cuda_on_cpu(model, args.saved_model)
 
     data_generator = create_data_generator(args)
 
