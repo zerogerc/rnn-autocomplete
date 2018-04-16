@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from zerogercrnn.experiments.ast_level.main.common import get_optimizer_args, get_scheduler_args
+from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu

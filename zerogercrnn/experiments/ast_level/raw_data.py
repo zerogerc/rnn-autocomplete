@@ -5,20 +5,6 @@ from tqdm import tqdm
 
 """Utils for parsing and providing dataset from here: https://www.srl.inf.ethz.ch/js150.php."""
 
-DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar'
-
-FILE_TRAINING_DATASET = os.path.join(DIR_DATASET, 'programs_training.json')
-FILE_EVAL_DATASET = os.path.join(DIR_DATASET, 'programs_eval.json')
-
-FILE_TRAINING_PROCESSED = os.path.join(DIR_DATASET, 'programs_processed_training.json')
-FILE_EVAL_PROCESSED = os.path.join(DIR_DATASET, 'programs_processed_eval.json')
-
-FILE_TRAINING_ONE_HOT = os.path.join(DIR_DATASET, 'programs_training_one_hot.json')
-FILE_EVAL_ONE_HOT = os.path.join(DIR_DATASET, 'programs_eval_one_hot.json')
-
-FILE_NON_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'non_terminal_tokens.txt')
-FILE_TERMINAL_TOKENS = os.path.join(DIR_DATASET, 'terminal_tokens.txt')
-
 # ENCODING = 'utf-8'
 # ENCODING = 'latin-1'
 ENCODING = 'ISO-8859-1'
@@ -256,37 +242,3 @@ class DataUtils:
             node_type += '0'
 
         return node_type
-
-
-if __name__ == '__main__':
-    c = 2
-
-    if c == 0:
-        TokensRetriever().get_and_write_tokens(
-            dataset=FILE_TRAINING_DATASET,
-            non_terminal_dest=FILE_NON_TERMINAL_TOKENS,
-            terminal_dest=FILE_TERMINAL_TOKENS,
-            encoding=ENCODING,
-            append_eof=True
-        )
-    elif c == 1:
-        JsonConverter.convert_file(
-            raw_file=FILE_TRAINING_DATASET,
-            dest_file=FILE_TRAINING_PROCESSED,
-            terminals_file=FILE_TERMINAL_TOKENS,
-            encoding=ENCODING,
-            append_eof=True
-        )
-    elif c == 2:
-        converter = OneHotConverter(
-            file_terminals=FILE_TERMINAL_TOKENS,
-            file_non_terminals=FILE_NON_TERMINAL_TOKENS
-        )
-        # converter.convert_file(
-        #     src_file=FILE_EVAL_PROCESSED,
-        #     dst_file=FILE_EVAL_ONE_HOT
-        # )
-        converter.convert_file(
-            src_file=FILE_TRAINING_PROCESSED,
-            dst_file=FILE_TRAINING_ONE_HOT
-        )
