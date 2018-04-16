@@ -105,6 +105,7 @@ def create_data_generator(args):
         file_train=args.train_file,
         file_eval=args.eval_file,
         cuda=args.cuda,
+        seq_len=args.seq_len,
         number_of_seq=20,
         limit=args.data_limit
     )
