@@ -82,7 +82,8 @@ class TrainEpochRunner:
         self.validate()  # first validation for plot.
 
         try:
-            for epoch in range(number_of_epochs):
+            while self.epoch < number_of_epochs:
+                self.epoch += 1
                 if self.schedulers is not None:
                     for scheduler in self.schedulers:
                         scheduler.step()
