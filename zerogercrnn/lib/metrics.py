@@ -14,7 +14,7 @@ class Metrics:
         pass
 
     @abstractmethod
-    def get_current_value(self):
+    def get_current_value(self, should_print=False):
         pass
 
 
@@ -36,13 +36,16 @@ class LossMetrics(Metrics):
 
         self.total_count += 1
 
-    def get_current_value(self):
+    def get_current_value(self, should_print=False):
         if isinstance(self.total_loss, Variable):
             loss_value = self.total_loss.data[0]
         else:
             loss_value = self.total_loss
 
-        return loss_value / self.total_count
+        loss_value = loss_value / self.total_count
+        if should_print:
+            print('Current loss: {}'.format(loss_value))
+        return loss_value
 
 
 class AccuracyMetrics(Metrics):
@@ -68,5 +71,36 @@ class AccuracyMetrics(Metrics):
         self.hits += current_hits
         self.misses += current_misses
 
-    def get_current_value(self):
-        return float(self.hits) / (self.hits + self.misses)
+    def get_current_value(self, should_print=False):
+        value = float(self.hits) / (self.hits + self.misses)
+
+        if should_print:
+            print('Current loss: {}'.format(value))
+
+        return value
+
+
+class NonTerminalTerminalAccuracyMetrics(Metrics):
+
+    def __init__(self):
+        self.nt_accuracy = AccuracyMetrics()
+        self.t_accuracy = AccuracyMetrics()
+
+    def drop_state(self):
+        self.nt_accuracy.drop_state()
+        self.t_accuracy.drop_state()
+
+    def report(self, data):
+        nt_prediction, t_prediction, nt_target, t_target = data
+        self.nt_accuracy.report((nt_prediction, nt_target))
+        self.t_accuracy.report((t_prediction, t_target))
+
+    def get_current_value(self, should_print=False):
+        nt_value = self.nt_accuracy.get_current_value(should_print=False)
+        t_value = self.t_accuracy.get_current_value(should_print=False)
+
+        if should_print:
+            print('Non terminals accuracy: {}'.format(nt_value))
+            print('Terminals accuracy: {}'.format(t_value))
+
+        return nt_value, t_value

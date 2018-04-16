@@ -78,6 +78,26 @@ class TensorboardPlotter(Plotter):
         )
 
 
+class TensorboardPlotterCombined(Plotter):
+    """x is step, y is two values: one for for non terminals, one for terminals."""
+
+    def __init__(self, title):
+        path = os.path.join(os.getcwd(), TENSORBOARD_DIR + title)
+        self.writer = SummaryWriter(path)
+
+    def on_new_point(self, label, x, y):
+        self.writer.add_scalar(
+            tag=label + ' non-terminals',
+            scalar_value=y[0],
+            global_step=x
+        )
+        self.writer.add_scalar(
+            tag=label + ' terminals',
+            scalar_value=y[1],
+            global_step=x
+        )
+
+
 class PlotData:
     def __init__(self):
         self.x = []

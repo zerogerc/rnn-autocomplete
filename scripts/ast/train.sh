@@ -1,13 +1,13 @@
 #!/bin/bash
 
 mkdir saved
-mkdir saved/$1
-PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/nt2n/main.py \
-    --title $1 \
+mkdir saved/$2
+PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
+    --title $2 \
+    --prediction $1 \
     --train_file "data/ast/file_train.json" \
-    --data_limit 10000 \
-    --model_save_dir saved/$1 \
-    --cuda \
+    --data_limit 100000 \
+    --model_save_dir saved/$2 \
     --real_data \
     --seq_len 50 \
     --batch_size 100 \
@@ -20,8 +20,8 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/nt2n/main.py \
     --num_layers 1 \
     --dropout 0.01 \
     --non_terminals_num 97 \
-    --non_terminal_embedding_dim 10 \
+    --non_terminal_embedding_dim 20 \
     --terminals_num 50001 \
-    --terminal_embedding_dim 50 \
+    --terminal_embedding_dim 100 \
     --terminal_embeddings_file data/ast/terminal_embeddings.txt
 
