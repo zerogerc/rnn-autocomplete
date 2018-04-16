@@ -93,8 +93,6 @@ class NT2NBaseModel(nn.Module):
         assert non_terminal_input.size() == terminal_input.size()
         assert non_terminal_input.size() == terminal_input.size()
 
-        # TODO: check embeddings
-
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
 
