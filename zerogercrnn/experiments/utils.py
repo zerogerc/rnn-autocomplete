@@ -33,6 +33,7 @@ def forget_hidden_partly_lstm_cell(h, forget_vector):
     h[1].data.mul(forget_vector, out=h[1].data)
     return h
 
+
 def forget_hidden_partly(h, forget_vector):
     if type(h) == Variable:
         logger.reset_time()
@@ -42,6 +43,17 @@ def forget_hidden_partly(h, forget_vector):
         return h
     else:
         return tuple(forget_hidden_partly(v, forget_vector) for v in h)
+
+
+def wrap_cuda_no_grad_variable(tensor, cuda, no_grad=False):
+    if no_grad:
+        wrapped = Variable(tensor, volatile=True)
+    else:
+        wrapped = Variable(tensor)
+
+    if cuda:
+        wrapped = wrapped.cuda()
+    return wrapped
 
 
 if __name__ == '__main__':

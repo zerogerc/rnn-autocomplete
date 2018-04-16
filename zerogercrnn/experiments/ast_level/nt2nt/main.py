@@ -1,7 +1,8 @@
 from zerogercrnn.experiments.ast_level.common import Main
-from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
+from zerogercrnn.experiments.ast_level.nt2nt.model import NT2NTBaseModel
+from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
+
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
-from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 
 
@@ -18,26 +19,30 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
 
     model.zero_grad()
-    prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)
+    nt_prediction, t_prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)
 
-    return prediction, nt_target, hidden
+    return nt_prediction, t_prediction, nt_target, t_target, hidden
 
 
 class ASTRoutine(NetworkRoutine):
 
-    def __init__(self, model, batch_size, seq_len, criterion, optimizers, cuda):
+    def __init__(self, model, batch_size, seq_len, nt_criterion, t_criterion, optimizers, cuda):
         super().__init__(model)
         self.model = self.network
         self.batch_size = batch_size
         self.seq_len = seq_len
-        self.criterion = criterion
+        self.nt_criterion = nt_criterion
+        self.t_criterion = t_criterion
         self.optimizers = optimizers
         self.cuda = cuda
 
         self.hidden = None
 
-    def calc_loss(self, prediction, target):
-        return self.criterion(prediction.permute(1, 2, 0), target.transpose(1, 0))
+    def calc_loss(self, nt_prediction, t_prediction, nt_target, t_target):
+        nt_loss = self.nt_criterion(nt_prediction.permute(1, 2, 0), nt_target.transpose(1, 0))
+        t_loss = self.t_criterion(t_prediction.permute(1, 2, 0), t_target.transpose(1, 0))
+
+        return (nt_loss + t_loss) / 2
 
     def optimize(self, loss):
         # Backward pass
@@ -48,7 +53,7 @@ class ASTRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        prediction, target, hidden = run_model(
+        nt_prediction, t_prediction, nt_target, t_target, hidden = run_model(
             model=self.model,
             iter_data=iter_data,
             hidden=self.hidden,
@@ -58,22 +63,26 @@ class ASTRoutine(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.calc_loss(prediction, target)
+        loss = self.calc_loss(nt_prediction, t_prediction, nt_target, t_target)
         if self.optimizers is not None:
             self.optimize(loss)
 
-        return prediction, target
+        return nt_prediction, t_prediction, nt_target, t_target
 
 
-class NT2NMain(Main):
+class NT2NTMain(Main):
+
+    def __init__(self, args):
+        super().__init__(args)
+        self.plotter = 'tensorboard_combined'
 
     def create_model(self, args):
-        return NT2NBaseModel(
+        return NT2NTBaseModel(
             non_terminals_num=args.non_terminals_num,
             non_terminal_embedding_dim=args.non_terminal_embedding_dim,
+            terminals_num=args.terminals_num,
             terminal_embeddings=self.terminal_embeddings,
             hidden_dim=args.hidden_size,
-            prediction_dim=args.non_terminals_num,
             num_layers=args.num_layers,
             dropout=args.dropout
         )
@@ -83,7 +92,8 @@ class NT2NMain(Main):
             model=self.model,
             batch_size=args.batch_size,
             seq_len=args.seq_len,
-            criterion=self.criterion,
+            nt_criterion=self.criterion,
+            t_criterion=self.criterion,
             optimizers=self.optimizers,
             cuda=args.cuda
         )
@@ -93,10 +103,11 @@ class NT2NMain(Main):
             model=self.model,
             batch_size=args.batch_size,
             seq_len=args.seq_len,
-            criterion=self.criterion,
+            nt_criterion=self.criterion,
+            t_criterion=self.criterion,
             optimizers=None,
             cuda=args.cuda
         )
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return NonTerminalTerminalAccuracyMetrics()

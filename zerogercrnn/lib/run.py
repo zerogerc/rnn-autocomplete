@@ -1,21 +1,37 @@
 import os
+from abc import abstractmethod
 
 from tqdm import tqdm
 
-from zerogercrnn.lib.metrics import Metrics, AccuracyMetrics
+from zerogercrnn.lib.metrics import Metrics
 
 # hack for tqdm
 tqdm.monitor_interval = 0
 
-from torch.autograd import Variable
 import torch.nn as nn
 
-from zerogercrnn.lib.visualization.plotter import MatplotlibPlotter, VisdomPlotter, TensorboardPlotter
+from zerogercrnn.lib.visualization.plotter import TensorboardPlotter, \
+    TensorboardPlotterCombined
 from zerogercrnn.lib.utils.state import save_model
 from zerogercrnn.lib.data.general import DataGenerator
-from zerogercrnn.lib.train.routines import NetworkRoutine
 
 LOG_EVERY = 1000
+
+
+class NetworkRoutine:
+    """Base class for running single iteration of RNN. Enable to train or validate networks."""
+
+    def __init__(self, network):
+        self.network = network
+
+    @abstractmethod
+    def run(self, iter_num, iter_data):
+        """ Run routine and return value for plotting.
+
+        :param iter_num: number of iteration
+        :param iter_data: data for this iteration
+        """
+        pass
 
 
 def save_current_model(model, dir, name):
@@ -37,9 +53,9 @@ class TrainEpochRunner:
             metrics: Metrics,
             data_generator: DataGenerator,
             schedulers=None,
-            plotter='matplotlib',
+            plotter='tensorboard',
             save_dir=None,
-            title='TrainRunner',
+            title=None,
             plot_train_every=1,
             save_iter_model_every=None
     ):
@@ -48,6 +64,7 @@ class TrainEpochRunner:
         :param network: network to train.
         :param train_routine: routine that will run on each train input.
         :param validation_routine: routine that will run after each epoch of training on each validation input.
+        :param metrics: metrics to plot. Should correspond to routine
         :param data_generator: generator of data for training and validation
         :param schedulers: schedulers for learning rate. If None learning rate will be constant
         :param plotter: visualization tool. Either 'matplotlib' or 'visdom'.
@@ -67,19 +84,17 @@ class TrainEpochRunner:
         self.epoch = None  # current epoch
         self.it = None  # current iteration
 
-        if plotter == 'matplotlib':
-            self.plotter = MatplotlibPlotter(title=title)
-        elif plotter == 'visdom':
-            self.plotter = VisdomPlotter(title=title, plots=['train', 'validation'])
-        elif plotter == 'tensorboard':
+        if plotter == 'tensorboard':
             self.plotter = TensorboardPlotter(title=title)
+        elif plotter == 'tensorboard_combined':
+            self.plotter = TensorboardPlotterCombined(title=title)
         else:
             raise Exception('Unknown plotter')
 
     def run(self, number_of_epochs):
         self.epoch = -1
         self.it = 0
-        self.validate()  # first validation for plot.
+        self._validate()  # first validation for plot.
 
         try:
             while self.epoch < number_of_epochs:
@@ -89,7 +104,7 @@ class TrainEpochRunner:
                         scheduler.step()
 
                 self._run_for_epoch()
-                self.validate()
+                self._validate()
 
                 save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(self.epoch))
         except KeyboardInterrupt:
@@ -121,12 +136,12 @@ class TrainEpochRunner:
                 self.plotter.on_new_point(
                     label='train',
                     x=self.it,
-                    y=self.metrics.get_current_value()
+                    y=self.metrics.get_current_value(should_print=False)
                 )
 
             self.it += 1
 
-    def validate(self):
+    def _validate(self):
         """Perform validation and calculate loss as an average of the whole validation dataset."""
         validation_data = self.data_generator.get_validation_generator()
 
@@ -149,7 +164,8 @@ class TrainEpochRunner:
         self.plotter.on_new_point(
             label='validation',
             x=self.it,
-            y=self.metrics.get_current_value()
+            y=self.metrics.get_current_value(should_print=False)
         )
 
-        print('Validation done. Epoch: {}, Metrics: {}'.format(self.epoch, self.metrics.get_current_value()))
+        print('Validation done. Epoch: {}'.format(self.epoch))
+        self.metrics.get_current_value(should_print=True)
