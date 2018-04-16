@@ -216,26 +216,6 @@ class DataUtils:
         return json.loads(open(file, mode='r', encoding=ENCODING).read())
 
     @staticmethod
-    def read_lines(file, limit, encoding=ENCODING):
-        """Read first *limit* lines from file and returns list of them."""
-        lines = []
-        with open(file, mode='r', encoding=encoding) as f:
-            times = limit
-
-            for l in tqdm(f, total=limit):
-                if l[-1] == '\n':
-                    lines.append(l[:-1])
-                else:
-                    lines.append(l)
-
-                if times is not None:
-                    times -= 1
-                    if times == 0:
-                        break
-
-        return lines
-
-    @staticmethod
     def get_left_child_right_sibling(raw_json, append_eof=True):
         """
         :param     raw_json: AST json employed format from here: https://www.srl.inf.ethz.ch/js150.php
