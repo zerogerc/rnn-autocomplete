@@ -42,14 +42,12 @@ class DataChunksPool:
     def __init__(self, chunks, splits=1, shuffle=True):
         self.chunks = chunks
         self.splits = splits
+        self.shuffle = shuffle
         self.epoch_size = len(self.chunks) // self.splits
 
         self.current = 0
         self.right = 0
-        if shuffle:
-            self.indexes = get_shuffled_indexes(length=len(chunks))
-        else:
-            self.indexes = np.arange(start=0, stop=len(chunks))
+        self._recreate_indexes()
 
     def start_epoch(self):
         if self.current != self.right:
@@ -57,8 +55,9 @@ class DataChunksPool:
                 'You should finish previous epoch first, cur: {}, right: {}'.format(self.current, self.right)
             )
 
-        if self.current + self.epoch_size > len(self.chunks):
+        if self.current + self.epoch_size > len(self.chunks):  # need to start new epoch from begining of data
             self.current = 0
+            self._recreate_indexes()
 
         self.right = min(self.current + self.epoch_size, len(self.chunks))
 
@@ -76,6 +75,12 @@ class DataChunksPool:
 
     def is_epoch_finished(self):
         return self.current == self.right
+
+    def _recreate_indexes(self):
+        if self.shuffle:
+            self.indexes = get_shuffled_indexes(length=len(self.chunks))
+        else:
+            self.indexes = np.arange(start=0, stop=len(self.chunks))
 
 
 class DataBucket:
@@ -132,7 +137,7 @@ class BucketsBatch:
             self.forget_vector[x] = 0
 
         def get_forget(x):
-            return lambda : forget(x)
+            return lambda: forget(x)
 
         for i in range(self.batch_size):
             self.buckets.append(
@@ -179,6 +184,8 @@ class BatchedDataGenerator(DataGenerator):
 
     @abstractmethod
     def _retrieve_batch(self, key, buckets):
+        """Create batch of data for model using buckets. Buckets are guaranteed to contain data.
+        Key can be used for caching."""
         pass
 
     def _get_batched_epoch(self, key, batcher):

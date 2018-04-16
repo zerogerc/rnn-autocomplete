@@ -5,7 +5,11 @@ from zerogercrnn.lib.utils.state import load_if_saved
 
 
 def get_optimizer_args(args, model):
-    return optim.Adam(params=model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    return optim.Adam(
+        params=filter(lambda p: p.requires_grad, model.parameters()),
+        lr=args.learning_rate,
+        weight_decay=args.weight_decay
+    )
 
 
 def get_scheduler_args(args, optimizer):

@@ -1,20 +1,9 @@
+from tqdm import tqdm
+from itertools import islice
 import time
 
-
-def perf_ms(t, tag=None):
-    perf(t, 'ms', 1000, tag)
-
-
-def perf_s(t, tag=None):
-    perf(t, 's', 1, tag)
-
-
-def perf(t, units, magnitude, tag=None):
-    time_passed = magnitude * (time.clock() - t)
-    if tag is None:
-        print('PERF: {}{}'.format(time_passed, units))
-    else:
-        print('PERF {}: {}{}'.format(tag, time_passed, units))
+# hack for tqdm
+tqdm.monitor_interval = 0
 
 
 class Logger:
@@ -38,3 +27,17 @@ class Logger:
 
 
 logger = Logger()
+
+
+def tqdm_lim(iter, total=None, lim=None):
+    if (total is None) and (lim is None):
+        return tqdm(iter)
+
+    right = 1000000000
+    if total is not None:
+        right = min(right, total)
+
+    if lim is not None:
+        right = min(right, lim)
+
+    return tqdm(islice(iter, 0, right), total=right)
