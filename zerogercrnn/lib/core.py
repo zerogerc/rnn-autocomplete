@@ -43,7 +43,7 @@ class PretrainedEmbeddingsModule(nn.Module):
 class EmbeddingsModule(nn.Module):
     def __init__(self, num_embeddings, embedding_dim, sparse=False):
         super().__init__()
-        self.sparse = True
+        self.sparse = sparse
 
         self.model = nn.Embedding(
             num_embeddings=num_embeddings,

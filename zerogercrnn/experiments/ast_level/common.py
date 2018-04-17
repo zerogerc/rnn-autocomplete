@@ -5,7 +5,7 @@ from torch import nn as nn
 from zerogercrnn.experiments.ast_level.data import ASTDataReader, ASTDataGenerator
 
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
+from zerogercrnn.experiments.common import get_optimizers, get_scheduler_args
 from zerogercrnn.lib.run import TrainEpochRunner
 from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
 
@@ -95,10 +95,10 @@ class Main:
         return create_terminal_embeddings(args)
 
     def create_optimizers(self, args):
-        return [get_optimizer_args(args, self.model)]
+        return get_optimizers(args, self.model)
 
     def create_schedulers(self, args):
-        return [get_scheduler_args(args, self.optimizers[-1])]
+        return [get_scheduler_args(args, opt) for opt in self.optimizers]
 
     def create_criterion(self, args):
         return nn.NLLLoss()
