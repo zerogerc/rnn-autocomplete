@@ -56,6 +56,10 @@ def wrap_cuda_no_grad_variable(tensor, cuda, no_grad=False):
     return wrapped
 
 
+def filter_requires_grad(parameters):
+    return filter(lambda p: p.requires_grad, parameters)
+
+
 if __name__ == '__main__':
     h1 = torch.randn((1, 8, 10))
     zeros = torch.ones(8, 1)

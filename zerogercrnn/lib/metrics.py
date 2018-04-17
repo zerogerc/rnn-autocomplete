@@ -75,7 +75,7 @@ class AccuracyMetrics(Metrics):
         value = float(self.hits) / (self.hits + self.misses)
 
         if should_print:
-            print('Current loss: {}'.format(value))
+            print('Current accuracy: {}'.format(value))
 
         return value
 
