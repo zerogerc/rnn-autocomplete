@@ -43,6 +43,7 @@ class Main:
         self.terminal_embeddings = create_terminal_embeddings(args)
 
         self.model = self.create_model(args)
+        self.load_model(args)
 
         if args.cuda:
             self.model = self.model.cuda()

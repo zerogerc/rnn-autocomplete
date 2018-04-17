@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from itertools import chain
 
 from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
@@ -29,11 +30,14 @@ class NT2NBaseModel(nn.Module):
 
         self.nt_embedding = EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
-            embedding_dim=self.non_terminal_embedding_dim
+            embedding_dim=self.non_terminal_embedding_dim,
+            sparse=True
         )
 
         self.t_embedding = PretrainedEmbeddingsModule(
-            embeddings=terminal_embeddings
+            embeddings=terminal_embeddings,
+            requires_grad=True,
+            sparse=True
         )
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
@@ -50,6 +54,14 @@ class NT2NBaseModel(nn.Module):
             output_size=self.prediction_dim,
             dim=2
         )
+
+    def parameters(self):
+        return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
+                     self.h2o.parameters())
+
+    def sparse_parameters(self):
+        return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
+                     self.recurrent_core.sparse_parameters(), self.h2o.sparse_parameters())
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()

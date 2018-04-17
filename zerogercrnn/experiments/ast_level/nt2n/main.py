@@ -3,6 +3,10 @@ from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
+from zerogercrnn.experiments.utils import filter_requires_grad
+import torch
+
+from zerogercrnn.experiments.common import get_optimizer_args, get_sparse_optimizer_args, get_scheduler_args
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
@@ -42,6 +46,8 @@ class ASTRoutine(NetworkRoutine):
     def optimize(self, loss):
         # Backward pass
         loss.backward()
+        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.parameters()), 5)
+        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.sparse_parameters()), 5)
 
         # Optimizer step
         for optimizer in self.optimizers:
@@ -66,6 +72,12 @@ class ASTRoutine(NetworkRoutine):
 
 
 class NT2NMain(Main):
+
+    def create_optimizers(self, args):
+        return [get_optimizer_args(args, self.model), get_sparse_optimizer_args(args, self.model)]
+
+    def create_schedulers(self, args):
+        return [get_scheduler_args(args, self.optimizers[0]), get_scheduler_args(args, self.optimizers[1])]
 
     def create_model(self, args):
         return NT2NBaseModel(

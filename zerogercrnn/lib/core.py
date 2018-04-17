@@ -8,31 +8,47 @@ from zerogercrnn.lib.embedding import Embeddings
 
 class PretrainedEmbeddingsModule(nn.Module):
 
-    def __init__(self, embeddings: Embeddings):
+    def __init__(self, embeddings: Embeddings, requires_grad=False, sparse=False):
         super().__init__()
+        self.sparse = sparse
 
         self.num_embeddings = embeddings.embeddings_tensor.size()[0]
         self.embedding_dim = embeddings.embeddings_tensor.size()[1]
 
         self.embed = nn.Embedding(
             num_embeddings=embeddings.embeddings_tensor.size()[0],
-            embedding_dim=embeddings.embeddings_tensor.size()[1]
+            embedding_dim=embeddings.embeddings_tensor.size()[1],
+            sparse=sparse
         )
 
         self.embed.weight.data.copy_(embeddings.embeddings_tensor)
-        self.embed.weight.requires_grad = False
+        self.embed.weight.requires_grad = requires_grad
+
+    def parameters(self):
+        if self.sparse:
+            return []
+        else:
+            return self.embed.parameters()
+
+    def sparse_parameters(self):
+        if self.sparse:
+            return self.embed.parameters()
+        else:
+            return []
 
     def forward(self, model_input):
         return self.embed(model_input)
 
 
 class EmbeddingsModule(nn.Module):
-    def __init__(self, num_embeddings, embedding_dim):
+    def __init__(self, num_embeddings, embedding_dim, sparse=False):
         super().__init__()
+        self.sparse = True
 
         self.model = nn.Embedding(
             num_embeddings=num_embeddings,
-            embedding_dim=embedding_dim
+            embedding_dim=embedding_dim,
+            sparse=sparse
         )
 
         init_layers_uniform(
@@ -40,6 +56,18 @@ class EmbeddingsModule(nn.Module):
             max_value=0.1,
             layers=[self.model]
         )
+
+    def parameters(self):
+        if self.sparse:
+            return []
+        else:
+            return self.model.parameters()
+
+    def sparse_parameters(self):
+        if self.sparse:
+            return self.model.parameters()
+        else:
+            return []
 
     def forward(self, model_input):
         return self.model(model_input)
@@ -73,6 +101,12 @@ class RecurrentCore(nn.Module):
             raise Exception('Unknown model type: {}'.format(model_type))
 
         init_recurrent_layers(self.recurrent)
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
 
     def forward(self, input_tensor, hidden):
         output_tensor, hidden = self.recurrent(input_tensor, hidden)
@@ -111,6 +145,12 @@ class LSTMCellDropout(nn.Module):
 
         self.lstm_cell = nn.LSTMCell(input_size=input_size, hidden_size=hidden_size)
         self.dropout_mask = None
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
 
     def forward(self, input_tensor, hidden_state, apply_dropout=True, reinit_dropout=False):
         if (self.dropout_mask is None) or reinit_dropout:
@@ -170,6 +210,12 @@ class LogSoftmaxOutputLayer(nn.Module):
             ]
         )
 
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
+
     def forward(self, input):
         return self.log_softmax(self.affine(input))
 
@@ -182,6 +228,12 @@ class AlphaBetaSumLayer(nn.Module):
 
         nn.init.uniform(self.mult_alpha, min_value, max_value)
         nn.init.uniform(self.mult_beta, min_value, max_value)
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
 
     def forward(self, first_tensor, second_tensor):
         assert first_tensor.size() == second_tensor.size()
@@ -220,6 +272,12 @@ class ContextBasedSumAttention(nn.Module):
             max_value=0.05,
             layers=[self.attn]
         )
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
 
     def forget_context_partly(self, forget_vector):
         """Method to drop context for programs that ended.

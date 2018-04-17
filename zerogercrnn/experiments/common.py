@@ -2,13 +2,20 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
 from zerogercrnn.lib.utils.state import load_if_saved
+from zerogercrnn.experiments.utils import filter_requires_grad
 
 
 def get_optimizer_args(args, model):
     return optim.Adam(
-        params=filter(lambda p: p.requires_grad, model.parameters()),
+        params=filter_requires_grad(model.parameters()),
         lr=args.learning_rate,
         weight_decay=args.weight_decay
+    )
+
+def get_sparse_optimizer_args(args, model):
+    return optim.SparseAdam(
+        params=filter_requires_grad(model.sparse_parameters()),
+        lr=args.learning_rate
     )
 
 
