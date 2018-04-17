@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from itertools import chain
 from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
     LogSoftmaxOutputLayer
@@ -56,6 +57,15 @@ class NT2NTBaseModel(nn.Module):
             output_size=self.terminals_num,
             dim=2
         )
+
+    def parameters(self):
+        return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
+                     self.h2nt.parameters(), self.h2t.parameters())
+
+    def sparse_parameters(self):
+        return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
+                     self.recurrent_core.sparse_parameters(), self.h2nt.sparse_parameters(),
+                     self.h2t.sparse_parameters())
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()

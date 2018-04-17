@@ -1,8 +1,10 @@
+import torch
+
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2nt.model import NT2NTBaseModel
-from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
-
+from zerogercrnn.experiments.utils import filter_requires_grad
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 
 
@@ -48,6 +50,7 @@ class ASTRoutine(NetworkRoutine):
         # Backward pass
         loss.backward()
 
+        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.parameters()), 5)
         # Optimizer step
         for optimizer in self.optimizers:
             optimizer.step()
