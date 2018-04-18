@@ -4,7 +4,7 @@ from itertools import chain
 
 from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LogSoftmaxOutputLayer
+    LogSoftmaxOutputLayer, LinearLayer
 from zerogercrnn.lib.embedding import Embeddings
 
 
@@ -47,10 +47,9 @@ class NTN2TBaseModel(nn.Module):
             model_type='lstm'
         )
 
-        self.h2t = LogSoftmaxOutputLayer(
+        self.h2t = LinearLayer(
             input_size=self.hidden_dim,
             output_size=self.terminals_num,
-            dim=2
         )
 
     def parameters(self):

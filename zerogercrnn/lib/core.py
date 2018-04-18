@@ -186,6 +186,37 @@ class LSTMCellDropout(nn.Module):
         self.dropout_mask = Variable(torch.bernoulli(tensor.fill_(1 - self.dropout)))
 
 
+class LinearLayer(nn.Module):
+    """Layer that applies affine transformation and then LogSoftmax."""
+
+    def __init__(self, input_size, output_size, bias=True):
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+
+        self.affine = nn.Linear(
+            in_features=self.input_size,
+            out_features=self.output_size,
+            bias=bias
+        )
+
+        init_layers_uniform(
+            min_value=-0.05,
+            max_value=0.05,
+            layers=[
+                self.affine
+            ]
+        )
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
+
+    def forward(self, input):
+        return self.affine(input)
+
 class LogSoftmaxOutputLayer(nn.Module):
     """Layer that applies affine transformation and then LogSoftmax."""
 

@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.ntn2t.model import NTN2TBaseModel
@@ -40,7 +41,7 @@ class NTN2TRoutine(NetworkRoutine):
         self.hidden = None
 
     def calc_loss(self, prediction, target):
-        return self.criterion(prediction.permute(1, 2, 0), target.transpose(1, 0))
+        return self.criterion(prediction.view(-1, prediction.size()[2]), target.view(-1))
 
     def optimize(self, loss):
         # Backward pass
@@ -100,6 +101,9 @@ class NTN2TMain(Main):
             optimizers=None,
             cuda=args.cuda
         )
+
+    def create_criterion(self, args):
+        return nn.CrossEntropyLoss()
 
     def create_metrics(self, args):
         return AccuracyMetrics()

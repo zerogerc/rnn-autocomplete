@@ -65,7 +65,12 @@ class AccuracyMetrics(Metrics):
         self.reported += 1
 
         _, predicted = torch.max(prediction, dim=2)
-        current_misses = torch.nonzero(predicted - target).size()[0]
+
+        current_misses = torch.nonzero(predicted - target)
+        if len(current_misses.size()) == 0:
+            current_misses = 0
+        else:
+            current_misses = current_misses.size()[0]
         current_hits = target.view(-1).size()[0] - current_misses
 
         self.hits += current_hits
