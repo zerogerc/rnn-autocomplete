@@ -17,10 +17,11 @@ add_recurrent_core_args(parser)
 add_non_terminal_args(parser)
 add_terminal_args(parser)
 parser.add_argument('--terminal_embeddings_file', type=str, help='File with pretrained terminal embeddings')
-parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2nt')
+parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2nt, ntn2t')
+parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 
 
-def train(args):
+def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
     elif args.prediction == 'nt2nt':
@@ -30,7 +31,17 @@ def train(args):
     else:
         raise Exception('Not supported prediction type: {}'.format(args.prediction))
 
-    main.run(args)
+    return main
+
+
+def train(args):
+    get_main(args).train(args)
+
+
+def evaluate(args):
+    if args.saved_model is None:
+        print('WARNING: Running eval without saved_model. Not a good idea')
+    get_main(args).eval(args, print_every=1)
 
 
 if __name__ == '__main__':
@@ -44,4 +55,7 @@ if __name__ == '__main__':
     if not _args.cuda:
         print("WARNING: You are running without cuda. Is it ok?")
 
-    train(_args)
+    if _args.eval:
+        evaluate(_args)
+    else:
+        train(_args)

@@ -179,7 +179,7 @@ class BatchedDataGenerator(DataGenerator):
             self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size, self.cuda)
 
         if data_reader.eval_data is not None:
-            self.eval_pool = self._prepare_data_(data_reader.eval_data)
+            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1)
             self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size, self.cuda)
 
     @abstractmethod
@@ -203,8 +203,8 @@ class BatchedDataGenerator(DataGenerator):
     def get_eval_generator(self):
         return self._get_batched_epoch('eval', self.eval_batcher)
 
-    def _prepare_data_(self, data):
+    def _prepare_data_(self, data, splits=5):
         for i in tqdm(range(len(data))):
             data[i].prepare_data(self.seq_len)
 
-        return DataChunksPool(chunks=data, splits=5, shuffle=True)
+        return DataChunksPool(chunks=data, splits=splits, shuffle=True)
