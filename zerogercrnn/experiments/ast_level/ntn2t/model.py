@@ -29,13 +29,13 @@ class NTN2TBaseModel(nn.Module):
         self.nt_embedding = EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
-            sparse=False
+            sparse=True
         )
 
         self.t_embedding = PretrainedEmbeddingsModule(
             embeddings=terminal_embeddings,
             requires_grad=False,
-            sparse=False
+            sparse=True
         )
         self.terminals_num = self.t_embedding.num_embeddings
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
