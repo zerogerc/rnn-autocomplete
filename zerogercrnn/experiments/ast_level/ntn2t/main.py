@@ -13,7 +13,7 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     assert forget_vector.size()[0] == batch_size
 
     nt_input = wrap_cuda_no_grad_variable(nt_input, cuda=cuda, no_grad=no_grad)
-    t_input = wrap_cuda_no_grad_variable(t_input, cuda=cuda, no_grad=True)
+    t_input = wrap_cuda_no_grad_variable(t_input, cuda=cuda, no_grad=no_grad)
     nt_target = wrap_cuda_no_grad_variable(nt_target, cuda=cuda, no_grad=no_grad)
     t_target = wrap_cuda_no_grad_variable(t_target, cuda=cuda, no_grad=no_grad)
 
