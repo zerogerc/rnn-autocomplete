@@ -6,6 +6,7 @@ from zerogercrnn.experiments.argutils import add_general_arguments, add_batching
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
+from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
 from zerogercrnn.lib.utils.time import logger
 
 parser = argparse.ArgumentParser(description='AST level neural network')
@@ -24,6 +25,8 @@ def train(args):
         main = NT2NMain(args)
     elif args.prediction == 'nt2nt':
         main = NT2NTMain(args)
+    elif args.prediction == 'ntn2t':
+        main = NTN2TMain(args)
     else:
         raise Exception('Not supported prediction type: {}'.format(args.prediction))
 

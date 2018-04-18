@@ -1,9 +1,9 @@
 import json
 import os
 
-from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
+from ete3 import Tree, TreeStyle, NodeStyle, TextFace, add_face_to_node
 
-DIR_DATASET = '/Users/zerogerc/Documents/datasets/js_dataset.tar'
+DIR_DATASET = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/'
 FILE_TRAINING_DATASET = os.path.join(DIR_DATASET, 'programs_eval.json')
 FILE_TRAINING_PROCESSED = os.path.join(DIR_DATASET, 'programs_processed_eval.json')
 
@@ -30,6 +30,25 @@ def get_numbered_tree_recursively(node_id, json):
         return '({}){}'.format(','.join(child_strs), node_id)
 
 
+
+def create_non_terminal_text_face(text, color='black'):
+    text_face = TextFace(text, fsize=12, fgcolor=color)
+    text_face.margin_top = 5
+    text_face.margin_right = 5
+    text_face.margin_left = 5
+    text_face.margin_bottom = 5
+    return text_face
+
+def create_terminal_text_face(text, color='black'):
+    text_face = TextFace(text, fsize=12, fgcolor=color)
+    text_face.margin_top = 5
+    text_face.margin_right = 5
+    text_face.margin_left = 5
+    text_face.margin_bottom = 5
+    text_face.opacity = 0.5  # from 0 to 1
+    text_face.border.width = 1
+    return text_face
+
 class TreeDrawer():
     def __init__(self, tree_json, prediction):
         self.tree_json = tree_json
@@ -42,30 +61,45 @@ class TreeDrawer():
 
         ts = TreeStyle()
         ts.show_leaf_name = False
+        t.set_style(ts)
+
+        ns = NodeStyle()
+        ns["fgcolor"] = "#0f0f0f"
+        ns["size"] = 0
+        ns["vt_line_color"] = "#ff0000"
+        ns["hz_line_color"] = "#ff0000"
+        ns["vt_line_width"] = 2
+        ns["hz_line_width"] = 2
+        ns["vt_line_type"] = 0  # 0 solid, 1 dashed, 2 dotted
+        ns["hz_line_type"] = 0
+
+        for l in t.iter_descendants():
+            l.img_style = ns
 
         def my_layout(node):
             json_node_id = int(node.name)
             json_node = self.tree_json[json_node_id]
 
             # Type
-            if self.prediction[NT_TARGET][json_node_id] == self.prediction[NT_PREDICTION][json_node_id]:
-                color = 'green'
-            else:
-                color = 'red'
+            # if self.prediction[NT_TARGET][json_node_id] == self.prediction[NT_PREDICTION][json_node_id]:
+            #     color = 'green'
+            # else:
+            #     color = 'red'
 
-            text_type = TextFace(json_node['type'], fgcolor=color, tight_text=False)
+            text_type = create_non_terminal_text_face(json_node['type'], color='green')
             add_face_to_node(text_type, node, column=0, position='branch-top')
 
             # Value
             # TODO: think if I need to show EMPTY tokens predicions here
             if 'value' in json_node:
                 color = 'black'
-                if T_TARGET in self.prediction:
-                    if self.prediction[T_TARGET][json_node_id] == self.prediction[T_PREDICTION][json_node_id]:
-                        color = 'green'
-                    else:
-                        color = 'red'
-                text_value = TextFace(json_node['value'], fsize=14, fgcolor=color, tight_text=False)
+                # if T_TARGET in self.prediction:
+                #     if self.prediction[T_TARGET][json_node_id] == self.prediction[T_PREDICTION][json_node_id]:
+                #         color = 'green'
+                #     else:
+                #         color = 'red'
+
+                text_value = create_terminal_text_face(json_node['value'])
                 add_face_to_node(text_value, node, column=0, position='branch-right')
 
         ts.layout_fn = my_layout
