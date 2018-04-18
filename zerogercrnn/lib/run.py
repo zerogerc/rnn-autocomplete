@@ -115,6 +115,7 @@ class TrainEpochRunner:
             self.plotter.on_finish()
 
     def _run_for_epoch(self):
+        self.network.train()
         train_data = self.data_generator.get_train_generator()
         # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
 
@@ -146,6 +147,7 @@ class TrainEpochRunner:
         validation_data = self.data_generator.get_validation_generator()
 
         self.metrics.drop_state()
+        self.network.eval()
 
         validation_it = 0
         for iter_data in validation_data:

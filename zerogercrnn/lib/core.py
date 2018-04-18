@@ -197,7 +197,8 @@ class LogSoftmaxOutputLayer(nn.Module):
 
         self.affine = nn.Linear(
             in_features=self.input_size,
-            out_features=self.output_size
+            out_features=self.output_size,
+            bias=False
         )
 
         self.log_softmax = nn.LogSoftmax(dim=dim)
