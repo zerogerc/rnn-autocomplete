@@ -75,7 +75,7 @@ class Main:
     def create_metrics(self, args):
         pass
 
-    def run(self, args):
+    def train(self, args):
         runner = TrainEpochRunner(
             network=self.model,
             train_routine=self.train_routine,
@@ -90,6 +90,21 @@ class Main:
         )
 
         runner.run(number_of_epochs=args.epochs)
+
+    def eval(self, args, print_every=1000):
+        self.metrics.drop_state()
+        self.model.eval()
+        it = 0
+        for iter_data in self.data_generator.get_eval_generator():
+            metrics_values = self.validation_routine.run(
+                iter_num=it,
+                iter_data=iter_data
+            )
+            self.metrics.report(metrics_values)
+
+            if it % print_every == 0:
+                self.metrics.get_current_value(should_print=True)
+            it += 1
 
     def create_terminals_embeddings(self, args):
         return create_terminal_embeddings(args)

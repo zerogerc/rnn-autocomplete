@@ -5,11 +5,13 @@ mkdir saved/$2
 PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --title $2 \
     --prediction $1 \
-    --train_file "data/ast/file_train.json" \
-    --data_limit 100000 \
+    --eval_file "data/ast/file_eval.json" \
+    --data_limit 10000 \
     --model_save_dir saved/$2 \
+    --saved_model $3 \
     --real_data \
     --cuda \
+    --eval \
     --seq_len 50 \
     --batch_size 80 \
     --learning_rate 0.005 \
