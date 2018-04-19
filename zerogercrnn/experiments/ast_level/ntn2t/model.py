@@ -50,6 +50,7 @@ class NTN2TBaseModel(nn.Module):
         self.h2t = LinearLayer(
             input_size=self.hidden_dim,
             output_size=self.terminals_num,
+            bias=False
         )
 
     def parameters(self):

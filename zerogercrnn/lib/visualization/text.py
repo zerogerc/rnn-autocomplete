@@ -36,34 +36,22 @@ def show_diff(text, actual, file=None):
         <html>
         <head>
         <style>
+        .div{{
+            display: inline-block;
+        }}
         .column {{
             float: left;
             width: 50%;
-        }}
-        
-        /* Clear floats after the columns */
-        .row:after {{
-            content: "";
-            display: table;
-            clear: both;
+            display: inline-block;
         }}
         </style>
         </head>
 
         <body>
-            <div class="row">
-                <div class="column">
-                    <h3 style="margin-top: 20px; ">Text</h3>
-                    <div>{}</div>
-                </div>
-                <div class="column">
-                    <h3 style="margin-top: 20px; ">Actual</h3>
-                    <div>{}</div>
-                </div>
-            </div> 
+            {}   
         </body>
         </html>
-        """.format(diff_text, diff_actual)
+        """.format(diff_actual)
 
     show_html_page(
         page=message,
