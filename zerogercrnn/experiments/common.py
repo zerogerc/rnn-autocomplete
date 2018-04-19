@@ -21,9 +21,9 @@ def get_sparse_optimizer_args(args, model):
 
 def get_optimizers(args, model):
     optimizers = []
-    if len(list(model.parameters())) != 0:
+    if len(list(filter_requires_grad(model.parameters()))) != 0:
         optimizers.append(get_optimizer_args(args, model))
-    if len(list(model.sparse_parameters())) != 0:
+    if len(list(filter_requires_grad(model.sparse_parameters()))) != 0:
         optimizers.append(get_sparse_optimizer_args(args, model))
 
     if len(optimizers) == 0:

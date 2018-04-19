@@ -63,8 +63,8 @@ class ASTRoutine(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.calc_loss(prediction, target)
         if self.optimizers is not None:
+            loss = self.calc_loss(prediction, target)
             self.optimize(loss)
 
         return prediction, target

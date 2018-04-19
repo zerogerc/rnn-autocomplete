@@ -16,9 +16,9 @@ TRAIN_FILE = '/Users/zerogerc/Documents/datasets/js_dataset.tar/programs_trainin
 TRAIN_FILE_ONE_HOT = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/tokens/file_train.json'
 TRAIN_FILE_PLAIN = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/tokens/file_train_plain.txt'
 
-EVAL_FILE = '/Users/zerogerc/Documents/datasets/js_dataset.tar/programs_eval_tokenized.json'
-EVAL_FILE_ONE_HOT = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/tokens/file_eval.json'
-EVAL_FILE_PLAIN = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/tokens/file_eval_plain.txt'
+EVAL_FILE = 'data/programs_eval_tokenized.json'
+EVAL_FILE_ONE_HOT = 'data/tokens/file_eval.json'
+EVAL_FILE_PLAIN = 'data/tokens/file_eval_plain.txt'
 
 TOKENS_FILE = '/Users/zerogerc/Yandex.Disk.localized/shared_files/University/diploma/rnn-autocomplete/data/tokens/tokens.txt'
 

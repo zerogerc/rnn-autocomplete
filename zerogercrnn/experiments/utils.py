@@ -23,7 +23,7 @@ def init_layers_uniform(min_value, max_value, layers):
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
     if type(h) == Variable:
-        return Variable(h.data)
+        return h.detach()
     else:
         return tuple(repackage_hidden(v) for v in h)
 
