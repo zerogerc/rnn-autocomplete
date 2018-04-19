@@ -41,7 +41,7 @@ class NTN2TRoutine(NetworkRoutine):
         self.hidden = None
 
     def calc_loss(self, prediction, target):
-        return self.criterion(prediction.view(-1, prediction.size()[2]), target.view(-1))
+        return self.criterion(prediction.view(-1, prediction.size()[-1]), target.view(-1))
 
     def optimize(self, loss):
         # Backward pass
@@ -66,6 +66,7 @@ class NTN2TRoutine(NetworkRoutine):
         loss = self.calc_loss(prediction, target)
         if self.optimizers is not None:
             self.optimize(loss)
+        del loss
 
         return prediction, target
 
