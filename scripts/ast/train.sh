@@ -19,7 +19,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --weight_decay=0. \
     --hidden_size 1500 \
     --num_layers 1 \
-    --dropout 0.03 \
+    --dropout 0.1 \
     --non_terminals_num 97 \
     --non_terminal_embedding_dim 20 \
     --terminals_num 50001 \
