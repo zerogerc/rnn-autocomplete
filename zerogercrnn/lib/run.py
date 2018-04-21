@@ -170,4 +170,8 @@ class TrainEpochRunner:
         )
 
         print('Validation done. Epoch: {}'.format(self.epoch))
+
+        # print('Alpha coefficient: {}'.format(self.network.attention.sum_layer.mult_alpha))
+        # print('Beta coefficient: {}'.format(self.network.attention.sum_layer.mult_beta))
+        # print('P coefficient: {}'.format(self.network.attention.p_sum.mult_p.data))
         self.metrics.get_current_value(should_print=True)

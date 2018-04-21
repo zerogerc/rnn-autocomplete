@@ -1,9 +1,13 @@
 import torch
 from torch import nn as nn
 from torch.autograd import Variable
+import torch.nn.functional as F
 
+from zerogercrnn.lib.attn import Attn, CyclicBuffer, LastKBuffer
 from zerogercrnn.experiments.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.calculation import shift_left, calc_attention_combination, drop_matrix_rows_3d
 
 
 class PretrainedEmbeddingsModule(nn.Module):
@@ -162,15 +166,9 @@ class LSTMCellDropout(nn.Module):
         else:
             return hidden, cell
 
-    def init_hidden(self, batch_size, cuda):
-        h = Variable(torch.zeros((batch_size, self.hidden_size)))
-        c = Variable(torch.zeros((batch_size, self.hidden_size)))
-
-        if cuda:
-            h = h.cuda()
-            c = c.cuda()
-
-        # TODO: maybe not zeros?
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        h = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
+        c = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
         return h, c
 
     def _reinit_dropout_mask(self, batch_size, cuda):
@@ -217,6 +215,7 @@ class LinearLayer(nn.Module):
     def forward(self, input):
         return self.affine(input)
 
+
 class LogSoftmaxOutputLayer(nn.Module):
     """Layer that applies affine transformation and then LogSoftmax."""
 
@@ -252,6 +251,23 @@ class LogSoftmaxOutputLayer(nn.Module):
         return self.log_softmax(self.affine(input))
 
 
+class PSumLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mult_p = nn.Parameter(torch.randn(1))
+        nn.init.uniform(self.mult_p, 0, 1)
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
+
+    def forward(self, first_tensor, second_tensor):
+        assert first_tensor.size() == second_tensor.size()
+        return self.mult_p * first_tensor + (1 - self.mult_p) * second_tensor
+
+
 class AlphaBetaSumLayer(nn.Module):
     def __init__(self, min_value, max_value):
         super().__init__()
@@ -272,38 +288,30 @@ class AlphaBetaSumLayer(nn.Module):
         return self.mult_alpha * first_tensor + self.mult_beta * second_tensor
 
 
-class ContextBasedSumAttention(nn.Module):
-    """
-    Attention for LSTM calculated from last seq_len hidden states
-    """
-
+class ContextBaseTailAttention(nn.Module):
     def __init__(self, seq_len, hidden_size):
         super().__init__()
         self.seq_len = seq_len
         self.hidden_size = hidden_size
+        self.it = 0
 
         # Layer that applies attention to past self.cntx hidden states of contexts
-        self.attn = nn.Linear(
-            in_features=self.hidden_size,
-            out_features=self.hidden_size,
-            bias=False
-        )
+        self.attn = Attn(method='general', hidden_size=self.hidden_size)
 
-        self.attn_softmax = nn.Softmax(dim=1)
-
-        # Layer that will calculate hidden state to pass to the next layer as alpha*h + beta*cntx
-        # TODO check that all parameters is appended to model parameters
-        self.alpha_beta_sum = AlphaBetaSumLayer(min_value=-1, max_value=2)
+        # self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
 
         # Matrix that will hold past seq_len contexts. No backprop will be computed
         # size: [batch_size, seq_len, hidden_size]
-        self.cntx_matrix = None
+        self.context_buffer = None
 
-        init_layers_uniform(
-            min_value=-0.05,
-            max_value=0.05,
-            layers=[self.attn]
-        )
+        # nn.init.uniform(self.W, -0.05, 0.05)
+
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size)
+        if cuda:
+            b_matrix = b_matrix.cuda()
+
+        self.context_buffer = LastKBuffer(window_len=self.seq_len, buffer=b_matrix)
 
     def parameters(self):
         return super().parameters()
@@ -315,45 +323,24 @@ class ContextBasedSumAttention(nn.Module):
         """Method to drop context for programs that ended.
         :param forget_vector vector of size [batch_size, 1] with either 0 or 1
         """
-
-        if self.cntx_matrix is not None:
-            self.cntx_matrix.data.mul(forget_vector.unsqueeze(2), out=self.cntx_matrix.data)
+        drop_matrix_rows_3d(self.context_buffer.get(), forget_vector)
 
     def forward(self, h_t):
         """
         :param h_t: current hidden state of size [batch_size, hidden_size]
         :return: hidden state with applied sum attention of size [batch_size, hidden_size]
         """
-        if self.cntx_matrix is None:
-            # TODO: check if it's placed on cuda
-            cntx = Variable(torch.zeros_like(h_t.data), requires_grad=False)  # no gradients here
-        else:
-            self.cntx_matrix = Variable(self.cntx_matrix.data)  # Just for sure =)
+        assert self.context_buffer is not None
 
-            # Calculating attention coefficients
-            # * Make batch first and apply W
-            attn_weights = self.attn(self.cntx_matrix)
-            # * Multiply by current hidden state to get coefficients
-            attn_weights = attn_weights.matmul(h_t.unsqueeze(2))
-            # * Softmax to make all of them sum to 1
-            attn_weights = self.attn_softmax(attn_weights)
+        current_context = Variable(self.context_buffer.get(), volatile=h_t.volatile)
+        attn_weights = self.attn(h_t, current_context)
 
-            # Calc current context vector as sum of previous contexts multiplied by alpha
-            cntx = attn_weights.transpose(1, 2).matmul(self.cntx_matrix).squeeze(1)
+        self.it += 1
+        if self.it % 10000 == 0:
+            print(attn_weights.data[0])
 
-        # alpha * h_t + beta * cntx
-        cntx = self.alpha_beta_sum(h_t, cntx)
+        # Calc current context vector as sum of previous contexts multiplied by alpha
+        cntx = calc_attention_combination(attn_weights, current_context)
 
-        if self.cntx_matrix is None:
-            self.cntx_matrix = Variable(cntx.data.unsqueeze(1), requires_grad=False)
-        else:
-            # repackage context to not calculate backward path on the next step
-            self.cntx_matrix = torch.cat(
-                (self.cntx_matrix, Variable(cntx.data.unsqueeze(1), requires_grad=False)),
-                dim=1
-            )
-            if self.cntx_matrix.size()[1] > self.seq_len:
-                # repain only last seq_len contexts
-                self.cntx_matrix = self.cntx_matrix.narrow(1, self.cntx_matrix.size()[1] - self.seq_len, self.seq_len)
-
+        self.context_buffer.add_vector(h_t.data)
         return cntx
