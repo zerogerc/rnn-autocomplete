@@ -1,10 +1,11 @@
-import torch
-import torch.nn as nn
 from itertools import chain
 
-from zerogercrnn.experiments.utils import forget_hidden_partly, forget_hidden_partly_lstm_cell, repackage_hidden
+import torch
+import torch.nn as nn
+
+from zerogercrnn.experiments.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
-    LogSoftmaxOutputLayer
+    LogSoftmaxOutputLayer, ContextBaseTailAttention
 from zerogercrnn.lib.embedding import Embeddings
 
 
@@ -45,6 +46,11 @@ class NT2NAttentionModel(nn.Module):
             dropout=self.dropout
         )
 
+        self.attention = ContextBaseTailAttention(
+            seq_len=4,  # TODO: better way
+            hidden_size=self.hidden_dim
+        )
+
         self.h2o = LogSoftmaxOutputLayer(
             input_size=self.hidden_dim,
             output_size=self.prediction_dim,
@@ -53,11 +59,12 @@ class NT2NAttentionModel(nn.Module):
 
     def parameters(self):
         return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
-                     self.h2o.parameters())
+                     self.attention.parameters(), self.h2o.parameters())
 
     def sparse_parameters(self):
         return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
-                     self.recurrent_core.sparse_parameters(), self.h2o.sparse_parameters())
+                     self.recurrent_core.sparse_parameters(), self.attention.sparse_parameters(),
+                     self.h2o.sparse_parameters())
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()
@@ -69,13 +76,16 @@ class NT2NAttentionModel(nn.Module):
 
         hidden = repackage_hidden(hidden)
         hidden = forget_hidden_partly_lstm_cell(hidden, forget_vector=forget_vector)
+        self.attention.forget_context_partly(forget_vector=forget_vector)
 
         recurrent_output = []
         new_hidden = None
         for i in range(non_terminal_input.size()[0]):
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden)
+            cur_o = self.attention(cur_h)
+
             new_hidden = (cur_h, cur_c)
-            recurrent_output.append(cur_h)
+            recurrent_output.append(cur_o)
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
@@ -84,4 +94,5 @@ class NT2NAttentionModel(nn.Module):
         return prediction, new_hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
+        self.attention.init_hidden(batch_size, cuda, no_grad)
         return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad)

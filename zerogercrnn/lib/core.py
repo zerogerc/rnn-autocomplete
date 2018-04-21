@@ -248,6 +248,23 @@ class LogSoftmaxOutputLayer(nn.Module):
         return self.log_softmax(self.affine(input))
 
 
+class PSumLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mult_p = nn.Parameter(torch.randn(1))
+        nn.init.uniform(self.mult_p, 0, 1)
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
+
+    def forward(self, first_tensor, second_tensor):
+        assert first_tensor.size() == second_tensor.size()
+        return self.mult_p * first_tensor + (1 - self.mult_p) * second_tensor
+
+
 class AlphaBetaSumLayer(nn.Module):
     def __init__(self, min_value, max_value):
         super().__init__()
@@ -266,6 +283,81 @@ class AlphaBetaSumLayer(nn.Module):
     def forward(self, first_tensor, second_tensor):
         assert first_tensor.size() == second_tensor.size()
         return self.mult_alpha * first_tensor + self.mult_beta * second_tensor
+
+
+class ContextBaseTailAttention(nn.Module):
+    def __init__(self, seq_len, hidden_size):
+        super().__init__()
+        self.seq_len = seq_len
+        self.hidden_size = hidden_size
+
+        # Layer that applies attention to past self.cntx hidden states of contexts
+        self.attn = nn.Linear(
+            in_features=self.hidden_size,
+            out_features=self.hidden_size,
+            bias=False
+        )
+
+        self.p_sum = PSumLayer()
+
+        self.attn_softmax = nn.Softmax(dim=1)
+
+        # Matrix that will hold past seq_len contexts. No backprop will be computed
+        # size: [batch_size, seq_len, hidden_size]
+        self.cntx_matrix = None
+
+        init_layers_uniform(
+            min_value=-0.05,
+            max_value=0.05,
+            layers=[self.attn]
+        )
+
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        self.cntx_matrix = wrap_cuda_no_grad_variable(
+            torch.FloatTensor(batch_size, self.seq_len, self.hidden_size),
+            cuda=cuda,
+            no_grad=no_grad
+        )
+
+    def parameters(self):
+        return super().parameters()
+
+    def sparse_parameters(self):
+        return []
+
+    def forget_context_partly(self, forget_vector):
+        """Method to drop context for programs that ended.
+        :param forget_vector vector of size [batch_size, 1] with either 0 or 1
+        """
+
+        # TODO: check that sht
+        self.cntx_matrix.data.mul(forget_vector.unsqueeze(2), out=self.cntx_matrix.data)
+
+    def forward(self, h_t):
+        """
+        :param h_t: current hidden state of size [batch_size, hidden_size]
+        :return: hidden state with applied sum attention of size [batch_size, hidden_size]
+        """
+        assert self.cntx_matrix is not None
+
+        self.cntx_matrix = self.cntx_matrix.detach()  # Just for sure =)
+
+        # Calculating attention coefficients
+        # * Make batch first and apply W
+        attn_weights = self.attn(self.cntx_matrix)
+        # * Multiply by current hidden state to get coefficients
+        attn_weights = attn_weights.matmul(h_t.unsqueeze(2))
+        # * Softmax to make all of them sum to 1
+        attn_weights = self.attn_softmax(attn_weights)
+
+        # Calc current context vector as sum of previous contexts multiplied by alpha
+        cntx = attn_weights.transpose(1, 2).matmul(self.cntx_matrix).squeeze(1)
+
+        self.cntx_matrix.data.narrow(dimension=1, start=0, length=self.seq_len - 1) \
+            .copy_(self.cntx_matrix.data.narrow(dimension=1, start=1, length=self.seq_len - 1))
+        self.cntx_matrix.data[:, -1, :].copy_(h_t.data)
+
+        return self.p_sum(h_t, cntx)
 
 
 class ContextBasedSumAttention(nn.Module):
