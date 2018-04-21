@@ -3,7 +3,7 @@ from torch import nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-from zerogercrnn.lib.attn import Attn, CyclicBuffer
+from zerogercrnn.lib.attn import Attn, CyclicBuffer, LastKBuffer
 from zerogercrnn.experiments.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
@@ -307,11 +307,11 @@ class ContextBaseTailAttention(nn.Module):
         # nn.init.uniform(self.W, -0.05, 0.05)
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        b_matrix = torch.FloatTensor(batch_size, self.seq_len, self.hidden_size)
+        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size)
         if cuda:
             b_matrix = b_matrix.cuda()
 
-        self.context_buffer = CyclicBuffer(buffer=b_matrix)
+        self.context_buffer = LastKBuffer(window_len=self.seq_len, buffer=b_matrix)
 
     def parameters(self):
         return super().parameters()

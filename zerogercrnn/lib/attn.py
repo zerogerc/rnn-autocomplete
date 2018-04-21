@@ -21,8 +21,25 @@ class CyclicBuffer:
 
 
 class LastKBuffer:
-    def __init__(self, window_len, buffer_size):
-        assert window_len <= buffer_size
+    def __init__(self, window_len, buffer):
+        assert window_len <= buffer.size()[1]
+        self.buffer_size = buffer.size()[1]
+        self.window_len = window_len
+        self.buffer = buffer
+
+        self.it = window_len
+
+    def add_vector(self, vector):
+        self.buffer[:, self.it, :].copy_(vector)  # TODO: general way
+        self.it += 1
+        if self.it >= self.buffer_size:
+            self.buffer.narrow(dimension=1, start=0, length=self.window_len).copy_(
+                self.buffer.narrow(dimension=1, start=self.buffer_size - self.window_len, length=self.window_len)
+            )
+            self.it = self.window_len
+
+    def get(self):
+        return self.buffer.narrow(dimension=1, start=self.it - self.window_len, length=self.window_len)
 
 
 class Attn(nn.Module):
