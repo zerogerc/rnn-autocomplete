@@ -21,7 +21,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --num_layers 1 \
     --dropout 0.03 \
     --non_terminals_num 97 \
-    --non_terminal_embedding_dim 10 \
+    --non_terminal_embedding_dim 20 \
     --terminals_num 50001 \
     --terminal_embedding_dim 100 \
     --terminal_embeddings_file data/ast/terminal_embeddings.txt
