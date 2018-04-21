@@ -18,14 +18,12 @@ class ASTOneHotChunk(DataChunk):
         self.seq_len = None
 
     def prepare_data(self, seq_len):
+        assert len(self.data_one_hot.size()) == 1
         self.seq_len = seq_len
 
-        ln = self.size() - self.size() % seq_len
-        if ln == 0:
-            raise Exception('Chunk is too small. Consider filtering it out')
-
-        self.data_one_hot = self.data_one_hot.narrow(dimension=0, start=0, length=ln)
-
+        tail = torch.LongTensor([self.data_one_hot[-1]]).expand(self.seq_len - self.size() % self.seq_len)
+        self.data_one_hot = torch.cat((self.data_one_hot, tail))
+        assert self.size() % seq_len == 0
         if self.cuda:
             self.data_one_hot = self.data_one_hot.cuda()
 
@@ -115,7 +113,7 @@ class ASTDataReader(DataReader):
                     number_of_seq=self.number_of_seq
                 ))
 
-        return list(filter(lambda d: d.size() >= self.seq_len, chunks))
+        return chunks
 
 
 class ASTDataGenerator(BatchedDataGenerator):
