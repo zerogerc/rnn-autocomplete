@@ -12,6 +12,7 @@ from zerogercrnn.lib.embedding import Embeddings
 class NT2NAttentionModel(nn.Module):
     def __init__(
             self,
+            seq_len,
             non_terminals_num,
             non_terminal_embedding_dim,
             terminal_embeddings: Embeddings,
@@ -47,7 +48,7 @@ class NT2NAttentionModel(nn.Module):
         )
 
         self.attention = ContextBaseTailAttention(
-            seq_len=4,  # TODO: better way
+            seq_len=seq_len,  # TODO: better way
             hidden_size=self.hidden_dim
         )
 

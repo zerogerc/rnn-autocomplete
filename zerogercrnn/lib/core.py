@@ -352,12 +352,13 @@ class ContextBaseTailAttention(nn.Module):
 
         # Calc current context vector as sum of previous contexts multiplied by alpha
         cntx = attn_weights.transpose(1, 2).matmul(self.cntx_matrix).squeeze(1)
+        cntx = self.p_sum(h_t, cntx)
 
         self.cntx_matrix.data.narrow(dimension=1, start=0, length=self.seq_len - 1) \
             .copy_(self.cntx_matrix.data.narrow(dimension=1, start=1, length=self.seq_len - 1))
-        self.cntx_matrix.data[:, -1, :].copy_(h_t.data)
+        self.cntx_matrix.data[:, -1, :].copy_(cntx.data)
 
-        return self.p_sum(h_t, cntx)
+        return cntx
 
 
 class ContextBasedSumAttention(nn.Module):
