@@ -294,7 +294,7 @@ class ContextBaseTailAttention(nn.Module):
         self.it = 0
 
         # Layer that applies attention to past self.cntx hidden states of contexts
-        self.W = nn.Parameter(torch.FloatTensor(self.hidden_size, self.hidden_size))
+        self.W = nn.Parameter(torch.FloatTensor(1, self.seq_len, self.hidden_size, self.hidden_size))
         self.attn_softmax = nn.Softmax(dim=1)
 
         # self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
@@ -335,7 +335,7 @@ class ContextBaseTailAttention(nn.Module):
 
         # Calculating attention coefficients
         # * Make batch first and apply W
-        attn_weights = self.cntx_matrix.matmul(self.W)
+        attn_weights = self.cntx_matrix.unsqueeze(-2).matmul(self.W).squeeze()
         # * Multiply by current hidden state to get coefficients
         attn_weights = attn_weights.matmul(h_t.unsqueeze(2))
         # * Softmax to make all of them sum to 1
