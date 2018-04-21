@@ -1,12 +1,12 @@
+import torch
+
+from zerogercrnn.experiments.ast_level.attention_nt2n.model import NT2NAttentionModel
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
+from zerogercrnn.experiments.utils import filter_requires_grad
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
-from zerogercrnn.experiments.utils import filter_requires_grad
-import torch
-
-from zerogercrnn.experiments.common import get_optimizers
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
@@ -72,16 +72,30 @@ class ASTRoutine(NetworkRoutine):
 
 class NT2NMain(Main):
 
+    def __init__(self, args, attention=True):
+        self.attention = attention
+        super().__init__(args)
+
     def create_model(self, args):
-        return NT2NBaseModel(
-            non_terminals_num=args.non_terminals_num,
-            non_terminal_embedding_dim=args.non_terminal_embedding_dim,
-            terminal_embeddings=self.terminal_embeddings,
-            hidden_dim=args.hidden_size,
-            prediction_dim=args.non_terminals_num,
-            num_layers=args.num_layers,
-            dropout=args.dropout
-        )
+        if self.attention:
+            return NT2NAttentionModel(
+                non_terminals_num=args.non_terminals_num,
+                non_terminal_embedding_dim=args.non_terminal_embedding_dim,
+                terminal_embeddings=self.terminal_embeddings,
+                hidden_dim=args.hidden_size,
+                prediction_dim=args.non_terminals_num,
+                dropout=args.dropout
+            )
+        else:
+            return NT2NBaseModel(
+                non_terminals_num=args.non_terminals_num,
+                non_terminal_embedding_dim=args.non_terminal_embedding_dim,
+                terminal_embeddings=self.terminal_embeddings,
+                hidden_dim=args.hidden_size,
+                prediction_dim=args.non_terminals_num,
+                num_layers=args.num_layers,
+                dropout=args.dropout
+            )
 
     def create_train_routine(self, args):
         return ASTRoutine(

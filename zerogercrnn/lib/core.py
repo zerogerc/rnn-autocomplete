@@ -4,6 +4,7 @@ from torch.autograd import Variable
 
 from zerogercrnn.experiments.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
 
 
 class PretrainedEmbeddingsModule(nn.Module):
@@ -162,15 +163,9 @@ class LSTMCellDropout(nn.Module):
         else:
             return hidden, cell
 
-    def init_hidden(self, batch_size, cuda):
-        h = Variable(torch.zeros((batch_size, self.hidden_size)))
-        c = Variable(torch.zeros((batch_size, self.hidden_size)))
-
-        if cuda:
-            h = h.cuda()
-            c = c.cuda()
-
-        # TODO: maybe not zeros?
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        h = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
+        c = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
         return h, c
 
     def _reinit_dropout_mask(self, batch_size, cuda):
@@ -216,6 +211,7 @@ class LinearLayer(nn.Module):
 
     def forward(self, input):
         return self.affine(input)
+
 
 class LogSoftmaxOutputLayer(nn.Module):
     """Layer that applies affine transformation and then LogSoftmax."""
