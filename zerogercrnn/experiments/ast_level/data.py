@@ -4,7 +4,7 @@ import torch
 from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
 from zerogercrnn.lib.data.general import DataReader, DataGenerator
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils.time import tqdm_lim
+from zerogercrnn.lib.log import tqdm_lim
 
 ENCODING = 'ISO-8859-1'
 

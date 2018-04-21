@@ -7,7 +7,7 @@ from zerogercrnn.experiments.ast_level.data import ASTDataReader, ASTDataGenerat
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.experiments.common import get_optimizers, get_scheduler_args
 from zerogercrnn.lib.run import TrainEpochRunner
-from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 
 
 def create_terminal_embeddings(args):

@@ -4,7 +4,7 @@ import re
 
 from tqdm import tqdm
 
-from zerogercrnn.lib.utils.file import read_lines
+from zerogercrnn.lib.file import read_lines
 
 parser = argparse.ArgumentParser(description='Data processing for token level neural network')
 parser.add_argument('--task', type=str, help='One of: token, one_hot_json, one_hot_text')

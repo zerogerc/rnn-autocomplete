@@ -1,7 +1,7 @@
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
-from zerogercrnn.experiments.utils import filter_requires_grad
+from zerogercrnn.lib.utils import filter_requires_grad
 
 
 def get_optimizer_args(args, model):

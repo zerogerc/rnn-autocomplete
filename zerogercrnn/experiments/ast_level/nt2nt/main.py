@@ -2,8 +2,7 @@ import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2nt.model import NT2NTBaseModel
-from zerogercrnn.experiments.utils import filter_requires_grad
-from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import filter_requires_grad, wrap_cuda_no_grad_variable
 from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 

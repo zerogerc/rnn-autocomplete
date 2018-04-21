@@ -1,8 +1,7 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from zerogercrnn.experiments.utils import init_layers_uniform  # TODO: move to lib
+from zerogercrnn.lib.utils import init_layers_uniform
 
 
 class CyclicBuffer:

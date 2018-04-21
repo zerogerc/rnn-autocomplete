@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from itertools import chain
 
-from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LogSoftmaxOutputLayer, LinearLayer
+    LinearLayer
 from zerogercrnn.lib.embedding import Embeddings
 
 

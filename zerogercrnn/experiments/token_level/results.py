@@ -6,10 +6,9 @@ import numpy
 
 from zerogercrnn.experiments.token_level.main import create_data_generator, create_model
 from zerogercrnn.experiments.token_level.main import run_model
-from zerogercrnn.lib.utils.file import read_lines
-from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.file import read_lines, load_if_saved, load_cuda_on_cpu
 
-from zerogercrnn.lib.visualization.text import get_diff, show_diff, show_token_diff
+from zerogercrnn.lib.visualization.text import show_diff
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--title', type=str, help='Title for this run. Used in tensorboard and in saving of models.')

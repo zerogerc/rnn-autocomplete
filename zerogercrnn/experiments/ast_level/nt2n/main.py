@@ -3,8 +3,8 @@ import torch
 from zerogercrnn.experiments.ast_level.attention_nt2n.model import NT2NAttentionModel
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
-from zerogercrnn.experiments.utils import filter_requires_grad
-from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import filter_requires_grad
+from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 
@@ -46,7 +46,7 @@ class ASTRoutine(NetworkRoutine):
     def optimize(self, loss):
         # Backward pass
         loss.backward()
-        # torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.parameters()), 5)
+        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.recurrent_core.parameters()), 5)
 
         # Optimizer step
         for optimizer in self.optimizers:
@@ -79,7 +79,7 @@ class NT2NMain(Main):
     def create_model(self, args):
         if self.attention:
             return NT2NAttentionModel(
-                seq_len=10,
+                seq_len=args.seq_len,
                 non_terminals_num=args.non_terminals_num,
                 non_terminal_embedding_dim=args.non_terminal_embedding_dim,
                 terminal_embeddings=self.terminal_embeddings,

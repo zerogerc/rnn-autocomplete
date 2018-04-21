@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from zerogercrnn.lib.utils.time import logger
+from zerogercrnn.lib.log import logger
 
 
 def init_recurrent_layers(*layers):
