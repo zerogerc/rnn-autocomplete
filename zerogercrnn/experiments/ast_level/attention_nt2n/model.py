@@ -1,15 +1,12 @@
-from itertools import chain
-
 import torch
-import torch.nn as nn
 
-from zerogercrnn.experiments.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
-    LogSoftmaxOutputLayer, ContextBaseTailAttention
+    LogSoftmaxOutputLayer, ContextBaseTailAttention, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
 
-class NT2NAttentionModel(nn.Module):
+class NT2NAttentionModel(CombinedModule):
     def __init__(
             self,
             seq_len,
@@ -28,46 +25,36 @@ class NT2NAttentionModel(nn.Module):
         self.prediction_dim = prediction_dim
         self.dropout = dropout
 
-        self.nt_embedding = EmbeddingsModule(
+        self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
             sparse=False
-        )
+        ))
 
-        self.t_embedding = PretrainedEmbeddingsModule(
+        self.t_embedding = self.module(PretrainedEmbeddingsModule(
             embeddings=terminal_embeddings,
             requires_grad=False,
             sparse=False
-        )
+        ))
+
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
-        self.recurrent_core = LSTMCellDropout(
+        self.recurrent_core = self.module(LSTMCellDropout(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             hidden_size=self.hidden_dim,
             dropout=self.dropout
-        )
+        ))
 
-        self.attention = ContextBaseTailAttention(
-            seq_len=seq_len,  # TODO: better way
+        self.attention = self.module(ContextBaseTailAttention(
+            seq_len=10, # last 10 for context
             hidden_size=self.hidden_dim
-        )
+        ))
 
-        self.h2o = LogSoftmaxOutputLayer(
+        self.h2o = self.module(LogSoftmaxOutputLayer(
             input_size=2 * self.hidden_dim,
             output_size=self.prediction_dim,
             dim=2
-        )
-
-    def parameters(self):
-        return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
-                     self.attention.parameters(),
-                     self.h2o.parameters())
-
-    def sparse_parameters(self):
-        return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
-                     self.recurrent_core.sparse_parameters(),
-                     self.attention.sparse_parameters(),
-                     self.h2o.sparse_parameters())
+        ))
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()

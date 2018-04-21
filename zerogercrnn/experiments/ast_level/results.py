@@ -1,16 +1,14 @@
 import argparse
 
 import torch
-import numpy
-import random
 
-from zerogercrnn.lib.utils.time import tqdm_lim
-from zerogercrnn.experiments.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
+from zerogercrnn.lib.log import tqdm_lim
+from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
-from zerogercrnn.lib.utils.time import logger
+from zerogercrnn.lib.log import logger
 from zerogercrnn.lib.metrics import AccuracyMetrics
 
 parser = argparse.ArgumentParser(description='AST level neural network')
