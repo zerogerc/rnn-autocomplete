@@ -79,7 +79,7 @@ class NT2NMain(Main):
     def create_model(self, args):
         if self.attention:
             return NT2NAttentionModel(
-                seq_len=args.seq_len - 1,
+                seq_len=10,
                 non_terminals_num=args.non_terminals_num,
                 non_terminal_embedding_dim=args.non_terminal_embedding_dim,
                 terminal_embeddings=self.terminal_embeddings,
