@@ -3,6 +3,7 @@ from torch import nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
+from zerogercrnn.lib.attn import Attn, CyclicBuffer
 from zerogercrnn.experiments.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.experiments.utils import wrap_cuda_no_grad_variable
@@ -295,22 +296,22 @@ class ContextBaseTailAttention(nn.Module):
         self.it = 0
 
         # Layer that applies attention to past self.cntx hidden states of contexts
-        self.attn = Attn(method='dot', hidden_size=self.hidden_size)
+        self.attn = Attn(method='general', hidden_size=self.hidden_size)
 
         # self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
 
         # Matrix that will hold past seq_len contexts. No backprop will be computed
         # size: [batch_size, seq_len, hidden_size]
-        self.cntx_matrix = None
+        self.context_buffer = None
 
         # nn.init.uniform(self.W, -0.05, 0.05)
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        self.cntx_matrix = wrap_cuda_no_grad_variable(
-            torch.FloatTensor(batch_size, self.seq_len, self.hidden_size),
-            cuda=cuda,
-            no_grad=no_grad
-        )
+        b_matrix = torch.FloatTensor(batch_size, self.seq_len, self.hidden_size)
+        if cuda:
+            b_matrix = b_matrix.cuda()
+
+        self.context_buffer = CyclicBuffer(buffer=b_matrix)
 
     def parameters(self):
         return super().parameters()
@@ -322,85 +323,24 @@ class ContextBaseTailAttention(nn.Module):
         """Method to drop context for programs that ended.
         :param forget_vector vector of size [batch_size, 1] with either 0 or 1
         """
-        drop_matrix_rows_3d(self.cntx_matrix.data, forget_vector)
+        drop_matrix_rows_3d(self.context_buffer.get(), forget_vector)
 
     def forward(self, h_t):
         """
         :param h_t: current hidden state of size [batch_size, hidden_size]
         :return: hidden state with applied sum attention of size [batch_size, hidden_size]
         """
-        assert self.cntx_matrix is not None
+        assert self.context_buffer is not None
 
-        # self.cntx_matrix = self.cntx_matrix.detach()  # Just for sure =)
+        current_context = Variable(self.context_buffer.get(), volatile=h_t.volatile)
+        attn_weights = self.attn(h_t, current_context)
 
-        attn_weights = self.attn(h_t, self.cntx_matrix)
-        # Calculating attention coefficients
-        # * Make batch first and apply W
-        # attn_weights = self.cntx_matrix.unsqueeze(-2).matmul(self.W).squeeze()
-        # * Multiply by current hidden state to get coefficients
-        # attn_weights = attn_weights.matmul(h_t.unsqueeze(2))
-        # * Softmax to make all of them sum to 1
-        # attn_weights = self.attn_softmax(attn_weights)
         self.it += 1
         if self.it % 10000 == 0:
             print(attn_weights.data[0])
 
         # Calc current context vector as sum of previous contexts multiplied by alpha
-        cntx = calc_attention_combination(attn_weights, self.cntx_matrix)
+        cntx = calc_attention_combination(attn_weights, current_context)
 
-        shift_left(self.cntx_matrix.data, dimension=1)
-        self.cntx_matrix.data[:, -1, :].copy_(h_t.data)
-
+        self.context_buffer.add_vector(h_t.data)
         return cntx
-
-
-class Attn(nn.Module):
-    def __init__(self, method, hidden_size):
-        super(Attn, self).__init__()
-
-        self.method = method
-        self.hidden_size = hidden_size
-
-        if self.method == 'general':
-            self.attn = nn.Linear(self.hidden_size, hidden_size)
-            nn.init.uniform(self.attn.parameters(), -0.05, 0.05)
-
-        elif self.method == 'concat':
-            self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
-            self.other = nn.Parameter(torch.FloatTensor(1, hidden_size))
-            nn.init.uniform(self.attn.parameters(), -0.05, 0.05)
-            nn.init.uniform(self.other, -0.05, 0.05)
-
-    def parameters(self):
-        return super().parameters()
-
-    def sparse_parameters(self):
-        return []
-
-    def forward(self, main_vector, attn_vectors):
-        """
-        :param main_vector: matrix of size [batch_size, N]
-        :param attn_vectors: matrix of size [batch_size, seq_len, N]
-        :return:
-        """
-        seq_len = attn_vectors.size()[1]
-
-        # Calculate energies for each encoder output
-        attn_energies = self.score(main_vector, attn_vectors)
-
-        return F.softmax(attn_energies, dim=1)
-
-    def score(self, main_vector, attn_vectors):
-        if self.method == 'dot':
-            energy = main_vector.unsqueeze(1).unsqueeze(1).matmul(attn_vectors.unsqueeze(3)).squeeze(-1)
-            return energy
-
-        # elif self.method == 'general':
-        #     energy = self.attn(encoder_output)
-        #     energy = hidden.dot(energy)
-        #     return energy
-        #
-        # elif self.method == 'concat':
-        #     energy = self.attn(torch.cat((hidden, encoder_output), 1))
-        #     energy = self.other.dot(energy)
-        #     return energy
