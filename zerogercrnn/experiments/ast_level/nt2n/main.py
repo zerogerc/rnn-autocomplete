@@ -72,7 +72,7 @@ class ASTRoutine(NetworkRoutine):
 
 class NT2NMain(Main):
 
-    def __init__(self, args, attention=False):
+    def __init__(self, args, attention=True):
         self.attention = attention
         super().__init__(args)
 
