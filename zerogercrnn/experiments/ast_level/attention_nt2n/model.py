@@ -46,7 +46,7 @@ class NT2NAttentionModel(CombinedModule):
         ))
 
         self.attention = self.module(ContextBaseTailAttention(
-            seq_len=seq_len,
+            seq_len=10, # last 10 for context
             hidden_size=self.hidden_dim
         ))
 
