@@ -12,12 +12,12 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --cuda \
     --seq_len 50 \
     --batch_size 80 \
-    --learning_rate 0.01 \
+    --learning_rate 0.005 \
     --epochs 20 \
     --decay_after_epoch 0 \
     --decay_multiplier 0.8 \
     --weight_decay=0. \
-    --hidden_size 1500 \
+    --hidden_size 1200 \
     --num_layers 1 \
     --dropout 0.1 \
     --non_terminals_num 97 \
