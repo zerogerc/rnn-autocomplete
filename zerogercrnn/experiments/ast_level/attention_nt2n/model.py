@@ -60,11 +60,13 @@ class NT2NAttentionModel(nn.Module):
 
     def parameters(self):
         return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
+                     self.attention.parameters(),
                      self.h2o.parameters())
 
     def sparse_parameters(self):
         return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
                      self.recurrent_core.sparse_parameters(),
+                     self.attention.sparse_parameters(),
                      self.h2o.sparse_parameters())
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
