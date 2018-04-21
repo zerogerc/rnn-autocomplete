@@ -80,20 +80,19 @@ class NT2NAttentionModel(nn.Module):
         # self.attention.forget_context_partly(forget_vector=forget_vector)
 
         recurrent_output = []
-        new_hidden = None
-        for i in range(non_terminal_input.size()[0]):
+        for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             # cur_o = self.attention(cur_h)
 
-            new_hidden = (cur_h, cur_c)
+            hidden = (cur_h, cur_c)
             recurrent_output.append(cur_h)  # torch.cat((cur_h, cur_o), dim=1)
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
 
-        assert new_hidden is not None
-        return prediction, new_hidden
+        assert hidden is not None
+        return prediction, hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
         # self.attention.init_hidden(batch_size, cuda, no_grad)
