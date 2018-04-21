@@ -297,7 +297,7 @@ class ContextBaseTailAttention(nn.Module):
         self.W = nn.Parameter(torch.FloatTensor(self.hidden_size, self.hidden_size))
         self.attn_softmax = nn.Softmax(dim=1)
 
-        self.p_sum = PSumLayer()
+        self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
 
         # Matrix that will hold past seq_len contexts. No backprop will be computed
         # size: [batch_size, seq_len, hidden_size]
@@ -346,7 +346,6 @@ class ContextBaseTailAttention(nn.Module):
 
         # Calc current context vector as sum of previous contexts multiplied by alpha
         cntx = calc_attention_combination(attn_weights, self.cntx_matrix)
-        cntx = self.p_sum(h_t, cntx)
 
         shift_left(self.cntx_matrix.data, dimension=1)
         self.cntx_matrix.data[:, -1, :].copy_(h_t.data)

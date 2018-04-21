@@ -53,7 +53,7 @@ class NT2NAttentionModel(nn.Module):
         )
 
         self.h2o = LogSoftmaxOutputLayer(
-            input_size=self.hidden_dim,
+            input_size=2 * self.hidden_dim,
             output_size=self.prediction_dim,
             dim=2
         )
@@ -86,7 +86,7 @@ class NT2NAttentionModel(nn.Module):
             cur_o = self.attention(cur_h)
 
             new_hidden = (cur_h, cur_c)
-            recurrent_output.append(cur_o)
+            recurrent_output.append(torch.cat((cur_h, cur_o), dim=1))
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
