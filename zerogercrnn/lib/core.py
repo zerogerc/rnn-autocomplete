@@ -297,7 +297,7 @@ class ContextBaseTailAttention(nn.Module):
         self.W = nn.Parameter(torch.FloatTensor(self.hidden_size, self.hidden_size))
         self.attn_softmax = nn.Softmax(dim=1)
 
-        self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
+        # self.sum_layer= AlphaBetaSumLayer(min_value=-1, max_value=2)
 
         # Matrix that will hold past seq_len contexts. No backprop will be computed
         # size: [batch_size, seq_len, hidden_size]

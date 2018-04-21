@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from zerogercrnn.experiments.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
-    LogSoftmaxOutputLayer
+    LogSoftmaxOutputLayer, ContextBaseTailAttention
 from zerogercrnn.lib.embedding import Embeddings
 
 
@@ -47,13 +47,13 @@ class NT2NAttentionModel(nn.Module):
             dropout=self.dropout
         )
 
-        # self.attention = ContextBaseTailAttention(
-        #     seq_len=seq_len,  # TODO: better way
-        #     hidden_size=self.hidden_dim
-        # )
+        self.attention = ContextBaseTailAttention(
+            seq_len=seq_len,  # TODO: better way
+            hidden_size=self.hidden_dim
+        )
 
         self.h2o = LogSoftmaxOutputLayer(
-            input_size=self.hidden_dim,
+            input_size=2 * self.hidden_dim,
             output_size=self.prediction_dim,
             dim=2
         )
@@ -77,16 +77,16 @@ class NT2NAttentionModel(nn.Module):
 
         hidden = repackage_hidden(hidden)
         hidden = forget_hidden_partly_lstm_cell(hidden, forget_vector=forget_vector)
-        # self.attention.forget_context_partly(forget_vector=forget_vector)
+        self.attention.forget_context_partly(forget_vector=forget_vector)
 
         recurrent_output = []
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
-            # cur_o = self.attention(cur_h)
+            cur_o = self.attention(cur_h)
 
             hidden = (cur_h, cur_c)
-            recurrent_output.append(cur_h)  # torch.cat((cur_h, cur_o), dim=1)
+            recurrent_output.append(torch.cat((cur_h, cur_o), dim=1))
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
@@ -95,5 +95,5 @@ class NT2NAttentionModel(nn.Module):
         return prediction, hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        # self.attention.init_hidden(batch_size, cuda, no_grad)
+        self.attention.init_hidden(batch_size, cuda, no_grad)
         return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad)
