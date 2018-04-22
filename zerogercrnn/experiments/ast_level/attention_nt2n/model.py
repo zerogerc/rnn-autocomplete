@@ -46,7 +46,7 @@ class NT2NAttentionModel(CombinedModule):
         ))
 
         self.attention = self.module(ContextBaseTailAttention(
-            seq_len=20, # last 10 for context
+            seq_len=50,  # last 50 for context
             hidden_size=self.hidden_dim
         ))
 
@@ -69,8 +69,12 @@ class NT2NAttentionModel(CombinedModule):
         self.attention.forget_context_partly(forget_vector=forget_vector)
 
         recurrent_output = []
+        sl = combined_input.size()[0]
         for i in range(combined_input.size()[0]):
+            self.attention.attn.eval()
             reinit_dropout = i == 0
+            if i + 10 > sl:
+                self.attention.attn.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             cur_o = self.attention(cur_h)
 
