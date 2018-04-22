@@ -55,6 +55,10 @@ class AccuracyMetrics(Metrics):
         self.misses = 0
         self.reported = 0
 
+    def decrease_hits(self, number):
+        print('Hits decreased by {}'.format(number))
+        self.hits -= number
+
     def drop_state(self):
         self.hits = 0
         self.misses = 0

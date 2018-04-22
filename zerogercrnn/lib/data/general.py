@@ -23,3 +23,4 @@ class DataReader:
         self.train_data = []
         self.validation_data = []
         self.eval_data = []
+        self.eval_tails = 0

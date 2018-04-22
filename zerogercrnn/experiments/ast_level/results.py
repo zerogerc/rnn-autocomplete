@@ -21,7 +21,7 @@ parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2nt, ntn2t')
 
 
 def print_results(args):
-    assert args.prediction == 'nt2n'
+    # assert args.prediction == 'nt2n'
 
     # seed = 1000
     # random.seed(seed)

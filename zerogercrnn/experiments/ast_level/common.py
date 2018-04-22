@@ -106,6 +106,9 @@ class Main:
                 self.metrics.get_current_value(should_print=True)
             it += 1
 
+        self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)  # TODO: maybe cleaner?
+        self.metrics.get_current_value(should_print=True)
+
     def create_terminals_embeddings(self, args):
         return create_terminal_embeddings(args)
 
