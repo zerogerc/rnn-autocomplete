@@ -100,8 +100,13 @@ class TrainEpochRunner:
             while self.epoch < number_of_epochs:
                 self.epoch += 1
                 if self.schedulers is not None:
-                    for scheduler in self.schedulers:
-                        scheduler.step()
+                    t = 1
+                    # TODO: general way
+                    if self.epoch > 20:
+                        t = 5
+                    for i in range(t):
+                        for scheduler in self.schedulers:
+                            scheduler.step()
 
                 self._run_for_epoch()
                 self._validate()

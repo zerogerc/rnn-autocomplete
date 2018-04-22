@@ -164,13 +164,13 @@ class LSTMCellDropout(BaseModule):
         self.lstm_cell = nn.LSTMCell(input_size=input_size, hidden_size=hidden_size)
         self.dropout_mask = None
 
-    def forward(self, input_tensor, hidden_state, apply_dropout=True, reinit_dropout=False):
+    def forward(self, input_tensor, hidden_state, reinit_dropout=False):
         if (self.dropout_mask is None) or reinit_dropout:
             self._reinit_dropout_mask(input_tensor.size()[0], input_tensor.is_cuda)
 
         hidden, cell = self.lstm_cell(input_tensor, hidden_state)
-        if apply_dropout:
-            return hidden * self.dropout_mask, cell
+        if self.training:
+            return hidden * self.dropout_mask * (1. / (1. - self.dropout)), cell
         else:
             return hidden, cell
 
