@@ -73,7 +73,7 @@ class NT2NAttentionModel(CombinedModule):
         for i in range(combined_input.size()[0]):
             self.attention.attn.eval()
             reinit_dropout = i == 0
-            if i + 10 > sl:
+            if i + 10 > sl and self.training:
                 self.attention.attn.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             cur_o = self.attention(cur_h)
