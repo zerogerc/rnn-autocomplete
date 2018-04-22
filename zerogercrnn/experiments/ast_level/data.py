@@ -89,10 +89,12 @@ class ASTDataReader(DataReader):
             )
 
         if file_eval is not None:
-            self.eval_data = self._read_programs(file_eval, total=50000, limit=limit)
+            self.eval_data, self.eval_tails = self._read_programs(file_eval, total=50000, limit=limit, count_tails=True)
 
-    def _read_programs(self, file, total, limit):
+    def _read_programs(self, file, total, limit, count_tails=False):
         chunks = []
+        tails = 0
+
         with open(file, mode='r', encoding=ENCODING) as f:
             for line in tqdm_lim(f, total=total, lim=limit):
                 nodes = json.loads(line)
@@ -106,6 +108,7 @@ class ASTDataReader(DataReader):
                     terminals_one_hot[it] = int(node['T'])
                     it += 1
 
+                tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
                 chunks.append(ASTDataChunk(
                     non_terminals_one_hot=non_terminals_one_hot,
                     terminals_one_hot=terminals_one_hot,
@@ -113,7 +116,10 @@ class ASTDataReader(DataReader):
                     number_of_seq=self.number_of_seq
                 ))
 
-        return chunks
+        if count_tails:
+            return chunks, tails
+        else:
+            return chunks
 
 
 class ASTDataGenerator(BatchedDataGenerator):
