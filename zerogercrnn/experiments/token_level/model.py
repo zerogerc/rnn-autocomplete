@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 from zerogercrnn.lib.core import RecurrentCore, LogSoftmaxOutputLayer
-from zerogercrnn.experiments.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 
 
 class TokenLevelBaseModel(nn.Module):

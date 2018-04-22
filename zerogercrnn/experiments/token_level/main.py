@@ -7,11 +7,11 @@ from torch.autograd import Variable
 from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
-from zerogercrnn.lib.utils.state import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
-from zerogercrnn.lib.utils.time import logger
+from zerogercrnn.lib.log import logger
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--title', type=str, help='Title for this run. Used in tensorboard and in saving of models.')
