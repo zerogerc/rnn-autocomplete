@@ -35,6 +35,6 @@ def get_optimizers(args, model):
 def get_scheduler_args(args, optimizer):
     return MultiStepLR(
         optimizer=optimizer,
-        milestones=list(range(args.decay_after_epoch, args.epochs + 1)),
+        milestones=list(range(args.decay_after_epoch, args.epochs + 20)),
         gamma=args.decay_multiplier
     )
