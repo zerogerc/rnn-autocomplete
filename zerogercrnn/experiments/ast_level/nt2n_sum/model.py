@@ -6,7 +6,6 @@ from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, L
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
-
 class NT2NSumAttentionModel(CombinedModule):
     def __init__(
             self,
@@ -57,7 +56,7 @@ class NT2NSumAttentionModel(CombinedModule):
         ))
 
         self.h2o = self.module(LogSoftmaxOutputLayer(
-            input_size=self.hidden_dim,
+            input_size=2 * self.hidden_dim,
             output_size=self.prediction_dim,
             dim=2
         ))
@@ -77,16 +76,18 @@ class NT2NSumAttentionModel(CombinedModule):
         recurrent_output = []
         sl = combined_input.size()[0]
         self.attention.eval()
+        self.recurrent_core.eval()
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
             if i + 10 > sl and self.training:
+                self.recurrent_core.train()
                 self.attention.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             cur_o = self.attention(cur_h)
-            cur_o = self.sum_layer(cur_h, cur_o)
+            recurrent_output.append(torch.cat((cur_o, cur_h), dim=1))
 
+            cur_o = self.sum_layer(cur_h, cur_o)
             hidden = (cur_o, cur_c)
-            recurrent_output.append(cur_o)
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from itertools import chain
 
 import torch
@@ -9,9 +10,20 @@ from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 
 
+class HealthCheck:
+    """Class that do some check on the model. Usually it prints some info about model at the end of epoch."""
+
+    @abstractmethod
+    def do_check(self):
+        pass
+
+
 class BaseModule(nn.Module):
 
     def sparse_parameters(self):  # in general modules do not care about sparse parameters.
+        return []
+
+    def health_checks(self):
         return []
 
 
@@ -35,6 +47,9 @@ class CombinedModule(BaseModule):
 
     def sparse_parameters(self):
         return chain(*[m.sparse_parameters() for m in self.modules])
+
+    def health_checks(self):
+        return chain(*[m.health_checks() for m in self.modules])
 
 
 class PretrainedEmbeddingsModule(BaseModule):
@@ -268,3 +283,17 @@ class AlphaBetaSumLayer(BaseModule):
     def forward(self, first_tensor, second_tensor):
         assert first_tensor.size() == second_tensor.size()
         return self.mult_alpha * first_tensor + self.mult_beta * second_tensor
+
+    def health_checks(self):
+        return [AlphaBetaSumHealthCheck(self)]
+
+
+class AlphaBetaSumHealthCheck(HealthCheck):
+
+    def __init__(self, module: AlphaBetaSumLayer):
+        super().__init__()
+        self.module = module
+
+    def do_check(self):
+        print('Alpha: {}'.format(self.module.mult_alpha))
+        print('Beta: {}'.format(self.module.mult_beta))
