@@ -73,15 +73,17 @@ class NT2NTailAttentionModel(CombinedModule):
         recurrent_output = []
         sl = combined_input.size()[0]
         self.attention.eval()
+        self.recurrent_core.eval()
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
             if i + 10 > sl and self.training:
+                self.recurrent_core.train()
                 self.attention.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             cur_o = self.attention(cur_h)
 
             hidden = (cur_h, cur_c)
-            recurrent_output.append(torch.cat((cur_h, F.sigmoid(cur_o)), dim=1)) # sigmoid was added on 23Apr
+            recurrent_output.append(F.relu(torch.cat((cur_h, cur_o), dim=1))) # activation was added on 23Apr
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
