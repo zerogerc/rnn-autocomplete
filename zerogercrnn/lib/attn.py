@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
+from zerogercrnn.lib.calculation import drop_matrix_rows_3d, calc_attention_combination
+from zerogercrnn.lib.core import BaseModule
 from zerogercrnn.lib.utils import init_layers_uniform
 
 
@@ -42,7 +45,7 @@ class LastKBuffer:
         return self.buffer.narrow(dimension=1, start=self.it - self.window_len, length=self.window_len)
 
 
-class Attn(nn.Module):
+class Attn(BaseModule):
     def __init__(self, method, hidden_size):
         super(Attn, self).__init__()
 
@@ -58,12 +61,6 @@ class Attn(nn.Module):
         #     self.other = nn.Parameter(torch.FloatTensor(1, hidden_size))
         #     nn.init.uniform(self.attn.parameters(), -0.05, 0.05)
         #     nn.init.uniform(self.other, -0.05, 0.05)
-
-    def parameters(self):
-        return super().parameters()
-
-    def sparse_parameters(self):
-        return []
 
     def forward(self, main_vector, attn_vectors):
         """
@@ -104,3 +101,53 @@ class Attn(nn.Module):
         #     energy = self.attn(torch.cat((hidden, encoder_output), 1))
         #     energy = self.other.dot(energy)
         #     return energy
+
+
+class ContextAttention(BaseModule):
+    """Attention layer that calculate attention of past seq_len reported inputs to the currently reported input."""
+
+    def __init__(self, context_len, hidden_size):
+        super().__init__()
+        self.seq_len = context_len
+        self.hidden_size = hidden_size
+        self.it = 0
+
+        # Layer that applies attention to past self.cntx hidden states of contexts
+        self.attn = Attn(method='general', hidden_size=self.hidden_size)
+
+        # Matrix that will hold past seq_len contexts. No backprop will be computed
+        # size: [batch_size, seq_len, hidden_size]
+        self.context_buffer = None
+
+    def init_hidden(self, batch_size, cuda, no_grad=False):
+        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size)
+        if cuda:
+            b_matrix = b_matrix.cuda()
+
+        self.context_buffer = LastKBuffer(window_len=self.seq_len, buffer=b_matrix)
+
+    def forget_context_partly(self, forget_vector):
+        """Method to drop context for programs that ended.
+        :param forget_vector vector of size [batch_size, 1] with either 0 or 1
+        """
+        drop_matrix_rows_3d(self.context_buffer.get(), forget_vector)
+
+    def forward(self, h_t):
+        """
+        :param h_t: current hidden state of size [batch_size, hidden_size]
+        :return: hidden state with applied sum attention of size [batch_size, hidden_size]
+        """
+        assert self.context_buffer is not None
+
+        current_context = Variable(self.context_buffer.get(), volatile=h_t.volatile)
+        attn_weights = self.attn(h_t, current_context)
+
+        self.it += 1
+        if self.it % 10000 == 0:
+            print(attn_weights.data[0])
+
+        # Calc current context vector as sum of previous contexts multiplied by attention coefficients
+        cntx = calc_attention_combination(attn_weights, current_context)
+
+        self.context_buffer.add_vector(h_t.data)
+        return cntx

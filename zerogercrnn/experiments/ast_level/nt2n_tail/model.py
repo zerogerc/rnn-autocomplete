@@ -1,12 +1,13 @@
 import torch
 
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
-    LogSoftmaxOutputLayer, ContextBaseTailAttention, CombinedModule
+    LogSoftmaxOutputLayer, CombinedModule
+from zerogercrnn.lib.attn import ContextAttention
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
 
-class NT2NAttentionModel(CombinedModule):
+class NT2NTailAttentionModel(CombinedModule):
     def __init__(
             self,
             seq_len,
@@ -45,8 +46,8 @@ class NT2NAttentionModel(CombinedModule):
             dropout=self.dropout
         ))
 
-        self.attention = self.module(ContextBaseTailAttention(
-            seq_len=50,  # last 50 for context
+        self.attention = self.module(ContextAttention(
+            context_len=50,  # last 50 for context
             hidden_size=self.hidden_dim
         ))
 
