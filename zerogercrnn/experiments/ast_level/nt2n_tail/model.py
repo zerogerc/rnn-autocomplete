@@ -66,21 +66,23 @@ class NT2NTailAttentionModel(CombinedModule):
         t_embedded = self.t_embedding(terminal_input)
         combined_input = torch.cat([nt_embedded, t_embedded], dim=2)
 
-        hidden = repackage_hidden(hidden)
         hidden = forget_hidden_partly_lstm_cell(hidden, forget_vector=forget_vector)
+        hidden = repackage_hidden(hidden)
         self.attention.forget_context_partly(forget_vector=forget_vector)
 
         recurrent_output = []
         sl = combined_input.size()[0]
         self.attention.eval()
-        self.recurrent_core.eval()
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
-            if i + 10 > sl and self.training:
-                self.recurrent_core.train()
+            if (i + 10 > sl) and self.training:
                 self.attention.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
             cur_o = self.attention(cur_h)
+
+            if i + 10 <= sl:
+                cur_h = cur_h.detach()
+                cur_o = cur_o.detach()
 
             hidden = (cur_h, cur_c)
             recurrent_output.append(torch.cat((cur_h, F.sigmoid(cur_o)), dim=1)) # activation was added on 23Apr
