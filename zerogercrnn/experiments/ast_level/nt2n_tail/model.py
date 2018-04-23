@@ -83,7 +83,7 @@ class NT2NTailAttentionModel(CombinedModule):
             cur_o = self.attention(cur_h)
 
             hidden = (cur_h, cur_c)
-            recurrent_output.append(F.relu(torch.cat((cur_h, cur_o), dim=1))) # activation was added on 23Apr
+            recurrent_output.append(torch.cat((cur_h, F.sigmoid(cur_o)), dim=1)) # activation was added on 23Apr
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)
