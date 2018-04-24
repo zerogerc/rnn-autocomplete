@@ -4,11 +4,11 @@ from itertools import chain
 
 from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LogSoftmaxOutputLayer
+    LogSoftmaxOutputLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
 
 
-class NT2NBaseModel(nn.Module):
+class NT2NBaseModel(CombinedModule):
     def __init__(
             self,
             non_terminals_num,
@@ -28,40 +28,32 @@ class NT2NBaseModel(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
 
-        self.nt_embedding = EmbeddingsModule(
+        self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
             sparse=False
-        )
+        ))
 
-        self.t_embedding = PretrainedEmbeddingsModule(
+        self.t_embedding = self.module(PretrainedEmbeddingsModule(
             embeddings=terminal_embeddings,
             requires_grad=False,
             sparse=False
-        )
+        ))
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
-        self.recurrent_core = RecurrentCore(
+        self.recurrent_core = self.module(RecurrentCore(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             hidden_size=self.hidden_dim,
             num_layers=self.num_layers,
             dropout=self.dropout,
             model_type='lstm'
-        )
+        ))
 
-        self.h2o = LogSoftmaxOutputLayer(
+        self.h2o = self.module(LogSoftmaxOutputLayer(
             input_size=self.hidden_dim,
             output_size=self.prediction_dim,
             dim=2
-        )
-
-    def parameters(self):
-        return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
-                     self.h2o.parameters())
-
-    def sparse_parameters(self):
-        return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
-                     self.recurrent_core.sparse_parameters(), self.h2o.sparse_parameters())
+        ))
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()
