@@ -111,6 +111,9 @@ class TrainEpochRunner:
                 self._run_for_epoch()
                 self._validate()
 
+                for hc in self.network.health_checks():
+                    hc.do_check()
+
                 save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(self.epoch))
         except KeyboardInterrupt:
             print('-' * 89)

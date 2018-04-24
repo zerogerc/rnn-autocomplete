@@ -1,20 +1,19 @@
 import torch
-import torch.nn as nn
-from itertools import chain
 
-from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
     LinearLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 
 
-class NTN2TBaseModel(CombinedModule):
+class NT2NBaseModel(CombinedModule):
     def __init__(
             self,
             non_terminals_num,
             non_terminal_embedding_dim,
             terminal_embeddings: Embeddings,
             hidden_dim,
+            prediction_dim,
             num_layers,
             dropout
     ):
@@ -23,6 +22,7 @@ class NTN2TBaseModel(CombinedModule):
         self.non_terminals_num = non_terminals_num
         self.non_terminal_embedding_dim = non_terminal_embedding_dim
         self.hidden_dim = hidden_dim
+        self.prediction_dim = prediction_dim
         self.num_layers = num_layers
         self.dropout = dropout
 
@@ -34,40 +34,38 @@ class NTN2TBaseModel(CombinedModule):
 
         self.t_embedding = self.module(PretrainedEmbeddingsModule(
             embeddings=terminal_embeddings,
-            requires_grad=False
+            requires_grad=False,
+            sparse=False
         ))
-        self.terminals_num = self.t_embedding.num_embeddings
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
         self.recurrent_core = self.module(RecurrentCore(
-            input_size=2 * self.non_terminal_embedding_dim + self.terminal_embedding_dim,
+            input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             hidden_size=self.hidden_dim,
             num_layers=self.num_layers,
             dropout=self.dropout,
             model_type='lstm'
         ))
 
-        self.h2t = self.module(LinearLayer(
+        self.h2o = self.module(LinearLayer(
             input_size=self.hidden_dim,
-            output_size=self.terminals_num,
-            bias=False
+            output_size=self.prediction_dim
         ))
 
-    def forward(self, non_terminal_input, terminal_input, current_non_terminal_input, hidden, forget_vector):
+    def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()
-        assert terminal_input.size() == current_non_terminal_input.size()
+        assert non_terminal_input.size() == terminal_input.size()
 
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
-        cur_nt_embedded = self.nt_embedding(current_non_terminal_input)
 
-        combined_input = torch.cat([nt_embedded, cur_nt_embedded, t_embedded], dim=2)
+        combined_input = torch.cat([nt_embedded, t_embedded], dim=2)
 
         hidden = repackage_hidden(hidden)
         hidden = forget_hidden_partly(hidden, forget_vector=forget_vector)
         recurrent_output, new_hidden = self.recurrent_core(combined_input, hidden)
 
-        prediction = self.h2t(recurrent_output)
+        prediction = self.h2o(recurrent_output)
 
         return prediction, new_hidden
 

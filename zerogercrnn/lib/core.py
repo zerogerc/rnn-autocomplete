@@ -1,19 +1,29 @@
+from abc import abstractmethod
 from itertools import chain
 
 import torch
 from torch import nn as nn
 from torch.autograd import Variable
 
-from zerogercrnn.lib.attn import Attn, LastKBuffer
-from zerogercrnn.lib.calculation import calc_attention_combination, drop_matrix_rows_3d
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers
 from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 
 
+class HealthCheck:
+    """Class that do some check on the model. Usually it prints some info about model at the end of epoch."""
+
+    @abstractmethod
+    def do_check(self):
+        pass
+
+
 class BaseModule(nn.Module):
 
     def sparse_parameters(self):  # in general modules do not care about sparse parameters.
+        return []
+
+    def health_checks(self):
         return []
 
 
@@ -37,6 +47,9 @@ class CombinedModule(BaseModule):
 
     def sparse_parameters(self):
         return chain(*[m.sparse_parameters() for m in self.modules])
+
+    def health_checks(self):
+        return chain(*[m.health_checks() for m in self.modules])
 
 
 class PretrainedEmbeddingsModule(BaseModule):
@@ -271,50 +284,16 @@ class AlphaBetaSumLayer(BaseModule):
         assert first_tensor.size() == second_tensor.size()
         return self.mult_alpha * first_tensor + self.mult_beta * second_tensor
 
+    def health_checks(self):
+        return [AlphaBetaSumHealthCheck(self)]
 
-class ContextBaseTailAttention(BaseModule):
-    def __init__(self, seq_len, hidden_size):
+
+class AlphaBetaSumHealthCheck(HealthCheck):
+
+    def __init__(self, module: AlphaBetaSumLayer):
         super().__init__()
-        self.seq_len = seq_len
-        self.hidden_size = hidden_size
-        self.it = 0
+        self.module = module
 
-        # Layer that applies attention to past self.cntx hidden states of contexts
-        self.attn = Attn(method='general', hidden_size=self.hidden_size)
-
-        # Matrix that will hold past seq_len contexts. No backprop will be computed
-        # size: [batch_size, seq_len, hidden_size]
-        self.context_buffer = None
-
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size)
-        if cuda:
-            b_matrix = b_matrix.cuda()
-
-        self.context_buffer = LastKBuffer(window_len=self.seq_len, buffer=b_matrix)
-
-    def forget_context_partly(self, forget_vector):
-        """Method to drop context for programs that ended.
-        :param forget_vector vector of size [batch_size, 1] with either 0 or 1
-        """
-        drop_matrix_rows_3d(self.context_buffer.get(), forget_vector)
-
-    def forward(self, h_t):
-        """
-        :param h_t: current hidden state of size [batch_size, hidden_size]
-        :return: hidden state with applied sum attention of size [batch_size, hidden_size]
-        """
-        assert self.context_buffer is not None
-
-        current_context = Variable(self.context_buffer.get(), volatile=h_t.volatile)
-        attn_weights = self.attn(h_t, current_context)
-
-        self.it += 1
-        if self.it % 10000 == 0:
-            print(attn_weights.data[0])
-
-        # Calc current context vector as sum of previous contexts multiplied by attention coefficients
-        cntx = calc_attention_combination(attn_weights, current_context)
-
-        self.context_buffer.add_vector(h_t.data)
-        return cntx
+    def do_check(self):
+        print('Alpha: {}'.format(self.module.mult_alpha))
+        print('Beta: {}'.format(self.module.mult_beta))
