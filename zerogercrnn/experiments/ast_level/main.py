@@ -7,6 +7,7 @@ from zerogercrnn.experiments.ast_level.nt2n_sum.main import NT2NSumAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
+from zerogercrnn.experiments.ast_level.ntn2t_tail.main import NT2NTailAttentionMain
 from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.lib.log import logger
@@ -34,6 +35,8 @@ def get_main(args):
         main = NT2NTMain(args)
     elif args.prediction == 'ntn2t':
         main = NTN2TMain(args)
+    elif args.prediction == 'ntn2t_tail':
+        main = NT2NTailAttentionMain(args)
     else:
         raise Exception('Not supported prediction type: {}'.format(args.prediction))
 
