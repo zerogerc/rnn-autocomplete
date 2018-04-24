@@ -4,11 +4,11 @@ from itertools import chain
 
 from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LinearLayer
+    LinearLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
 
 
-class NTN2TBaseModel(nn.Module):
+class NTN2TBaseModel(CombinedModule):
     def __init__(
             self,
             non_terminals_num,
@@ -26,40 +26,32 @@ class NTN2TBaseModel(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
 
-        self.nt_embedding = EmbeddingsModule(
+        self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
             sparse=False
-        )
+        ))
 
-        self.t_embedding = PretrainedEmbeddingsModule(
+        self.t_embedding = self.module(PretrainedEmbeddingsModule(
             embeddings=terminal_embeddings,
             requires_grad=False
-        )
+        ))
         self.terminals_num = self.t_embedding.num_embeddings
         self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
-        self.recurrent_core = RecurrentCore(
+        self.recurrent_core = self.module(RecurrentCore(
             input_size=2 * self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             hidden_size=self.hidden_dim,
             num_layers=self.num_layers,
             dropout=self.dropout,
             model_type='lstm'
-        )
+        ))
 
-        self.h2t = LinearLayer(
+        self.h2t = self.module(LinearLayer(
             input_size=self.hidden_dim,
             output_size=self.terminals_num,
             bias=False
-        )
-
-    def parameters(self):
-        return chain(self.nt_embedding.parameters(), self.t_embedding.parameters(), self.recurrent_core.parameters(),
-                     self.h2t.parameters())
-
-    def sparse_parameters(self):
-        return chain(self.nt_embedding.sparse_parameters(), self.t_embedding.sparse_parameters(),
-                     self.recurrent_core.sparse_parameters(), self.h2t.sparse_parameters())
+        ))
 
     def forward(self, non_terminal_input, terminal_input, current_non_terminal_input, hidden, forget_vector):
         assert non_terminal_input.size() == terminal_input.size()
