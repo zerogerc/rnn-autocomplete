@@ -3,6 +3,7 @@ import argparse
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_cross.main import NT2NCrossMain
 from zerogercrnn.experiments.ast_level.nt2n_sum.main import NT2NSumAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
@@ -27,6 +28,8 @@ parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
+    elif args.prediction == 'nt2n_cross':
+        main = NT2NCrossMain(args)
     elif args.prediction == 'nt2n_tail':
         main = NT2NTailAttentionMain(args)
     elif args.prediction == 'nt2n_sum':

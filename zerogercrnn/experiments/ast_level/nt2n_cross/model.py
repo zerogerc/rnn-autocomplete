@@ -1,7 +1,7 @@
 import torch
 
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LogSoftmaxOutputLayer, CombinedModule
+    LinearLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 
@@ -47,9 +47,9 @@ class NT2NBaseModel(CombinedModule):
             model_type='lstm'
         ))
 
-        self.h2o = self.module(LogSoftmaxOutputLayer(
+        self.h2o = self.module(LinearLayer(
             input_size=self.hidden_dim,
-            output_size=self.prediction_dim,
+            output_size=self.prediction_dim
         ))
 
     def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
