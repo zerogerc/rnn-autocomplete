@@ -11,4 +11,5 @@ PYTHONPATH=. python3 scripts/ast/data_process.py \
     --file_eval "data/ast/file_eval.json" \
     --file_glove_map "data/ast/terminals_map.json" \
     --file_glove_vocab "data/ast/vocab.txt" \
-    --file_glove_terminals "data/ast/glove_terminals.json"
+    --file_glove_terminals "data/ast/glove_terminals.json" \
+    --file_glove_non_terminals "data/ast/glove_non_terminals_corpus.txt"

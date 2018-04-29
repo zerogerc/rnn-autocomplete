@@ -8,7 +8,7 @@ import torch
 DEFAULT_ENCODING = 'ISO-8859-1'
 
 
-def read_lines(filename, encoding):
+def read_lines(filename, encoding=DEFAULT_ENCODING):
     """
     Read a file and split into lines
     """

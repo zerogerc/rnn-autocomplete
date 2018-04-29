@@ -1,7 +1,10 @@
 import json
 import argparse
+from itertools import chain
 
-from zerogercrnn.experiments.ast_level.raw_data import TokensRetriever, JsonConverter, OneHotConverter, ENCODING
+from zerogercrnn.experiments.ast_level.raw_data import TokensRetriever, JsonConverter, OneHotConverter
+from zerogercrnn.lib.data.preprocess import extract_jsons_info, JsonListKeyExtractor
+from zerogercrnn.lib.constants import ENCODING
 
 parser = argparse.ArgumentParser(description='Data processing for token level neural network')
 parser.add_argument('--file_train_raw', type=str, help='Raw train file')
@@ -12,9 +15,10 @@ parser.add_argument('--file_train_converted', type=str, help='Sequence train fil
 parser.add_argument('--file_eval_converted', type=str, help='Sequence eval file')
 parser.add_argument('--file_train', type=str, help='One-hot train file')
 parser.add_argument('--file_eval', type=str, help='One-hot eval file')
-parser.add_argument('--file_glove_map', type=str, help='File from glove_tokens.py stroing map from token to number')
+parser.add_argument('--file_glove_map', type=str, help='File from glove_tokens.py storing map from token to number')
 parser.add_argument('--file_glove_vocab', type=str, help='Vocabulary of trained Glove vectors')
-parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals file of Glove')
+parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals corpus of GloVe')
+parser.add_argument('--file_glove_non_terminals', type=str, help='Where to put non-terminals corpus of GloVe')
 
 LIM = 1000000
 
@@ -94,20 +98,33 @@ def form_one_hot(args):
     )
 
 
+def create_glove_non_terminals_file(args):
+    """Create GloVe non-terminals file from one-hot file. """
+
+    with open(file=args.file_glove_non_terminals, mode='w', encoding=ENCODING) as f:
+        nt_extractor = JsonListKeyExtractor(key='N')  # extract non terminals for one-hot files
+        for nt_generator in extract_jsons_info(nt_extractor, args.file_train, args.file_eval):
+            f.write(' '.join(map(str, chain(nt_generator, [-1]*10))))
+            f.write(' ')
+
+
 def main():
     args = parser.parse_args()
 
-    print('Retrieving Glove terminals')
-    create_glove_terminals_file(args)
+    # print('Retrieving Glove terminals')
+    # create_glove_terminals_file(args)
 
-    print('Retrieving tokens ...')
-    get_tokens(args)
+    # print('Retrieving tokens ...')
+    # get_tokens(args)
 
-    print('Converting to sequences ...')
-    convert_files(args)
+    # print('Converting to sequences ...')
+    # convert_files(args)
 
-    print('Forming one-hot ...')
-    form_one_hot(args)
+    # print('Forming one-hot ...')
+    # form_one_hot(args)
+
+    print('Creating GloVe non-terminals corpus')
+    create_glove_non_terminals_file(args)
 
     print('Train file: {}'.format(args.file_train))
     print('Eval file: {}'.format(args.file_eval))

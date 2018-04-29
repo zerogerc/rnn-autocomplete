@@ -52,4 +52,7 @@ class Embeddings:
 
         self.embeddings_tensor = torch.FloatTensor(max_emb_id + 1, self.embedding_size)
         for k, v in embeddings.items():
-            self.embeddings_tensor[k] = v
+            if k >= 0:
+                self.embeddings_tensor[k] = v
+            else:
+                print('Key {} skipped during embeddings load.'.format(k))
