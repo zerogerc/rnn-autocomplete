@@ -1,29 +1,27 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
+from zerogercrnn.experiments.ast_level.data import ASTInput, ASTTarget
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
-from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
-    ((nt_input, t_input), (nt_target, t_target)), forget_vector = iter_data
+    (m_input, m_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    nt_input = wrap_cuda_no_grad_variable(nt_input, cuda=cuda, no_grad=no_grad)
-    t_input = wrap_cuda_no_grad_variable(t_input, cuda=cuda, no_grad=no_grad)
-    nt_target = wrap_cuda_no_grad_variable(nt_target, cuda=cuda, no_grad=no_grad)
-    t_target = wrap_cuda_no_grad_variable(t_target, cuda=cuda, no_grad=no_grad)
+    m_input = ASTInput.wrap_cuda_no_grad(m_input, cuda, no_grad)
+    m_target = ASTTarget.wrap_cuda_no_grad(m_target, cuda, no_grad)
 
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
 
     model.zero_grad()
-    prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)
+    prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)
 
-    return prediction, nt_target, hidden
+    return prediction, m_target.non_terminals, hidden
 
 
 class ASTRoutine(NetworkRoutine):

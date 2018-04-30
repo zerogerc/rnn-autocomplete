@@ -3,7 +3,7 @@ import argparse
 from itertools import chain
 
 from zerogercrnn.experiments.ast_level.raw_data import TokensRetriever, JsonConverter, OneHotConverter
-from zerogercrnn.lib.data.preprocess import extract_jsons_info, JsonListKeyExtractor
+from zerogercrnn.lib.data.preprocess import extract_jsons_info, JsonExtractor, JsonListKeyExtractor
 from zerogercrnn.lib.constants import ENCODING
 
 parser = argparse.ArgumentParser(description='Data processing for token level neural network')
@@ -20,7 +20,7 @@ parser.add_argument('--file_glove_vocab', type=str, help='Vocabulary of trained 
 parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals corpus of GloVe')
 parser.add_argument('--file_glove_non_terminals', type=str, help='Where to put non-terminals corpus of GloVe')
 
-LIM = 1000000
+LIM = 10000
 
 """
 Script that forms one-hot sequences of (N, T) from JS dataset.
@@ -97,7 +97,6 @@ def form_one_hot(args):
         lim=LIM
     )
 
-
 def create_glove_non_terminals_file(args):
     """Create GloVe non-terminals file from one-hot file. """
 
@@ -121,10 +120,10 @@ def main():
     # convert_files(args)
 
     # print('Forming one-hot ...')
-    # form_one_hot(args)
+    form_one_hot(args)
 
-    print('Creating GloVe non-terminals corpus')
-    create_glove_non_terminals_file(args)
+    # print('Creating GloVe non-terminals corpus')
+    # create_glove_non_terminals_file(args)
 
     print('Train file: {}'.format(args.file_train))
     print('Eval file: {}'.format(args.file_eval))

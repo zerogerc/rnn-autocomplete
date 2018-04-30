@@ -1,6 +1,4 @@
 import json
-import os
-
 from tqdm import tqdm
 
 """Utils for parsing and providing dataset from here: https://www.srl.inf.ethz.ch/js150.php."""
@@ -45,7 +43,8 @@ class OneHotConverter:
 
                 converted_json.append({
                     'N': self.non_terminal_idx[N],
-                    'T': self.terminal_idx[T]
+                    'T': self.terminal_idx[T],
+                    'd': node['d']
                 })
 
             f_write.write(json.dumps(converted_json))
@@ -64,7 +63,7 @@ class JsonConverter:
     def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True, lim=None):
         f_read = open(raw_file, mode='r', encoding=encoding)
         f_write = open(dest_file, mode='w', encoding=encoding)
-        terminals = DataUtils.read_json(file=terminals_file)
+        terminals = set(DataUtils.read_json(file=terminals_file))
 
         c = 0
         for l in tqdm(f_read, total=min(lim, 100000)):
@@ -80,16 +79,18 @@ class JsonConverter:
                 break
 
     @staticmethod
-    def _convert_json_(raw_json, terminals, append_eof):
+    def _convert_json_(raw_json, terminals_set, append_eof):
         left_child, right_sibling = DataUtils.get_left_child_right_sibling(
             raw_json=raw_json,
             append_eof=append_eof
         )
 
-        output_json = []
+        output_json = [{} for i in range(len(raw_json) - 1)]
+        output_json[0]['d'] = 0
+        cur_id = 0
         for node in raw_json:
             if node == 0:
-                break
+                continue
 
             # non-terminal
             N = DataUtils.encode_non_terminal(node, left_child, right_sibling)
@@ -97,20 +98,26 @@ class JsonConverter:
             # terminal
             if 'value' not in node:
                 T = EMPTY_TOKEN
-            elif node['value'] not in terminals:
+            elif node['value'] not in terminals_set:
                 T = UNKNOWN_TOKEN
             else:
                 T = node['value']
 
-            output_json.append({
-                'N': N,
-                'T': T
-            })
+            if 'children' in node:
+                c_d = output_json[cur_id]['d']
+                for c in node['children']:
+                    output_json[c]['d'] = c_d + 1
+
+            output_json[cur_id]['N'] = N
+            output_json[cur_id]['T'] = T
+
+            cur_id += 1
 
         if append_eof:
             output_json.append({
                 'N': EOF_TOKEN,
-                'T': EMPTY_TOKEN
+                'T': EMPTY_TOKEN,
+                'd': 1
             })
 
         return output_json

@@ -5,6 +5,13 @@ from zerogercrnn.lib.constants import ENCODING
 from zerogercrnn.lib.log import tqdm_lim
 
 
+def write_json(file, raw_json):
+    """Writes json as is to file."""
+
+    with open(file, mode='w', encoding=ENCODING) as f:
+        f.write(json.dumps(raw_json))
+
+
 def read_lines(file, total=None, lim=None):
     """Returns generator of lines from file.
 
