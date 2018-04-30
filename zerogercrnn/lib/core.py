@@ -161,6 +161,12 @@ class RecurrentCore(BaseModule):
             return h
 
 
+def create_lstm_cell_hidden(hidden_size, batch_size, cuda, no_grad=False):
+    h = wrap_cuda_no_grad_variable(torch.zeros((batch_size, hidden_size)), cuda=cuda, no_grad=no_grad)
+    c = wrap_cuda_no_grad_variable(torch.zeros((batch_size, hidden_size)), cuda=cuda, no_grad=no_grad)
+    return h, c
+
+
 class LSTMCellDropout(BaseModule):
     """Wrapper for **torch.nn.LSTMCell** that applies the same dropout to all timestamps.
     You could pass **reinit_dropout=True** to forward in order to reinit dropout mask.
@@ -188,9 +194,7 @@ class LSTMCellDropout(BaseModule):
             return hidden, cell
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        h = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
-        c = wrap_cuda_no_grad_variable(torch.zeros((batch_size, self.hidden_size)), cuda=cuda, no_grad=no_grad)
-        return h, c
+        return create_lstm_cell_hidden(self.hidden_size, batch_size, cuda, no_grad)
 
     def _reinit_dropout_mask(self, batch_size, cuda):
         if self.dropout_mask is None:

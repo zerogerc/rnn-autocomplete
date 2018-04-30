@@ -154,7 +154,7 @@ class ASTDataChunk(DataChunk):
             raise Exception('You should call prepare_data first.')
         non_terminals_input, non_terminals_target = self.non_terminals_chunk.get_by_index(index)
         terminals_input, terminals_target = self.terminals_chunk.get_by_index(index)
-        nodes_depth_input = self.nodes_depth_data.get_by_index(index, seq_len=self.seq_len)
+        nodes_depth_input = self.nodes_depth_data.get_by_index(index, seq_len=self.seq_len - 1)
 
         return ASTInput(non_terminals_input, terminals_input, nodes_depth_input), \
                ASTTarget(non_terminals_target, terminals_target)
@@ -196,7 +196,7 @@ class ASTDataReader(DataReader):
                 for node in nodes:
                     non_terminals_one_hot[it] = int(node['N'])
                     terminals_one_hot[it] = int(node['T'])
-                    # nodes_depth[it] = int(node['d'])
+                    nodes_depth[it] = int(node['d'])
                     it += 1
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>

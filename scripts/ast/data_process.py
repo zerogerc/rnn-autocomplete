@@ -20,7 +20,7 @@ parser.add_argument('--file_glove_vocab', type=str, help='Vocabulary of trained 
 parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals corpus of GloVe')
 parser.add_argument('--file_glove_non_terminals', type=str, help='Where to put non-terminals corpus of GloVe')
 
-LIM = 10000
+LIM = 100000
 
 """
 Script that forms one-hot sequences of (N, T) from JS dataset.
@@ -119,7 +119,7 @@ def main():
     # print('Converting to sequences ...')
     # convert_files(args)
 
-    # print('Forming one-hot ...')
+    print('Forming one-hot ...')
     form_one_hot(args)
 
     # print('Creating GloVe non-terminals corpus')
