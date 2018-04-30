@@ -36,6 +36,7 @@ class LayeredRecurrent(BaseModule):
             layered_hidden[i] = repackage_hidden(layered_hidden[i])
 
     def pick_current_output(self, layered_hidden, nodes_depth):
+        nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
         l_h = [torch.cat((layered_hidden[nodes_depth[i]][0][i - 1], layered_hidden[nodes_depth[i]][0][i]), dim=-1) for i
                in range(nodes_depth.size()[0])]
         l_h = torch.stack(l_h, dim=0)
