@@ -196,7 +196,7 @@ class ASTDataReader(DataReader):
                 for node in nodes:
                     non_terminals_one_hot[it] = int(node['N'])
                     terminals_one_hot[it] = int(node['T'])
-                    nodes_depth[it] = int(node['d'])
+                    # nodes_depth[it] = int(node['d'])
                     it += 1
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
