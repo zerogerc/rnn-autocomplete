@@ -73,4 +73,4 @@ def set_layered_hidden(layered_hidden, node_depths, updated):
             node_depths_update, cuda=layered_hidden.is_cuda, no_grad=True
         )
 
-    return layered_hidden.scatter_(1, node_depths_update, updated)
+    return layered_hidden.scatter(1, node_depths_update, updated)

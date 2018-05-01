@@ -15,8 +15,8 @@ def select_layered_lstm_hidden(layered_hidden, node_depths):
 
 
 def update_layered_lstm_hidden(layered_hidden, node_depths, new_value):
-    set_layered_hidden(layered_hidden[0], node_depths, new_value[0])
-    set_layered_hidden(layered_hidden[1], node_depths, new_value[1])
+    return set_layered_hidden(layered_hidden[0], node_depths, new_value[0]), \
+           set_layered_hidden(layered_hidden[1], node_depths, new_value[1])
 
 
 class LayeredRecurrent(BaseModule):
@@ -36,8 +36,7 @@ class LayeredRecurrent(BaseModule):
         layered_hidden = forget_hidden_partly_lstm_cell(layered_hidden,
                                                         forget_vector=forget_vector.unsqueeze(
                                                             1))  # TODO: check that shit
-        layered_hidden[0].detach_(), layered_hidden[1].detach_()
-        return layered_hidden
+        return repackage_hidden(layered_hidden)
 
     def pick_current_output(self, layered_hidden, nodes_depth):
         o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))
@@ -49,7 +48,8 @@ class LayeredRecurrent(BaseModule):
         nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
         l_h, l_c = select_layered_lstm_hidden(layered_hidden, nodes_depth)
         l_h, l_c = self.layered_recurrent(m_input, (l_h, l_c), reinit_dropout=reinit_dropout)
-        update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
+        return update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
+
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
         h = wrap_cuda_no_grad_variable(
@@ -127,7 +127,7 @@ class NT2NLayerModel(CombinedModule):
         sl = combined_input.size()[0]
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
-            self.layered_recurrent(
+            layered_hidden = self.layered_recurrent(
                 m_input=combined_input[i],
                 nodes_depth=node_depths[i],
                 layered_hidden=layered_hidden,
@@ -177,7 +177,7 @@ def test_update():
     updated = torch.randn((batch_size, hidden_size))
 
     old_hidden = layered_hidden.clone()
-    set_layered_hidden(layered_hidden, node_depths, updated)
+    layered_hidden = set_layered_hidden(layered_hidden, node_depths, updated)
 
     res = torch.nonzero(old_hidden - layered_hidden).size()[0] == batch_size * hidden_size
     print(res)

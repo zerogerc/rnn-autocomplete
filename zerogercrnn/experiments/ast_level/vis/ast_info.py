@@ -34,6 +34,12 @@ def get_percentile_plot(stat):
     return x, y
 
 
+def plot_percentile_from_file(file, x_label, y_label):
+    stat = list(read_jsons(file))[0]
+    x, y = get_percentile_plot(stat)
+    draw_plot(x, y, x_label=x_label, y_label=y_label)
+
+
 # endregion
 
 # region TreeHeight
@@ -48,9 +54,7 @@ def print_tree_heights_stats_from_file(tree_heights_file):
 
 
 def tree_heights_distribution(tree_heights_file):
-    tree_heights = list(read_jsons(tree_heights_file))[0]
-    x, y = get_percentile_plot(tree_heights)
-    draw_plot(x, y, x_label='Tree height', y_label='Percent of data')
+    plot_percentile_from_file(tree_heights_file, x_label='Tree height', y_label='Percent of data')
 
 
 class JsonTreeHeightExtractor(JsonExtractor):
@@ -97,6 +101,11 @@ def calc_tree_heights(heights_file):
 
 # region ProgramLen
 
+
+def plot_program_len_percentiles(lengths_file):
+    plot_percentile_from_file(lengths_file, x_label='Program lengths', y_label='Percentile')
+
+
 class JsonProgramLenExtractor(JsonExtractor):
 
     def extract(self, raw_json):
@@ -114,7 +123,8 @@ def calc_programs_len(lengths_file):
 # endregion
 
 def run_main():
-    calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
+    # calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
+    plot_program_len_percentiles(FILE_STAT_PROGRAM_LENGTHS)
 
     # calc_tree_heights(heights_file=FILE_STAT_TREE_HEIGHTS)
     # print_tree_heights_stats_from_file(tree_heights_file=FILE_STAT_TREE_HEIGHTS)
