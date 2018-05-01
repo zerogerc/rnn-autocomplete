@@ -1,5 +1,7 @@
 import torch
-from zerogercrnn.lib.calculation import shift_left, calc_attention_combination, drop_matrix_rows_3d
+
+from zerogercrnn.lib.calculation import shift_left, calc_attention_combination, drop_matrix_rows_3d, \
+    select_layered_hidden, set_layered_hidden
 from zerogercrnn.testutils.utils import assert_tensors_equal
 
 
@@ -86,3 +88,34 @@ def test_drop_matrix_rows_3d():
     ])
 
     assert_tensors_equal(drop_matrix_rows_3d(matrix, forget_vector), expected)
+
+
+def test_select_layered_hidden():
+    batch_size = 5
+    layers = 50
+    hidden_size = 10
+
+    node_depths = torch.LongTensor([0, 2, layers - 1, 2, 5])
+    layered_hidden = torch.randn((batch_size, layers, hidden_size))
+
+    selected = select_layered_hidden(layered_hidden, node_depths)
+
+    for i in range(node_depths.size()[0]):
+        assert torch.nonzero(selected[i][0] == layered_hidden[i][node_depths[i]]).size()[0] == hidden_size
+
+
+def test_set_layered_hidden():
+    batch_size = 6
+    layers = 50
+    hidden_size = 10
+
+    layered_hidden = torch.randn((batch_size, layers, hidden_size))
+    node_depths = torch.LongTensor([0, 1, layers - 1, 2, 5, 1])
+    updated = torch.randn((batch_size, hidden_size))
+    old_hidden = layered_hidden.clone()
+
+    set_layered_hidden(layered_hidden, node_depths, updated)
+
+    assert torch.nonzero(old_hidden - layered_hidden).size()[0] == batch_size * hidden_size
+    for i in range(node_depths.size()[0]):
+        print(torch.nonzero(layered_hidden[i][node_depths[i]] == updated[i]).size()[0] == hidden_size)
