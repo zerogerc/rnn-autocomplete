@@ -106,7 +106,7 @@ class NT2NLayerModel(CombinedModule):
         ))
 
         self.h2o = self.module(LinearLayer(
-            input_size=self.layered_recurrent.output_size,
+            input_size=self.layered_recurrent.output_size + self.hidden_dim,
             output_size=self.prediction_dim
         ))
 
@@ -136,13 +136,13 @@ class NT2NLayerModel(CombinedModule):
             )
             recurrent_layered_output.append(self.layered_recurrent.pick_current_output(layered_hidden, node_depths[i]))
 
-            # cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
-            # hidden = (cur_h, cur_c)
-            # recurrent_output.append(cur_h)
+            cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
+            hidden = (cur_h, cur_c)
+            recurrent_output.append(cur_h)
 
-        # recurrent_output = torch.stack(recurrent_output, dim=0)
+        recurrent_output = torch.stack(recurrent_output, dim=0)
         recurrent_layered_output = torch.stack(recurrent_layered_output, dim=0)
-        prediction = self.h2o(recurrent_layered_output)
+        prediction = self.h2o(torch.cat((recurrent_output, recurrent_layered_output), dim=-1))
 
         assert hidden is not None
         return prediction, (hidden, layered_hidden)

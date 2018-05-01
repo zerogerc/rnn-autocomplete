@@ -1,34 +1,56 @@
 import matplotlib.pyplot as plt
-import numpy as np
+
 from zerogercrnn.lib.data.preprocess import write_json, read_jsons, extract_jsons_info, JsonExtractor
 
+FILE_TRAINING = 'data/programs_training.json'
 FILE_STAT_TREE_HEIGHTS = 'data/ast/stat_tree_heights.json'
+FILE_STAT_PROGRAM_LENGTHS = 'data/ast/stat_program_lengths.json'
 
 
-def tree_heights_stats(tree_heights):
+# region Utils
+
+def draw_plot(x, y, x_label=None, y_label=None):
+    plt.plot(x, y)
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        plt.ylabel(y_label)
+    plt.show()
+
+
+def get_percentile_plot(stat):
+    """Get x and y for plot describing percentile of stat < x for each x.
+
+    :param stat: array of int values
+    """
+    stat = sorted(stat)
+    x = []
+    y = []
+    for i in range(len(stat)):
+        if (i == len(stat) - 1) or (stat[i] != stat[i + 1]):
+            x.append(stat[i])
+            y.append(float(i + 1) / len(stat))
+
+    return x, y
+
+
+# endregion
+
+# region TreeHeight
+def print_tree_heights_stats(tree_heights):
     print('Min height of the tree: {}'.format(min(tree_heights)))
     print('Max height of the tree: {}'.format(max(tree_heights)))
     print('Average height of the trees: {}'.format(float(sum(tree_heights)) / len(tree_heights)))
 
 
-def tree_heights_stats_from_file(tree_heights_file):
-    tree_heights_stats(list(read_jsons(tree_heights_file))[0])
+def print_tree_heights_stats_from_file(tree_heights_file):
+    print_tree_heights_stats(list(read_jsons(tree_heights_file))[0])
 
 
 def tree_heights_distribution(tree_heights_file):
     tree_heights = list(read_jsons(tree_heights_file))[0]
-    tree_heights = sorted(tree_heights)
-    x = []
-    y = []
-    for i in range(len(tree_heights)):
-        if (i == len(tree_heights) - 1) or (tree_heights[i] != tree_heights[i + 1]):
-            x.append(tree_heights[i])
-            y.append(float(i + 1) / len(tree_heights))
-
-    plt.plot(x, y)
-    plt.xlabel('Tree height')
-    plt.ylabel('Percent of data')
-    plt.show()
+    x, y = get_percentile_plot(tree_heights)
+    draw_plot(x, y, x_label='Tree height', y_label='Percent of data')
 
 
 class JsonTreeHeightExtractor(JsonExtractor):
@@ -63,18 +85,40 @@ def calc_tree_heights(heights_file):
     tree_heights = []
 
     extractor = JsonTreeHeightExtractor()
-    for current_height in extract_jsons_info(extractor, 'data/programs_training.json'):
+    for current_height in extract_jsons_info(extractor, FILE_TRAINING):
         tree_heights.append(current_height)
 
     if heights_file is not None:
         write_json(heights_file, tree_heights)
-    tree_heights_stats(tree_heights=tree_heights)
+    print_tree_heights_stats(tree_heights=tree_heights)
 
+
+# endregion
+
+# region ProgramLen
+
+class JsonProgramLenExtractor(JsonExtractor):
+
+    def extract(self, raw_json):
+        return len(raw_json) - 1
+
+
+def calc_programs_len(lengths_file):
+    extractor = JsonProgramLenExtractor()
+
+    program_lengths = list(extract_jsons_info(extractor, FILE_TRAINING))
+    if lengths_file is not None:
+        write_json(lengths_file, program_lengths)
+
+
+# endregion
 
 def run_main():
+    calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
+
     # calc_tree_heights(heights_file=FILE_STAT_TREE_HEIGHTS)
-    tree_heights_stats_from_file(tree_heights_file=FILE_STAT_TREE_HEIGHTS)
-    tree_heights_distribution(tree_heights_file=FILE_STAT_TREE_HEIGHTS)
+    # print_tree_heights_stats_from_file(tree_heights_file=FILE_STAT_TREE_HEIGHTS)
+    # tree_heights_distribution(tree_heights_file=FILE_STAT_TREE_HEIGHTS)
 
 
 if __name__ == '__main__':
