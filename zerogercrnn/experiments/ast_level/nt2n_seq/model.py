@@ -25,7 +25,7 @@ class LayeredRecurrent(BaseModule):
         self.input_size = input_size
         self.single_hidden_size = single_hidden_size
         self.tree_layers = tree_layers
-        self.output_size = single_hidden_size * 24
+        self.output_size = single_hidden_size * 2
         self.layered_recurrent = LSTMCellDropout(
             input_size=self.input_size,
             hidden_size=self.single_hidden_size

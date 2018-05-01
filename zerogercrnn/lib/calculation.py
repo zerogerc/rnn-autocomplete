@@ -41,8 +41,12 @@ def select_layered_hidden(layered_hidden, node_depths):
     batch_size = layered_hidden.size()[0]
     layers_num = layered_hidden.size()[1]
     hidden_size = layered_hidden.size()[2]
+    if isinstance(layered_hidden, Variable):
+        depths_one_hot = layered_hidden.data.new(batch_size, layers_num)
+    else:
+        depths_one_hot = layered_hidden.new(batch_size, layers_num)
 
-    depths_one_hot = torch.zeros((batch_size, layers_num)).scatter_(1, node_depths.unsqueeze(1), 1)
+    depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1)
     mask = depths_one_hot.unsqueeze(2).byte()
     if isinstance(layered_hidden, Variable):
         mask = wrap_cuda_no_grad_variable(mask, cuda=layered_hidden.is_cuda, no_grad=True)
