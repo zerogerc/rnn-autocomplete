@@ -20,28 +20,30 @@ def update_layered_lstm_hidden(layered_hidden, node_depths, new_value):
 
 
 class LayeredRecurrent(BaseModule):
-    def __init__(self, input_size, tree_layers, single_hidden_size):
+    def __init__(self, input_size, tree_layers, single_hidden_size, dropout=0.):
         super().__init__()
         self.input_size = input_size
         self.single_hidden_size = single_hidden_size
         self.tree_layers = tree_layers
-        self.output_size = single_hidden_size * 2
+        self.output_size = single_hidden_size * 3
         self.layered_recurrent = LSTMCellDropout(
             input_size=self.input_size,
-            hidden_size=self.single_hidden_size
+            hidden_size=self.single_hidden_size,
+            dropout=dropout
         )
 
     def repackage_hidden(self, layered_hidden, forget_vector):
         layered_hidden = forget_hidden_partly_lstm_cell(layered_hidden,
-                                       forget_vector=forget_vector.unsqueeze(1))  # TODO: check that shit
+                                                        forget_vector=forget_vector.unsqueeze(
+                                                            1))  # TODO: check that shit
         layered_hidden[0].detach_(), layered_hidden[1].detach_()
         return layered_hidden
 
     def pick_current_output(self, layered_hidden, nodes_depth):
-        nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
-        o_cur = select_layered_hidden(layered_hidden[0], nodes_depth)
+        o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))
         o_prev = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth - 1, min=0, max=self.tree_layers - 1))
-        return torch.cat((o_cur, o_prev), dim=-1).squeeze()
+        o_next = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth + 1, min=0, max=self.tree_layers - 1))
+        return torch.cat((o_prev, o_cur, o_next), dim=-1).squeeze()
 
     def forward(self, m_input, nodes_depth, layered_hidden, forget_vector, reinit_dropout):
         nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
@@ -93,7 +95,8 @@ class NT2NLayerModel(CombinedModule):
         self.layered_recurrent = self.module(LayeredRecurrent(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             tree_layers=50,
-            single_hidden_size=30
+            single_hidden_size=100,
+            dropout=self.dropout
         ))
 
         self.recurrent_core = self.module(LSTMCellDropout(
@@ -103,7 +106,7 @@ class NT2NLayerModel(CombinedModule):
         ))
 
         self.h2o = self.module(LinearLayer(
-            input_size=self.hidden_dim + self.layered_recurrent.output_size,
+            input_size=self.layered_recurrent.output_size,
             output_size=self.prediction_dim
         ))
 
@@ -133,13 +136,13 @@ class NT2NLayerModel(CombinedModule):
             )
             recurrent_layered_output.append(self.layered_recurrent.pick_current_output(layered_hidden, node_depths[i]))
 
-            cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
-            hidden = (cur_h, cur_c)
-            recurrent_output.append(cur_h)
+            # cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
+            # hidden = (cur_h, cur_c)
+            # recurrent_output.append(cur_h)
 
-        recurrent_output = torch.stack(recurrent_output, dim=0)
+        # recurrent_output = torch.stack(recurrent_output, dim=0)
         recurrent_layered_output = torch.stack(recurrent_layered_output, dim=0)
-        prediction = self.h2o(torch.cat((recurrent_output, recurrent_layered_output), dim=-1))
+        prediction = self.h2o(recurrent_layered_output)
 
         assert hidden is not None
         return prediction, (hidden, layered_hidden)
