@@ -4,8 +4,6 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from zerogercrnn.lib.data.general import DataGenerator
-
 
 def split_train_validation(data, split_coefficient):
     train_examples = int(len(data) * split_coefficient)
@@ -20,6 +18,36 @@ def get_shuffled_indexes(length):
 
 def get_random_index(length):
     return np.random.randint(length)
+
+
+class DataReader:
+    """General interface for readers of text files into format for DataGenerator.
+    Should provide fields for train, validation, eval."""
+
+    def __init__(self):
+        self.train_data = []
+        self.validation_data = []
+        self.eval_data = []
+        self.eval_tails = 0
+
+
+class DataGenerator:
+    """General interface for generators of data for training and validation."""
+
+    @abstractmethod
+    def get_train_generator(self):
+        """Provides data for one epoch of training."""
+        pass
+
+    @abstractmethod
+    def get_validation_generator(self):
+        """Provides data for one validation cycle."""
+        pass
+
+    @abstractmethod
+    def get_eval_generator(self):
+        """Provides data for evaluation of trained model."""
+        pass
 
 
 class DataChunk:
