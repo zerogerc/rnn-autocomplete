@@ -36,7 +36,8 @@ class LayeredRecurrent(BaseModule):
         layered_hidden = forget_hidden_partly_lstm_cell(layered_hidden,
                                                         forget_vector=forget_vector.unsqueeze(
                                                             1))  # TODO: check that shit
-        return repackage_hidden(layered_hidden)
+        return repackage_hidden(layered_hidden
+                                )
 
     def pick_current_output(self, layered_hidden, nodes_depth):
         o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))

@@ -64,6 +64,7 @@ def evaluate(args):
 
 
 if __name__ == '__main__':
+    print(torch.__version__)
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log
