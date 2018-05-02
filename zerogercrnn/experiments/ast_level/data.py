@@ -3,8 +3,7 @@ import json
 import torch
 
 from zerogercrnn.lib.calculation import pad_tensor
-from zerogercrnn.lib.data.general import DataReader
-from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
+from zerogercrnn.lib.data import DataChunk, BatchedDataGenerator, split_train_validation, DataReader
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.log import tqdm_lim
 from zerogercrnn.lib.utils import setup_tensor

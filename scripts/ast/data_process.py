@@ -3,7 +3,7 @@ import argparse
 from itertools import chain
 
 from zerogercrnn.experiments.ast_level.raw_data import TokensRetriever, JsonConverter, OneHotConverter
-from zerogercrnn.lib.data.preprocess import extract_jsons_info, JsonExtractor, JsonListKeyExtractor
+from zerogercrnn.lib.preprocess import extract_jsons_info, JsonListKeyExtractor
 from zerogercrnn.lib.constants import ENCODING
 
 parser = argparse.ArgumentParser(description='Data processing for token level neural network')

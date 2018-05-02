@@ -3,9 +3,8 @@ import json
 import torch
 from tqdm import tqdm
 
-from zerogercrnn.lib.data.general import DataReader
 from zerogercrnn.lib.utils import get_device
-from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
+from zerogercrnn.lib.data import DataChunk, BatchedDataGenerator, split_train_validation, DataReader
 
 # hack for tqdm
 tqdm.monitor_interval = 0

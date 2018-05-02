@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from zerogercrnn.lib.data.preprocess import write_json, read_jsons, extract_jsons_info, JsonExtractor
+from zerogercrnn.lib.preprocess import write_json, read_jsons, extract_jsons_info, JsonExtractor
 
 FILE_TRAINING = 'data/programs_training.json'
 FILE_STAT_TREE_HEIGHTS = 'data/ast/stat_tree_heights.json'

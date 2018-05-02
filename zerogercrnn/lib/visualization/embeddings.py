@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.manifold import TSNE
 
-from zerogercrnn.lib.data.preprocess import read_jsons
+from zerogercrnn.lib.preprocess import read_jsons
 from zerogercrnn.lib.embedding import Embeddings
 
 

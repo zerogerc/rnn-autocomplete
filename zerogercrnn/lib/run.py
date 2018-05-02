@@ -14,7 +14,7 @@ import torch.nn as nn
 from zerogercrnn.lib.visualization.plotter import TensorboardPlotter, \
     TensorboardPlotterCombined
 from zerogercrnn.lib.file import save_model
-from zerogercrnn.lib.data.general import DataGenerator
+from zerogercrnn.lib.data import DataGenerator
 
 LOG_EVERY = 1000
 
