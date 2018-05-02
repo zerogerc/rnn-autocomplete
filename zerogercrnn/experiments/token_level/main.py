@@ -9,7 +9,7 @@ from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.log import logger
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
 from zerogercrnn.lib.utils import get_device
 
@@ -55,7 +55,7 @@ def calc_accuracy(args):
         else:
             load_cuda_on_cpu(model, args.saved_model)
 
-    measurer = AccuracyMetrics()
+    measurer = MaxPredictionAccuracyMetrics()
     measurer.drop_state()
 
     hidden = None
@@ -213,12 +213,13 @@ def train(args):
         network=model,
         train_routine=train_routine,
         validation_routine=validation_routine,
-        metrics=AccuracyMetrics(),
+        metrics=MaxPredictionAccuracyMetrics(),
         data_generator=data_generator,
         schedulers=schedulers,
         plotter='tensorboard',
         save_dir=args.model_save_dir,
         title=args.title,
+        report_train_every=10,
         plot_train_every=50,
         save_iter_model_every=2000
     )

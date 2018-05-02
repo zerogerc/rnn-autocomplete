@@ -1,11 +1,10 @@
 import torch
-import torch.nn as nn
-from itertools import chain
 
-from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
     LinearLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 
 
 class NTN2TBaseModel(CombinedModule):
@@ -53,7 +52,11 @@ class NTN2TBaseModel(CombinedModule):
             bias=False
         ))
 
-    def forward(self, non_terminal_input, terminal_input, current_non_terminal_input, hidden, forget_vector):
+    def forward(self, m_input: ASTInput, hidden, forget_vector):
+        non_terminal_input = m_input.non_terminals
+        terminal_input = m_input.terminals
+        current_non_terminal_input = m_input.current_non_terminals
+
         assert non_terminal_input.size() == terminal_input.size()
         assert terminal_input.size() == current_non_terminal_input.size()
 

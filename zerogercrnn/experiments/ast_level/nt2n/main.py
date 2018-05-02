@@ -2,7 +2,7 @@ import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
 
@@ -96,4 +96,4 @@ class NT2NMain(Main):
         )
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return MaxPredictionAccuracyMetrics()

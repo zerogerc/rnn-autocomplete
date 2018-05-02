@@ -7,7 +7,7 @@ from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_ar
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.lib.log import logger
 from zerogercrnn.lib.log import tqdm_lim
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 add_general_arguments(parser)
@@ -31,7 +31,7 @@ def print_results(args):
 
     routine = main.validation_routine
 
-    metrics = AccuracyMetrics()
+    metrics = MaxPredictionAccuracyMetrics()
     metrics.drop_state()
     main.model.eval()
 

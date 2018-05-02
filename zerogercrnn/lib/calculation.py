@@ -8,6 +8,16 @@ def shift_left(matrix, dimension):
         .copy_(matrix.narrow(dim=dimension, start=1, length=m_len - 1))
 
 
+def pad_tensor(tensor, seq_len):
+    """Pad tensor with last element along 0 dimension."""
+    sz = list(tensor.size())
+    sz[0] = seq_len - tensor.size()[0] % seq_len
+
+    tail = tensor[-1].clone().expand(sz).to(tensor.device)
+    tensor = torch.cat((tensor, tail))
+    return tensor
+
+
 def calc_attention_combination(attention_weights, matrix):
     """Calculate sum of vectors of matrix along dim=1 with coefficients specified by attention_weights.
 

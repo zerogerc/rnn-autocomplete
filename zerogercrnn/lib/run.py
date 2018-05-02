@@ -57,6 +57,7 @@ class TrainEpochRunner:
             plotter='tensorboard',
             save_dir=None,
             title=None,
+            report_train_every=1,
             plot_train_every=1,
             save_iter_model_every=None
     ):
@@ -79,11 +80,15 @@ class TrainEpochRunner:
         self.data_generator = data_generator
         self.schedulers = schedulers
         self.save_dir = save_dir
+        self.report_train_every = report_train_every
         self.plot_train_every = plot_train_every
         self.save_iter_model_every = save_iter_model_every
 
         self.epoch = None  # current epoch
         self.it = None  # current iteration
+
+        if self.plot_train_every % self.report_train_every != 0:
+            raise Exception('report_train_every should divide plot_train_every')
 
         if plotter == 'tensorboard':
             self.plotter = TensorboardPlotter(title=title)
@@ -124,6 +129,9 @@ class TrainEpochRunner:
             self.plotter.on_finish()
 
     def _run_for_epoch(self):
+        self.metrics.train()
+        self.metrics.drop_state()
+
         self.network.train()
         train_data = self.data_generator.get_train_generator()
         # print('Expected number of iterations for epoch: {}'.format(train_generator.size // batch_size))
@@ -140,14 +148,16 @@ class TrainEpochRunner:
                 iter_data=iter_data
             )
 
-            if self.it % self.plot_train_every == 0:
-                self.metrics.drop_state()
+            if self.it % self.report_train_every == 0:
                 self.metrics.report(metrics_values)
+
+            if self.it % self.plot_train_every == 0:
                 self.plotter.on_new_point(
                     label='train',
                     x=self.it,
                     y=self.metrics.get_current_value(should_print=False)
                 )
+                self.metrics.drop_state()
 
             self.it += 1
 
@@ -156,6 +166,7 @@ class TrainEpochRunner:
         validation_data = self.data_generator.get_validation_generator()
 
         self.metrics.drop_state()
+        self.metrics.eval()
         self.network.eval()
 
         with torch.no_grad():

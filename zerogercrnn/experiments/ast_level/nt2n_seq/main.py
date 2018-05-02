@@ -3,7 +3,7 @@ import torch.nn as nn
 from zerogercrnn.experiments.ast_level.common import create_non_terminal_embeddings
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2n_seq.model import NT2NLayerModel
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 
 class NT2NSequentialMain(NT2NMain):
@@ -22,4 +22,4 @@ class NT2NSequentialMain(NT2NMain):
         return nn.CrossEntropyLoss()
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return MaxPredictionAccuracyMetrics()

@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2n_cross.model import NT2NBaseModel
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
 from zerogercrnn.lib.utils import setup_tensor
@@ -106,4 +106,4 @@ class NT2NCrossMain(Main):
         return nn.CrossEntropyLoss()
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return MaxPredictionAccuracyMetrics()
