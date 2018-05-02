@@ -9,4 +9,4 @@ def assert_tensors_equal(t1, t2, eps=1e-9):
     t2 = t2.view(-1)
 
     for i in range(t1.size()[0]):
-        assert_numbers_almost_equal(t1[i], t2[i], eps=eps)
+        assert_numbers_almost_equal(t1[i].item(), t2[i].item(), eps=eps)

@@ -96,5 +96,5 @@ class NT2NSumAttentionModel(CombinedModule):
         return prediction, hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        self.attention.init_hidden(batch_size, cuda, no_grad)
-        return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad)
+        self.attention.init_hidden(batch_size, cuda)
+        return self.recurrent_core.init_hidden(batch_size, cuda)

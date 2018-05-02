@@ -6,7 +6,7 @@ from zerogercrnn.lib.core import EmbeddingsModule, PretrainedEmbeddingsModule, L
     LinearLayer, CombinedModule, BaseModule
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
-from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import setup_tensor
 
 
 def select_layered_lstm_hidden(layered_hidden, node_depths):
@@ -53,10 +53,8 @@ class LayeredRecurrent(BaseModule):
 
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        h = wrap_cuda_no_grad_variable(
-            torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda, no_grad=no_grad)
-        c = wrap_cuda_no_grad_variable(
-            torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda, no_grad=no_grad)
+        h = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda)
+        c = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda)
 
         return h, c
 
@@ -149,8 +147,8 @@ class NT2NLayerModel(CombinedModule):
         return prediction, (hidden, layered_hidden)
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad), \
-               self.layered_recurrent.init_hidden(batch_size, cuda, no_grad=no_grad)
+        return self.recurrent_core.init_hidden(batch_size, cuda), \
+               self.layered_recurrent.init_hidden(batch_size, cuda)
 
 
 def test_select():

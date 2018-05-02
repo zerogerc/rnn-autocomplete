@@ -1,4 +1,5 @@
 import os
+import torch
 from abc import abstractmethod
 
 from tqdm import tqdm
@@ -157,25 +158,26 @@ class TrainEpochRunner:
         self.metrics.drop_state()
         self.network.eval()
 
-        validation_it = 0
-        for iter_data in validation_data:
-            if validation_it % LOG_EVERY == 0:
-                print('Validating... Epoch: {} Iters: {}'.format(self.epoch, validation_it))
+        with torch.no_grad():
+            validation_it = 0
+            for iter_data in validation_data:
+                if validation_it % LOG_EVERY == 0:
+                    print('Validating... Epoch: {} Iters: {}'.format(self.epoch, validation_it))
 
-            metrics_values = self.validation_routine.run(
-                iter_num=self.it,
-                iter_data=iter_data
+                metrics_values = self.validation_routine.run(
+                    iter_num=self.it,
+                    iter_data=iter_data
+                )
+
+                self.metrics.report(metrics_values)
+
+                validation_it += 1
+
+            self.plotter.on_new_point(
+                label='validation',
+                x=self.it,
+                y=self.metrics.get_current_value(should_print=False)
             )
 
-            self.metrics.report(metrics_values)
-
-            validation_it += 1
-
-        self.plotter.on_new_point(
-            label='validation',
-            x=self.it,
-            y=self.metrics.get_current_value(should_print=False)
-        )
-
-        print('Validation done. Epoch: {}'.format(self.epoch))
-        self.metrics.get_current_value(should_print=True)
+            print('Validation done. Epoch: {}'.format(self.epoch))
+            self.metrics.get_current_value(should_print=True)

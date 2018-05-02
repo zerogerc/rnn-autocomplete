@@ -3,11 +3,9 @@ from itertools import chain
 
 import torch
 from torch import nn as nn
-from torch.autograd import Variable
 
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers
-from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_device
 
 
 class HealthCheck:
@@ -152,18 +150,18 @@ class RecurrentCore(BaseModule):
         output_tensor, hidden = self.recurrent(input_tensor, hidden)
         return output_tensor, hidden
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        h = wrap_cuda_no_grad_variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda, no_grad)
+    def init_hidden(self, batch_size, cuda):
+        h = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda)
         if self.model_type == 'lstm':
-            c = wrap_cuda_no_grad_variable(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda, no_grad)
+            c = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda)
             return h, c
         else:
             return h
 
 
-def create_lstm_cell_hidden(hidden_size, batch_size, cuda, no_grad=False):
-    h = wrap_cuda_no_grad_variable(torch.zeros((batch_size, hidden_size)), cuda=cuda, no_grad=no_grad)
-    c = wrap_cuda_no_grad_variable(torch.zeros((batch_size, hidden_size)), cuda=cuda, no_grad=no_grad)
+def create_lstm_cell_hidden(hidden_size, batch_size, cuda):
+    h = setup_tensor(torch.zeros((batch_size, hidden_size)), cuda=cuda)
+    c = setup_tensor(torch.zeros((batch_size, hidden_size)), cuda=cuda)
     return h, c
 
 
@@ -194,19 +192,16 @@ class LSTMCellDropout(BaseModule):
             return hidden, cell
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        return create_lstm_cell_hidden(self.hidden_size, batch_size, cuda, no_grad)
+        return create_lstm_cell_hidden(self.hidden_size, batch_size, cuda)
 
     def _reinit_dropout_mask(self, batch_size, cuda):
         if self.dropout_mask is None:
-            if cuda:
-                tensor = torch.cuda.FloatTensor(batch_size, self.hidden_size)
-            else:
-                tensor = torch.FloatTensor(batch_size, self.hidden_size)
+            tensor = torch.zeros(batch_size, self.hidden_size, dtype=torch.float32, device=get_device(cuda))
         else:
-            tensor = self.dropout_mask.data
+            tensor = self.dropout_mask
 
         # 1 - self.dropout, if dropout is 0.25 then probability to draw one would be 0.75
-        self.dropout_mask = Variable(torch.bernoulli(tensor.fill_(1 - self.dropout)))
+        self.dropout_mask = torch.bernoulli(tensor.fill_(1 - self.dropout))
 
 
 class LinearLayer(BaseModule):

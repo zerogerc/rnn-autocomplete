@@ -1,6 +1,5 @@
 from abc import abstractmethod
 import torch
-from torch.autograd import Variable
 
 
 class Metrics:
@@ -37,12 +36,7 @@ class LossMetrics(Metrics):
         self.total_count += 1
 
     def get_current_value(self, should_print=False):
-        if isinstance(self.total_loss, Variable):
-            loss_value = self.total_loss.data[0]
-        else:
-            loss_value = self.total_loss
-
-        loss_value = loss_value / self.total_count
+        loss_value = self.total_loss.item() / self.total_count
         if should_print:
             print('Current loss: {}'.format(loss_value))
         return loss_value

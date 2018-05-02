@@ -2,7 +2,7 @@ import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2nt.model import NT2NTBaseModel
-from zerogercrnn.lib.utils import filter_requires_grad, wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import filter_requires_grad, setup_tensor
 from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 
@@ -11,13 +11,13 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     ((nt_input, t_input), (nt_target, t_target)), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    nt_input = wrap_cuda_no_grad_variable(nt_input, cuda=cuda, no_grad=no_grad)
-    t_input = wrap_cuda_no_grad_variable(t_input, cuda=cuda, no_grad=no_grad)
-    nt_target = wrap_cuda_no_grad_variable(nt_target, cuda=cuda, no_grad=no_grad)
-    t_target = wrap_cuda_no_grad_variable(t_target, cuda=cuda, no_grad=no_grad)
+    nt_input = setup_tensor(nt_input, cuda=cuda)
+    t_input = setup_tensor(t_input, cuda=cuda)
+    nt_target = setup_tensor(nt_target, cuda=cuda)
+    t_target = setup_tensor(t_target, cuda=cuda)
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
 
     model.zero_grad()
     nt_prediction, t_prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)

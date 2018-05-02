@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
-from zerogercrnn.lib.log import logger
+
+def get_device(cuda):
+    return torch.device("cuda" if cuda else "cpu")
 
 
 def init_recurrent_layers(*layers):
@@ -20,45 +21,27 @@ def init_layers_uniform(min_value, max_value, layers):
             nn.init.uniform(param, min_value, max_value)
 
 
-def repackage_variable(v):
-    assert isinstance(v, Variable)
-    return Variable(v.data, volatile=v.volatile)
-
-
 def repackage_hidden(h):
-    """Wraps hidden states in new Variables, to detach them from their history."""
-    if type(h) == Variable:
-        return repackage_variable(h)
+    """Forgets history of current hidden state."""
+    if type(h) == torch.Tensor:
+        return h.detach().requires_grad_(h.requires_grad)
     else:
         return tuple(repackage_hidden(v) for v in h)
 
 
 def forget_hidden_partly_lstm_cell(h, forget_vector):
-    h[0].data.mul(forget_vector, out=h[0].data)
-    h[1].data.mul(forget_vector, out=h[1].data)
-    return h
+    return h[0].mul(forget_vector), h[1].mul(forget_vector)
 
 
 def forget_hidden_partly(h, forget_vector):
-    if type(h) == Variable:
-        logger.reset_time()
-        for l in range(h.size()[0]):  # layer numbers are usually 1 to 3 so for-loop is fine here.
-            h.data[l].mul(forget_vector, out=h.data[l])
-        logger.log_time_ms('FORGET_HIDDEN_TIME')
-        return h
+    if type(h) == torch.Tensor:
+        return h.mul(forget_vector.unsqueeze(0))  # TODO: check
     else:
         return tuple(forget_hidden_partly(v, forget_vector) for v in h)
 
 
-def wrap_cuda_no_grad_variable(tensor, cuda, no_grad=False):
-    if no_grad:
-        wrapped = Variable(tensor, volatile=True)
-    else:
-        wrapped = Variable(tensor)
-
-    if cuda:
-        wrapped = wrapped.cuda()
-    return wrapped
+def setup_tensor(tensor, cuda):
+    return tensor.to(get_device(cuda))
 
 
 def filter_requires_grad(parameters):

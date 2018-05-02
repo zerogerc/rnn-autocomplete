@@ -86,4 +86,4 @@ class NT2NTBaseModel(nn.Module):
         return non_terminal_prediction, terminal_prediction, new_hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad)
+        return self.recurrent_core.init_hidden(batch_size, cuda)

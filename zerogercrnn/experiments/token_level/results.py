@@ -1,13 +1,12 @@
 import argparse
-
-import torch
 import random
+
 import numpy
+import torch
 
 from zerogercrnn.experiments.token_level.main import create_data_generator, create_model
 from zerogercrnn.experiments.token_level.main import run_model
 from zerogercrnn.lib.file import read_lines, load_if_saved, load_cuda_on_cpu
-
 from zerogercrnn.lib.visualization.text import show_diff
 
 parser = argparse.ArgumentParser(description='AST level neural network')
@@ -62,8 +61,7 @@ def single_data_prediction(args, model, iter_data, hidden):
         iter_data=iter_data,
         hidden=hidden,
         batch_size=args.batch_size,
-        cuda=args.cuda,
-        no_grad=True
+        cuda=args.cuda
     )
     return prediction, target, hidden
 

@@ -114,8 +114,8 @@ def test_set_layered_hidden():
     updated = torch.randn((batch_size, hidden_size))
     old_hidden = layered_hidden.clone()
 
-    set_layered_hidden(layered_hidden, node_depths, updated)
+    layered_hidden = set_layered_hidden(layered_hidden, node_depths, updated)
 
     assert torch.nonzero(old_hidden - layered_hidden).size()[0] == batch_size * hidden_size
     for i in range(node_depths.size()[0]):
-        print(torch.nonzero(layered_hidden[i][node_depths[i]] == updated[i]).size()[0] == hidden_size)
+        assert torch.nonzero(layered_hidden[i][node_depths[i]] == updated[i]).size()[0] == hidden_size
