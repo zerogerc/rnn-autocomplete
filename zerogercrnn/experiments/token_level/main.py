@@ -2,16 +2,16 @@ import argparse
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
 from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
-from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
-from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
+from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.log import logger
+from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
+from zerogercrnn.lib.utils import get_device
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--title', type=str, help='Title for this run. Used in tensorboard and in saving of models.')
@@ -61,14 +61,8 @@ def calc_accuracy(args):
     hidden = None
     it = 0
     for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(
-            model=model,
-            iter_data=iter_data,
-            hidden=hidden,
-            batch_size=args.batch_size,
-            cuda=args.cuda,
-            no_grad=False
-        )
+        prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden,
+                                               batch_size=args.batch_size, cuda=args.cuda)
 
         measurer.report((prediction, target))
 
@@ -80,23 +74,15 @@ def calc_accuracy(args):
     print('Accuracy: {}'.format(measurer.get_current_value()))
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
+def run_model(model, iter_data, hidden, batch_size, cuda):
     (n_input, n_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    if no_grad:
-        n_input = Variable(n_input, volatile=True)
-        n_target = Variable(n_target, volatile=True)
-    else:
-        n_input = Variable(n_input)
-        n_target = Variable(n_target)
-
-    if cuda:
-        n_input = n_input.cuda()
-        n_target = n_target.cuda()
+    n_input = n_input.to(get_device(cuda))
+    n_target = n_target.to(get_device(cuda))
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
 
     model.zero_grad()
     prediction, hidden = model(n_input, hidden, forget_vector=forget_vector)
@@ -129,14 +115,8 @@ class TokenLevelRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        prediction, n_target, hidden = run_model(
-            model=self.model,
-            iter_data=iter_data,
-            hidden=self.hidden,
-            batch_size=self.batch_size,
-            cuda=self.cuda,
-            no_grad=self.optimizers is None
-        )
+        prediction, n_target, hidden = run_model(model=self.model, iter_data=iter_data, hidden=self.hidden,
+                                                 batch_size=self.batch_size, cuda=self.cuda)
         self.hidden = hidden
 
         loss = self.calc_loss(prediction, n_target)

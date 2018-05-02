@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm
 
 from zerogercrnn.lib.data.general import DataReader
+from zerogercrnn.lib.utils import get_device
 from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
 
 # hack for tqdm
@@ -32,19 +33,18 @@ class TokensDataChunk(DataChunk):
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
         ln = self.size() - self.size() % seq_len
-        self.one_hot_tensor = self.one_hot_tensor.narrow(dimension=0, start=0, length=ln)
+        self.one_hot_tensor = self.one_hot_tensor.narrow(dim=0, start=0, length=ln)
 
     def init_cache(self):
         self.one_hot_tensor = self.one_hot_tensor.narrow(
-            dimension=0,
+            dim=0,
             start=0,
             length=min(self.one_hot_tensor.size()[0], 20 * self.seq_len)
         )
         self.embeddings_cache = self.embeddings.index_select(self.one_hot_tensor)
 
-        if self.cuda:
-            self.one_hot_tensor.cuda()
-            self.embeddings_cache.cuda()
+        self.one_hot_tensor = self.one_hot_tensor.to(get_device(self.cuda))
+        self.embeddings_cache = self.embeddings_cache.to(get_device(self.cuda))
 
     def drop_cache(self):
         self.embeddings_cache = None
@@ -58,8 +58,8 @@ class TokensDataChunk(DataChunk):
         if index == 0:
             self.init_cache()
 
-        input_tensor_emb = self.embeddings_cache.narrow(dimension=0, start=index, length=self.seq_len - 1)
-        target_tensor = self.one_hot_tensor.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
+        input_tensor_emb = self.embeddings_cache.narrow(dim=0, start=index, length=self.seq_len - 1)
+        target_tensor = self.one_hot_tensor.narrow(dim=0, start=index + 1, length=self.seq_len - 1)
 
         if index + self.seq_len + self.seq_len > self.size():
             self.drop_cache()

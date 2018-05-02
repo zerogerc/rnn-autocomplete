@@ -57,14 +57,8 @@ def load_dictionary(tokens_path):
 
 
 def single_data_prediction(args, model, iter_data, hidden):
-    prediction, target, hidden = run_model(
-        model=model,
-        iter_data=iter_data,
-        hidden=hidden,
-        batch_size=args.batch_size,
-        cuda=args.cuda,
-        no_grad=True
-    )
+    prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden, batch_size=args.batch_size,
+                                           cuda=args.cuda)
     return prediction, target, hidden
 
 

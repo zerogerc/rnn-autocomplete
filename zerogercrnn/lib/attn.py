@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 from zerogercrnn.lib.calculation import drop_matrix_rows_3d, calc_attention_combination
 from zerogercrnn.lib.core import BaseModule
@@ -36,13 +35,13 @@ class LastKBuffer:
         self.buffer[:, self.it, :].copy_(vector)  # TODO: general way
         self.it += 1
         if self.it >= self.buffer_size:
-            self.buffer.narrow(dimension=1, start=0, length=self.window_len).copy_(
-                self.buffer.narrow(dimension=1, start=self.buffer_size - self.window_len, length=self.window_len)
+            self.buffer.narrow(dim=1, start=0, length=self.window_len).copy_(
+                self.buffer.narrow(dim=1, start=self.buffer_size - self.window_len, length=self.window_len)
             )
             self.it = self.window_len
 
     def get(self):
-        return self.buffer.narrow(dimension=1, start=self.it - self.window_len, length=self.window_len)
+        return self.buffer.narrow(dim=1, start=self.it - self.window_len, length=self.window_len)
 
 
 class Attn(BaseModule):
@@ -139,7 +138,7 @@ class ContextAttention(BaseModule):
         """
         assert self.context_buffer is not None
 
-        current_context = Variable(self.context_buffer.get(), volatile=h_t.volatile)
+        current_context = self.context_buffer.get()
         attn_weights = self.attn(h_t, current_context)
 
         self.it += 1

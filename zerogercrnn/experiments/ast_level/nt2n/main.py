@@ -1,7 +1,6 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
-from zerogercrnn.experiments.ast_level.data import ASTInput, ASTTarget
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
@@ -12,11 +11,8 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
     (m_input, m_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    m_input = ASTInput.wrap_cuda_no_grad(m_input, cuda, no_grad)
-    m_target = ASTTarget.wrap_cuda_no_grad(m_target, cuda, no_grad)
-
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
+        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
 
     model.zero_grad()
     prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)

@@ -4,6 +4,7 @@ from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, R
     LogSoftmaxOutputLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.experiments.ast_level.data import ASTInput
 
 
 class NT2NBaseModel(CombinedModule):
@@ -50,9 +51,12 @@ class NT2NBaseModel(CombinedModule):
         self.h2o = self.module(LogSoftmaxOutputLayer(
             input_size=self.hidden_dim,
             output_size=self.prediction_dim,
+            dim=2
         ))
 
-    def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
+    def forward(self, m_input: ASTInput, hidden, forget_vector):
+        non_terminal_input = m_input.non_terminals
+        terminal_input = m_input.terminals
         assert non_terminal_input.size() == terminal_input.size()
         assert non_terminal_input.size() == terminal_input.size()
 
@@ -70,4 +74,4 @@ class NT2NBaseModel(CombinedModule):
         return prediction, new_hidden
 
     def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent_core.init_hidden(batch_size, cuda, no_grad=no_grad)
+        return self.recurrent_core.init_hidden(batch_size, cuda)

@@ -5,7 +5,7 @@ from zerogercrnn.lib.data.general import DataReader
 from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.log import tqdm_lim
-from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
+from zerogercrnn.lib.utils import setup_tensor
 
 ENCODING = 'ISO-8859-1'
 
@@ -31,11 +31,11 @@ class ASTInput:
         self.nodes_depth = nodes_depth
 
     @staticmethod
-    def wrap_cuda_no_grad(input_data, cuda, no_grad):
-        """Returns new ASTInput that fields are variables."""
+    def setup(input_data, cuda):
+        """Returns new ASTInput with tensors located on the needed devices."""
         return ASTInput(
-            non_terminals=wrap_cuda_no_grad_variable(input_data.non_terminals, cuda, no_grad),
-            terminals=wrap_cuda_no_grad_variable(input_data.terminals, cuda, no_grad),
+            non_terminals=setup_tensor(input_data.non_terminals, cuda),
+            terminals=setup_tensor(input_data.terminals, cuda),
             nodes_depth=input_data.nodes_depth  # no gradients should be computed
         )
 
@@ -55,11 +55,11 @@ class ASTTarget:
         self.terminals = terminals
 
     @staticmethod
-    def wrap_cuda_no_grad(target_data, cuda, no_grad):
-        """Returns new ASTTarget that fields are variables."""
+    def setup(target_data, cuda):
+        """Returns new ASTTarget with tensors located on the needed devices."""
         return ASTTarget(
-            non_terminals=wrap_cuda_no_grad_variable(target_data.non_terminals, cuda, no_grad),
-            terminals=wrap_cuda_no_grad_variable(target_data.terminals, cuda, no_grad)
+            non_terminals=setup_tensor(target_data.non_terminals, cuda),
+            terminals=setup_tensor(target_data.terminals, cuda)
         )
 
     @staticmethod
@@ -85,7 +85,7 @@ class TensorData:
         if index + seq_len > self.size():
             raise Exception('Not enough data! index: {}, seq_len: {}'.format(index, seq_len))
 
-        return self.data.narrow(dimension=0, start=index, length=seq_len)
+        return self.data.narrow(dim=0, start=index, length=seq_len)
 
     def size(self):
         return self.data.size()[0]
@@ -114,8 +114,8 @@ class ASTOneHotChunk(DataChunk):
         if index + self.seq_len > self.size():
             raise Exception('Not enough data in chunk')
 
-        input_tensor = self.data_one_hot.narrow(dimension=0, start=index, length=self.seq_len - 1)
-        target_tensor = self.data_one_hot.narrow(dimension=0, start=index + 1, length=self.seq_len - 1)
+        input_tensor = self.data_one_hot.narrow(dim=0, start=index, length=self.seq_len - 1)
+        target_tensor = self.data_one_hot.narrow(dim=0, start=index + 1, length=self.seq_len - 1)
 
         return input_tensor, target_tensor
 

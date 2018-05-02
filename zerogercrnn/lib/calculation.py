@@ -1,14 +1,11 @@
 import torch
-from torch.autograd import Variable
-
-from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 
 
 def shift_left(matrix, dimension):
     """Shift tensor left by one along specified dimension. This operation performed in-place"""
     m_len = matrix.size()[dimension]
-    matrix.narrow(dimension=dimension, start=0, length=m_len - 1) \
-        .copy_(matrix.narrow(dimension=dimension, start=1, length=m_len - 1))
+    matrix.narrow(dim=dimension, start=0, length=m_len - 1) \
+        .copy_(matrix.narrow(dim=dimension, start=1, length=m_len - 1))
 
 
 def calc_attention_combination(attention_weights, matrix):
@@ -29,7 +26,7 @@ def drop_matrix_rows_3d(matrix, forget_vector):
     :param forget_vector: size - [N1, 1]
     :return: size - [N1, N2, N3]
     """
-    return matrix.mul(forget_vector.unsqueeze(2), out=matrix)
+    return matrix.mul(forget_vector.unsqueeze(2))
 
 
 def select_layered_hidden(layered_hidden, node_depths):
@@ -41,21 +38,17 @@ def select_layered_hidden(layered_hidden, node_depths):
     batch_size = layered_hidden.size()[0]
     layers_num = layered_hidden.size()[1]
     hidden_size = layered_hidden.size()[2]
-    if isinstance(layered_hidden, Variable):
-        depths_one_hot = layered_hidden.data.new(batch_size, layers_num)
-    else:
-        depths_one_hot = layered_hidden.new(batch_size, layers_num)
+    depths_one_hot = layered_hidden.new(batch_size, layers_num)
 
     depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1)
     mask = depths_one_hot.unsqueeze(2).byte()
-    if isinstance(layered_hidden, Variable):
-        mask = wrap_cuda_no_grad_variable(mask, cuda=layered_hidden.is_cuda, no_grad=True)
+    mask = mask.to(layered_hidden.device)
 
     return torch.masked_select(layered_hidden, mask).view(batch_size, 1, hidden_size)
 
 
 def set_layered_hidden(layered_hidden, node_depths, updated):
-    """Returns new variable that represents updated hidden state. Only layers that specified in node_depths get updated.
+    """Returns new tensor that represents updated hidden state. Only layers that specified in node_depths get updated.
 
     :param layered_hidden: tensor of size [batch_size, layers_num, hidden_size]
     :param node_depths: for each batch line contains layer that should be updated. shape: [batch_size]
@@ -67,10 +60,6 @@ def set_layered_hidden(layered_hidden, node_depths, updated):
 
     node_depths_update = node_depths.unsqueeze(1).unsqueeze(2).expand(batch_size, 1, hidden_size)
     updated = updated.unsqueeze(1)
-
-    if isinstance(layered_hidden, Variable):
-        node_depths_update = wrap_cuda_no_grad_variable(
-            node_depths_update, cuda=layered_hidden.is_cuda, no_grad=True
-        )
+    node_depths_update.to(layered_hidden.device)
 
     return layered_hidden.scatter(1, node_depths_update, updated)
