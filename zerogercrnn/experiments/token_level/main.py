@@ -61,8 +61,13 @@ def calc_accuracy(args):
     hidden = None
     it = 0
     for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden,
-                                               batch_size=args.batch_size, cuda=args.cuda)
+        prediction, target, hidden = run_model(
+            model=model,
+            iter_data=iter_data,
+            hidden=hidden,
+            batch_size=args.batch_size,
+            cuda=args.cuda
+        )
 
         measurer.report((prediction, target))
 
@@ -115,8 +120,13 @@ class TokenLevelRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        prediction, n_target, hidden = run_model(model=self.model, iter_data=iter_data, hidden=self.hidden,
-                                                 batch_size=self.batch_size, cuda=self.cuda)
+        prediction, n_target, hidden = run_model(
+            model=self.model,
+            iter_data=iter_data,
+            hidden=self.hidden,
+            batch_size=self.batch_size,
+            cuda=self.cuda
+        )
         self.hidden = hidden
 
         loss = self.calc_loss(prediction, n_target)
