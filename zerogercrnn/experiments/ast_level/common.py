@@ -93,6 +93,7 @@ class Main:
             plotter=self.plotter,
             save_dir=args.model_save_dir,
             title=args.title,
+            report_train_every=10,
             plot_train_every=50
         )
 
@@ -101,6 +102,7 @@ class Main:
     def eval(self, args, print_every=1000):
         self.metrics.drop_state()
         self.model.eval()
+        self.metrics.eval()
         it = 0
         for iter_data in self.data_generator.get_eval_generator():
             metrics_values = self.validation_routine.run(

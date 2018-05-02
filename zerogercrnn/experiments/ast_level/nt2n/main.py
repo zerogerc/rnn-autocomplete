@@ -2,7 +2,7 @@ import torch
 
 from zerogercrnn.experiments.ast_level.common import Main
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
 
@@ -39,7 +39,7 @@ class ASTRoutine(NetworkRoutine):
     def optimize(self, loss):
         # Backward pass
         loss.backward()
-        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.parameters()), 5)
+        torch.nn.utils.clip_grad_norm_(filter_requires_grad(self.model.parameters()), 5)
 
         # Optimizer step
         for optimizer in self.optimizers:
@@ -96,4 +96,4 @@ class NT2NMain(Main):
         )
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return MaxPredictionAccuracyMetrics()

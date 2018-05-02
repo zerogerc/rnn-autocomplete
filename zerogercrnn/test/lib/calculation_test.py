@@ -1,6 +1,6 @@
 import torch
 
-from zerogercrnn.lib.calculation import shift_left, calc_attention_combination, drop_matrix_rows_3d, \
+from zerogercrnn.lib.calculation import shift_left, pad_tensor, calc_attention_combination, drop_matrix_rows_3d, \
     select_layered_hidden, set_layered_hidden
 from zerogercrnn.testutils.utils import assert_tensors_equal
 
@@ -17,6 +17,29 @@ def test_move_right_should_move_dim1():
     dimension = 1
     shift_left(matrix, dimension)
     assert_tensors_equal(matrix, torch.LongTensor([[2, 3, 3], [2, 3, 3], [2, 3, 3]]))
+
+
+def test_pad_tensor_long():
+    tensor = torch.tensor([1, 2, 3], dtype=torch.long)
+    assert_tensors_equal(pad_tensor(tensor, seq_len=5), torch.tensor([1, 2, 3, 3, 3], dtype=torch.long))
+
+
+def test_pad_tensor_float():
+    tensor = torch.tensor([0., 0.5, 1.2], dtype=torch.float32)
+    assert_tensors_equal(
+        pad_tensor(tensor, seq_len=6),
+        torch.tensor([0., 0.5, 1.2, 1.2, 1.2, 1.2], dtype=torch.float32)
+    )
+
+
+def test_pad_tensor_2d():
+    tensor = torch.tensor([[3, 2, 1], [0, 10, 5]], dtype=torch.long)
+    assert_tensors_equal(
+        pad_tensor(tensor, seq_len=4),
+        torch.tensor(
+            [[3, 2, 1], [0, 10, 5], [0, 10, 5], [0, 10, 5]],
+            dtype=torch.float32)
+    )
 
 
 def test_calc_attention_combination_should_work():

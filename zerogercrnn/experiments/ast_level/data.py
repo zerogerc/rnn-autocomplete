@@ -1,6 +1,8 @@
 import json
+
 import torch
 
+from zerogercrnn.lib.calculation import pad_tensor
 from zerogercrnn.lib.data.general import DataReader
 from zerogercrnn.lib.data.programs_batch import DataChunk, BatchedDataGenerator, split_train_validation
 from zerogercrnn.lib.embedding import Embeddings
@@ -10,24 +12,11 @@ from zerogercrnn.lib.utils import setup_tensor
 ENCODING = 'ISO-8859-1'
 
 
-def pad_tensor(tensor, seq_len, cuda):
-    """Pad tensor with last element."""
-    assert len(tensor.size()) == 1
-
-    tail = torch.LongTensor([tensor[-1]]).expand(seq_len - tensor.size()[0] % seq_len)
-    tensor = torch.cat((tensor, tail))
-
-    assert tensor.size()[0] % seq_len == 0
-    if cuda:
-        tensor = tensor.cuda()
-
-    return tensor
-
-
 class ASTInput:
     def __init__(self, non_terminals, terminals, nodes_depth=None):
         self.non_terminals = non_terminals
         self.terminals = terminals
+        self.current_non_terminals = None
         self.nodes_depth = nodes_depth
 
     @staticmethod
@@ -79,7 +68,7 @@ class TensorData:
         self.cuda = cuda
 
     def prepare_data(self, seq_len):
-        self.data = pad_tensor(self.data, seq_len=seq_len, cuda=self.cuda)
+        self.data = pad_tensor(self.data, seq_len=seq_len)
 
     def get_by_index(self, index, seq_len):
         if index + seq_len > self.size():

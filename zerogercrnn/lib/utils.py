@@ -10,15 +10,15 @@ def init_recurrent_layers(*layers):
     for layer in layers:
         for name, param in layer.named_parameters():
             if 'bias' in name:
-                nn.init.constant(param, 0.0)
+                nn.init.constant_(param, 0.0)
             elif 'weight' in name:
-                nn.init.xavier_normal(param)
+                nn.init.xavier_normal_(param)
 
 
 def init_layers_uniform(min_value, max_value, layers):
     for layer in layers:
         for name, param in layer.named_parameters():
-            nn.init.uniform(param, min_value, max_value)
+            nn.init.uniform_(param, min_value, max_value)
 
 
 def repackage_hidden(h):

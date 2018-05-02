@@ -148,5 +148,5 @@ class ContextAttention(BaseModule):
         # Calc current context vector as sum of previous contexts multiplied by attention coefficients
         cntx = calc_attention_combination(attn_weights, current_context)
 
-        self.context_buffer.add_vector(h_t.data)
+        self.context_buffer.add_vector(h_t)
         return cntx

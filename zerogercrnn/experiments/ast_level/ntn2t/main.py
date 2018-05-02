@@ -2,29 +2,28 @@ import torch
 import torch.nn as nn
 
 from zerogercrnn.experiments.ast_level.common import Main
+from zerogercrnn.experiments.ast_level.data import ASTInput, ASTTarget
 from zerogercrnn.experiments.ast_level.ntn2t.model import NTN2TBaseModel
-from zerogercrnn.lib.utils import filter_requires_grad
-from zerogercrnn.lib.utils import setup_tensor
-from zerogercrnn.lib.metrics import AccuracyMetrics
+from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, TerminalAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
+from zerogercrnn.lib.utils import filter_requires_grad
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
-    ((nt_input, t_input), (nt_target, t_target)), forget_vector = iter_data
+    (m_input, m_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    nt_input = setup_tensor(nt_input, cuda=cuda)
-    t_input = setup_tensor(t_input, cuda=cuda)
-    nt_target = setup_tensor(nt_target, cuda=cuda)
-    t_target = setup_tensor(t_target, cuda=cuda)
+    m_input = ASTInput.setup(m_input, cuda=cuda)
+    m_target = ASTTarget.setup(m_target, cuda=cuda)
+    m_input.current_non_terminals = m_target.non_terminals
 
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
 
     model.zero_grad()
-    prediction, hidden = model(nt_input, t_input, nt_target, hidden, forget_vector=forget_vector)
+    prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)
 
-    return prediction, t_target, hidden
+    return prediction, m_target.terminals, hidden
 
 
 class NTN2TRoutine(NetworkRoutine):
@@ -46,7 +45,7 @@ class NTN2TRoutine(NetworkRoutine):
     def optimize(self, loss):
         # Backward pass
         loss.backward()
-        torch.nn.utils.clip_grad_norm(filter_requires_grad(self.model.parameters()), 5)
+        torch.nn.utils.clip_grad_norm_(filter_requires_grad(self.model.parameters()), 5)
 
         # Optimizer step
         for optimizer in self.optimizers:
@@ -107,4 +106,7 @@ class NTN2TMain(Main):
         return nn.CrossEntropyLoss()
 
     def create_metrics(self, args):
-        return AccuracyMetrics()
+        return SequentialMetrics(metrics=[
+            MaxPredictionAccuracyMetrics(),
+            TerminalAccuracyMetrics()
+        ])
