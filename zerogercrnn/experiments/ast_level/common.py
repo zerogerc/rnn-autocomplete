@@ -1,13 +1,11 @@
 from abc import abstractmethod
-
 from torch import nn as nn
 
 from zerogercrnn.experiments.ast_level.data import ASTDataReader, ASTDataGenerator
-
-from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.experiments.common import get_optimizers, get_scheduler_args
-from zerogercrnn.lib.run import TrainEpochRunner
+from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.lib.run import TrainEpochRunner
 
 
 def create_terminal_embeddings(args):
@@ -15,6 +13,14 @@ def create_terminal_embeddings(args):
         embeddings_size=args.terminal_embedding_dim,
         vector_file=args.terminal_embeddings_file,
         squeeze=True
+    )
+
+
+def create_non_terminal_embeddings(args):
+    return Embeddings(
+        embeddings_size=args.non_terminal_embedding_dim,
+        vector_file=args.non_terminal_embeddings_file,
+        squeeze=False
     )
 
 
@@ -40,7 +46,8 @@ def create_data_generator(args):
 
 class Main:
     def __init__(self, args):
-        self.terminal_embeddings = create_terminal_embeddings(args)
+        self.non_terminal_embeddings = self.create_non_terminal_embeddings(args)
+        self.terminal_embeddings = self.create_terminal_embeddings(args)
 
         self.model = self.create_model(args)
         self.load_model(args)
@@ -109,8 +116,11 @@ class Main:
         self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)  # TODO: maybe cleaner?
         self.metrics.get_current_value(should_print=True)
 
-    def create_terminals_embeddings(self, args):
+    def create_terminal_embeddings(self, args):
         return create_terminal_embeddings(args)
+
+    def create_non_terminal_embeddings(self, args):
+        return None
 
     def create_optimizers(self, args):
         return get_optimizers(args, self.model)

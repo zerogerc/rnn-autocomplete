@@ -1,27 +1,30 @@
 import torch
+import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.common import Main
-from zerogercrnn.experiments.ast_level.data import ASTInput, ASTTarget
-from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
+from zerogercrnn.experiments.ast_level.common import Main, create_non_terminal_embeddings
+from zerogercrnn.experiments.ast_level.nt2n_pre.model import NT2NBothTNTPretrainedModel
 from zerogercrnn.lib.metrics import AccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
+from zerogercrnn.lib.utils import wrap_cuda_no_grad_variable
 
 
 def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
-    (m_input, m_target), forget_vector = iter_data
+    ((nt_input, t_input), (nt_target, t_target)), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    m_input = ASTInput.wrap_cuda_no_grad(m_input, cuda, no_grad)
-    m_target = ASTTarget.wrap_cuda_no_grad(m_target, cuda, no_grad)
+    nt_input = wrap_cuda_no_grad_variable(nt_input, cuda=cuda, no_grad=no_grad)
+    t_input = wrap_cuda_no_grad_variable(t_input, cuda=cuda, no_grad=no_grad)
+    nt_target = wrap_cuda_no_grad_variable(nt_target, cuda=cuda, no_grad=no_grad)
+    t_target = wrap_cuda_no_grad_variable(t_target, cuda=cuda, no_grad=no_grad)
 
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size, cuda=cuda, no_grad=no_grad)
 
     model.zero_grad()
-    prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)
+    prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)
 
-    return prediction, m_target.non_terminals, hidden
+    return prediction, nt_target, hidden
 
 
 class ASTRoutine(NetworkRoutine):
@@ -67,11 +70,14 @@ class ASTRoutine(NetworkRoutine):
         return prediction, target
 
 
-class NT2NMain(Main):
+class NT2NBothTNTPretrainedMain(Main):
+
+    def create_non_terminal_embeddings(self, args):
+        return create_non_terminal_embeddings(args)
+
     def create_model(self, args):
-        return NT2NBaseModel(
-            non_terminals_num=args.non_terminals_num,
-            non_terminal_embedding_dim=args.non_terminal_embedding_dim,
+        return NT2NBothTNTPretrainedModel(
+            non_terminal_embeddings=self.non_terminal_embeddings,
             terminal_embeddings=self.terminal_embeddings,
             hidden_dim=args.hidden_size,
             prediction_dim=args.non_terminals_num,
@@ -98,6 +104,9 @@ class NT2NMain(Main):
             optimizers=None,
             cuda=args.cuda
         )
+
+    def create_criterion(self, args):
+        return nn.CrossEntropyLoss()
 
     def create_metrics(self, args):
         return AccuracyMetrics()

@@ -1,9 +1,10 @@
 import argparse
-
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2n_cross.main import NT2NCrossMain
+from zerogercrnn.experiments.ast_level.nt2n_pre.main import NT2NBothTNTPretrainedMain
+from zerogercrnn.experiments.ast_level.nt2n_seq.main import NT2NSequentialMain
 from zerogercrnn.experiments.ast_level.nt2n_sum.main import NT2NSumAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
@@ -21,13 +22,19 @@ add_recurrent_core_args(parser)
 add_non_terminal_args(parser)
 add_terminal_args(parser)
 parser.add_argument('--terminal_embeddings_file', type=str, help='File with pretrained terminal embeddings')
-parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
+parser.add_argument('--non_terminal_embeddings_file', type=str, help='File with pretrained non terminal embeddings')
+
+parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_pre, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
 parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 
 
 def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
+    elif args.prediction == 'nt2n_seq':
+        main = NT2NSequentialMain(args)
+    elif args.prediction == 'nt2n_pre':
+        main = NT2NBothTNTPretrainedMain(args)
     elif args.prediction == 'nt2n_cross':
         main = NT2NCrossMain(args)
     elif args.prediction == 'nt2n_tail':
@@ -57,6 +64,7 @@ def evaluate(args):
 
 
 if __name__ == '__main__':
+    print(torch.__version__)
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log

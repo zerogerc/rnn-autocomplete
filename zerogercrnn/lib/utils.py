@@ -20,10 +20,15 @@ def init_layers_uniform(min_value, max_value, layers):
             nn.init.uniform(param, min_value, max_value)
 
 
+def repackage_variable(v):
+    assert isinstance(v, Variable)
+    return Variable(v.data, volatile=v.volatile)
+
+
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
     if type(h) == Variable:
-        return h.detach()
+        return repackage_variable(h)
     else:
         return tuple(repackage_hidden(v) for v in h)
 

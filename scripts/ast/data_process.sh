@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PYTHONPATH=. python3 scripts/ast/data_process.py \
+PYTHONPATH=. python3 -m cProfile -o perf.prof scripts/ast/data_process.py \
     --file_train_raw "data/programs_training.json" \
     --file_eval_raw "data/programs_eval.json" \
     --file_non_terminals "data/ast/non_terminals.json" \
@@ -11,4 +11,5 @@ PYTHONPATH=. python3 scripts/ast/data_process.py \
     --file_eval "data/ast/file_eval.json" \
     --file_glove_map "data/ast/terminals_map.json" \
     --file_glove_vocab "data/ast/vocab.txt" \
-    --file_glove_terminals "data/ast/glove_terminals.json"
+    --file_glove_terminals "data/ast/glove_terminals.json" \
+    --file_glove_non_terminals "data/ast/glove_non_terminals_corpus.txt"
