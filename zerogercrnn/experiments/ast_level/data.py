@@ -176,15 +176,21 @@ class ASTDataReader(DataReader):
             for line in tqdm_lim(f, total=total, lim=limit):
                 nodes = json.loads(line)
 
-                non_terminals_one_hot = torch.LongTensor(len(nodes))
-                terminals_one_hot = torch.LongTensor(len(nodes))
-                nodes_depth = torch.LongTensor(len(nodes))
+                def create_tensors():
+                    return torch.tensor((), dtype=torch.long).new_empty(len(nodes)), \
+                           torch.tensor((), dtype=torch.long).new_empty(len(nodes)), \
+                           torch.tensor((), dtype=torch.long).new_empty(len(nodes))
+
+                non_terminals_one_hot, terminals_one_hot, nodes_depth = create_tensors()
 
                 it = 0
                 for node in nodes:
-                    non_terminals_one_hot[it] = int(node['N'])
-                    terminals_one_hot[it] = int(node['T'])
-                    nodes_depth[it] = int(node['d'])
+                    def set_values():
+                        non_terminals_one_hot[it] = int(node['N'])
+                        terminals_one_hot[it] = int(node['T'])
+                        nodes_depth[it] = int(node['d'])
+
+                    set_values()
                     it += 1
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
