@@ -1,6 +1,7 @@
 import json
 
 import torch
+import numpy as np
 
 from zerogercrnn.lib.calculation import pad_tensor
 from zerogercrnn.lib.data import DataChunk, BatchedDataGenerator, split_train_validation, DataReader
@@ -67,6 +68,7 @@ class TensorData:
         self.cuda = cuda
 
     def prepare_data(self, seq_len):
+        self.data = setup_tensor(self.data, cuda=self.cuda)
         self.data = pad_tensor(self.data, seq_len=seq_len)
 
     def get_by_index(self, index, seq_len):
@@ -87,14 +89,10 @@ class ASTOneHotChunk(DataChunk):
         self.seq_len = None
 
     def prepare_data(self, seq_len):
-        assert len(self.data_one_hot.size()) == 1
         self.seq_len = seq_len
 
-        tail = torch.LongTensor([self.data_one_hot[-1]]).expand(self.seq_len - self.size() % self.seq_len)
-        self.data_one_hot = torch.cat((self.data_one_hot, tail))
-        assert self.size() % seq_len == 0
-        if self.cuda:
-            self.data_one_hot = self.data_one_hot.cuda()
+        self.data_one_hot = setup_tensor(self.data_one_hot, cuda=self.cuda)
+        self.data_one_hot = pad_tensor(self.data_one_hot, seq_len=seq_len)
 
     def get_by_index(self, index):
         if self.seq_len is None:
@@ -177,9 +175,9 @@ class ASTDataReader(DataReader):
                 nodes = json.loads(line)
 
                 def create_tensors():
-                    return torch.tensor((), dtype=torch.long).new_empty(len(nodes)), \
-                           torch.tensor((), dtype=torch.long).new_empty(len(nodes)), \
-                           torch.tensor((), dtype=torch.long).new_empty(len(nodes))
+                    return np.empty(len(nodes), dtype=int), \
+                           np.empty(len(nodes), dtype=int), \
+                           np.empty(len(nodes), dtype=int)
 
                 non_terminals_one_hot, terminals_one_hot, nodes_depth = create_tensors()
 
@@ -195,9 +193,9 @@ class ASTDataReader(DataReader):
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
                 chunks.append(ASTDataChunk(
-                    non_terminals_one_hot=non_terminals_one_hot,
-                    terminals_one_hot=terminals_one_hot,
-                    nodes_depth=nodes_depth,
+                    non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
+                    terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
+                    nodes_depth=torch.tensor(nodes_depth, dtype=torch.long),
                     cuda=self.cuda
                 ))
 
