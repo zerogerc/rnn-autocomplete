@@ -68,7 +68,6 @@ class TensorData:
         self.cuda = cuda
 
     def prepare_data(self, seq_len):
-        self.data = setup_tensor(self.data, cuda=self.cuda)
         self.data = pad_tensor(self.data, seq_len=seq_len)
 
     def get_by_index(self, index, seq_len):
@@ -90,8 +89,6 @@ class ASTOneHotChunk(DataChunk):
 
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
-
-        self.data_one_hot = setup_tensor(self.data_one_hot, cuda=self.cuda)
         self.data_one_hot = pad_tensor(self.data_one_hot, seq_len=seq_len)
 
     def get_by_index(self, index):
@@ -174,21 +171,15 @@ class ASTDataReader(DataReader):
             for line in tqdm_lim(f, total=total, lim=limit):
                 nodes = json.loads(line)
 
-                def create_tensors():
-                    return np.empty(len(nodes), dtype=int), \
-                           np.empty(len(nodes), dtype=int), \
-                           np.empty(len(nodes), dtype=int)
-
-                non_terminals_one_hot, terminals_one_hot, nodes_depth = create_tensors()
+                non_terminals_one_hot = np.empty(len(nodes), dtype=int)
+                terminals_one_hot = np.empty(len(nodes), dtype=int)
+                nodes_depth = np.empty(len(nodes), dtype=int)
 
                 it = 0
                 for node in nodes:
-                    def set_values():
-                        non_terminals_one_hot[it] = int(node['N'])
-                        terminals_one_hot[it] = int(node['T'])
-                        nodes_depth[it] = int(node['d'])
-
-                    set_values()
+                    non_terminals_one_hot[it] = int(node['N'])
+                    terminals_one_hot[it] = int(node['T'])
+                    nodes_depth[it] = int(node['d'])
                     it += 1
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
