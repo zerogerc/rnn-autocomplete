@@ -52,7 +52,7 @@ class Attn(BaseModule):
         self.hidden_size = hidden_size
 
         if self.method == 'general':
-            self.attn = nn.Linear(self.hidden_size, hidden_size)
+            self.attn = nn.Linear(self.hidden_size, self.hidden_size)
             init_layers_uniform(-0.05, 0.05, [self.attn])
 
         # elif self.method == 'concat':
