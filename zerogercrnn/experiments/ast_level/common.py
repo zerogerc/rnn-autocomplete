@@ -6,6 +6,7 @@ from zerogercrnn.experiments.common import get_optimizers, get_scheduler_args
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.run import TrainEpochRunner
+from zerogercrnn.lib.utils import get_device
 
 
 def create_terminal_embeddings(args):
@@ -53,7 +54,7 @@ class Main:
         self.load_model(args)
 
         if args.cuda:
-            self.model = self.model.cuda()
+            self.model = self.model.to(get_device(args.cuda))
 
         self.optimizers = self.create_optimizers(args)
         self.schedulers = self.create_schedulers(args)

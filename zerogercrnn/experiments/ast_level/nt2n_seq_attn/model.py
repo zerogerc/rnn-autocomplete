@@ -7,7 +7,7 @@ from zerogercrnn.lib.core import EmbeddingsModule, PretrainedEmbeddingsModule, L
     LinearLayer, CombinedModule, BaseModule
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
-from zerogercrnn.lib.utils import setup_tensor, get_device
+from zerogercrnn.lib.utils import setup_tensor
 
 
 def create_one_hot_depths(node_depths, batch_size, layers_num):
@@ -119,14 +119,13 @@ class NT2NLayeredAttentionModel(CombinedModule):
         ))
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
-        device = "cuda:0"
-        assert m_input.non_terminals.device == device
-        assert m_input.terminals.device == device
-        assert m_input.nodes_depth.device == device
-        assert c_hidden[0][0].device == device
-        assert c_hidden[0][1].device == device
-        assert c_hidden[1][0].device == device
-        assert c_hidden[1][1].device == device
+        print(m_input.non_terminals.device)
+        print(m_input.terminals.device)
+        print(m_input.nodes_depth.device)
+        print(c_hidden[0][0].device)
+        print(c_hidden[0][1].device)
+        print(c_hidden[1][0].device)
+        print(c_hidden[1][1].device)
 
         hidden, layered_hidden = c_hidden
 
