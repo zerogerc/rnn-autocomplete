@@ -17,8 +17,6 @@ parser.add_argument('--embeddings_file', type=str, help='File with embedding vec
 parser.add_argument('--data_limit', type=int, help='How much lines of data to process (only for fast checking)')
 parser.add_argument('--model_save_dir', type=str, help='Where to save trained models')
 parser.add_argument('--saved_model', type=str, help='File with trained model if not fresh train')
-parser.add_argument('--cuda', action='store_true', help='Use cuda?')
-parser.add_argument('--real_data', action='store_true', help='Use real data?')
 parser.add_argument('--log', action='store_true', help='Log performance?')
 parser.add_argument('--vocab', type=str, help='Vocabulary of used tokens')
 
@@ -40,7 +38,7 @@ ENCODING = 'ISO-8859-1'
 
 def load_model(args, model):
     if args.saved_model is not None:
-        if args.cuda:
+        if torch.cuda.is_available():
             load_if_saved(model, args.saved_model)
         else:
             load_cuda_on_cpu(model, args.saved_model)
@@ -56,13 +54,7 @@ def load_dictionary(tokens_path):
 
 
 def single_data_prediction(args, model, iter_data, hidden):
-    prediction, target, hidden = run_model(
-        model=model,
-        iter_data=iter_data,
-        hidden=hidden,
-        batch_size=args.batch_size,
-        cuda=args.cuda
-    )
+    prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden, batch_size=args.batch_size)
     return prediction, target, hidden
 
 
@@ -110,7 +102,7 @@ def print_prediction(args):
         raise Exception('batch_size should be 1 for visualization')
 
     if args.saved_model is not None:
-        if args.cuda:
+        if torch.cuda.is_available():
             load_if_saved(model, args.saved_model)
         else:
             load_cuda_on_cpu(model, args.saved_model)

@@ -9,7 +9,6 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --data_limit 10000 \
     --model_save_dir saved/$2 \
     --saved_model $3 \
-    --real_data \
     --cuda \
     --eval \
     --seq_len 50 \

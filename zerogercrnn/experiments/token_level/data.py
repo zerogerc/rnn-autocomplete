@@ -3,8 +3,8 @@ import json
 import torch
 from tqdm import tqdm
 
-from zerogercrnn.lib.utils import get_device
 from zerogercrnn.lib.data import DataChunk, BatchedDataGenerator, split_train_validation, DataReader
+from zerogercrnn.lib.utils import get_best_device
 
 # hack for tqdm
 tqdm.monitor_interval = 0
@@ -20,14 +20,13 @@ ENCODING = 'ISO-8859-1'
 class TokensDataChunk(DataChunk):
     """Wrapper on tensor of size [program_len, embedding_size]."""
 
-    def __init__(self, one_hot_tensor, embeddings: Embeddings, cuda):
+    def __init__(self, one_hot_tensor, embeddings: Embeddings):
         super().__init__()
 
         self.embeddings = embeddings
         self.embeddings_cache = None
         self.one_hot_tensor = one_hot_tensor
         self.seq_len = None
-        self.cuda = cuda
 
     def prepare_data(self, seq_len):
         self.seq_len = seq_len
@@ -42,8 +41,8 @@ class TokensDataChunk(DataChunk):
         )
         self.embeddings_cache = self.embeddings.index_select(self.one_hot_tensor)
 
-        self.one_hot_tensor = self.one_hot_tensor.to(get_device(self.cuda))
-        self.embeddings_cache = self.embeddings_cache.to(get_device(self.cuda))
+        self.one_hot_tensor = self.one_hot_tensor.to(get_best_device())
+        self.embeddings_cache = self.embeddings_cache.to(get_best_device())
 
     def drop_cache(self):
         self.embeddings_cache = None
@@ -71,8 +70,8 @@ class TokensDataChunk(DataChunk):
 
 class TokensDataGenerator(BatchedDataGenerator):
 
-    def __init__(self, data_reader: DataReader, seq_len, batch_size, embeddings_size, cuda):
-        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size, cuda=cuda)
+    def __init__(self, data_reader: DataReader, seq_len, batch_size, embeddings_size):
+        super().__init__(data_reader, seq_len=seq_len, batch_size=batch_size)
 
         self.embeddings_size = embeddings_size
 
@@ -94,15 +93,9 @@ class TokensDataGenerator(BatchedDataGenerator):
 class MockDataReader:
     """Fast analog of DataReader for testing."""
 
-    def __init__(self, cuda=True):
-        self.cuda = cuda and torch.cuda.is_available()
-
+    def __init__(self):
         e_t = torch.randn((100, 50))
         o_t = torch.ones(100)
-
-        if self.cuda:
-            e_t.cuda()
-            o_t.cude()
 
         self.data_train = [TokensDataChunk(e_t, o_t) for i in range(400)]
         self.data_validation = [TokensDataChunk(e_t, o_t) for i in range(400)]
@@ -112,16 +105,12 @@ class MockDataReader:
 class TokensDataReader(DataReader):
     """Reads the data from file and transform it to torch Tensors."""
 
-    def __init__(self, train_file, eval_file, embeddings: Embeddings, seq_len, cuda, limit=100000):
+    def __init__(self, train_file, eval_file, embeddings: Embeddings, seq_len, limit=100000):
         super().__init__()
         self.train_file = train_file
         self.eval_file = eval_file
         self.embeddings = embeddings
         self.seq_len = seq_len
-        self.cuda = cuda
-
-        if self.cuda:
-            self.embeddings.cuda()
 
         print('Start data reading')
         if self.train_file is not None:
@@ -148,46 +137,11 @@ class TokensDataReader(DataReader):
             it += 1
 
             tokens = json.loads(l)
-            one_hot = torch.LongTensor(tokens)
-            if self.cuda:
-                one_hot = one_hot.cuda()
+            one_hot = torch.LongTensor(tokens).to(get_best_device())
 
-            data.append(TokensDataChunk(
-                one_hot_tensor=one_hot,
-                embeddings=self.embeddings,
-                cuda=self.cuda
-            ))
+            data.append(TokensDataChunk(one_hot_tensor=one_hot, embeddings=self.embeddings))
 
             if (limit is not None) and (it == limit):
                 break
 
         return list(filter(lambda d: d.size() >= self.seq_len, data))
-
-
-if __name__ == '__main__':
-    # x = torch.FloatTensor(5, 4)
-    # ids = torch.LongTensor([0, 0, 1, 2, 1])
-    #
-    # print(torch.index_select(x, dim=0, index=ids))
-
-    emb = Embeddings(embeddings_size=50, vector_file=VECTOR_FILE)
-    x = 0
-    # data_reader = TokensDataReader(
-    #     train_file=TRAIN_FILE,
-    #     eval_file=None,
-    #     embeddings=emb,
-    #     seq_len=10,
-    #     cuda=False,
-    #     limit=1000
-    # )
-    #
-    # data_generator = TokensDataGenerator(
-    #     data_reader=data_reader,
-    #     seq_len=10,
-    #     batch_size=10,
-    #     cuda=False
-    # )
-    #
-    # for iter_data in data_generator.get_train_generator():
-    #     print(iter_data)
-    #     break

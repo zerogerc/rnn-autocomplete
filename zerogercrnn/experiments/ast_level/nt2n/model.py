@@ -3,7 +3,7 @@ import torch
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
     LogSoftmaxOutputLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden, get_device
 from zerogercrnn.experiments.ast_level.data import ASTInput
 
 
@@ -73,5 +73,5 @@ class NT2NBaseModel(CombinedModule):
 
         return prediction, new_hidden
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent_core.init_hidden(batch_size, cuda)
+    def init_hidden(self, batch_size):
+        return self.recurrent_core.init_hidden(batch_size)

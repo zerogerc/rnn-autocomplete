@@ -1,12 +1,13 @@
 import json
 
 import torch
+import numpy as np
 
 from zerogercrnn.lib.calculation import pad_tensor
 from zerogercrnn.lib.data import DataChunk, BatchedDataGenerator, split_train_validation, DataReader
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.log import tqdm_lim
-from zerogercrnn.lib.utils import setup_tensor
+from zerogercrnn.lib.utils import setup_tensor, get_best_device
 
 ENCODING = 'ISO-8859-1'
 
@@ -19,12 +20,12 @@ class ASTInput:
         self.nodes_depth = nodes_depth
 
     @staticmethod
-    def setup(input_data, cuda):
+    def setup(input_data):
         """Returns new ASTInput with tensors located on the needed devices."""
         return ASTInput(
-            non_terminals=setup_tensor(input_data.non_terminals, cuda),
-            terminals=setup_tensor(input_data.terminals, cuda),
-            nodes_depth=input_data.nodes_depth  # no gradients should be computed
+            non_terminals=setup_tensor(input_data.non_terminals),
+            terminals=setup_tensor(input_data.terminals),
+            nodes_depth=setup_tensor(input_data.nodes_depth)  # no gradients should be computed
         )
 
     @staticmethod
@@ -43,11 +44,11 @@ class ASTTarget:
         self.terminals = terminals
 
     @staticmethod
-    def setup(target_data, cuda):
+    def setup(target_data):
         """Returns new ASTTarget with tensors located on the needed devices."""
         return ASTTarget(
-            non_terminals=setup_tensor(target_data.non_terminals, cuda),
-            terminals=setup_tensor(target_data.terminals, cuda)
+            non_terminals=setup_tensor(target_data.non_terminals),
+            terminals=setup_tensor(target_data.terminals)
         )
 
     @staticmethod
@@ -62,9 +63,8 @@ class ASTTarget:
 class TensorData:
     """Class that holds tensor. Can pad tensor with last element and safely retrieve data by index."""
 
-    def __init__(self, data, cuda):
+    def __init__(self, data):
         self.data = data
-        self.cuda = cuda
 
     def prepare_data(self, seq_len):
         self.data = pad_tensor(self.data, seq_len=seq_len)
@@ -80,21 +80,14 @@ class TensorData:
 
 
 class ASTOneHotChunk(DataChunk):
-    def __init__(self, data_one_hot, cuda):
+    def __init__(self, data_one_hot):
         self.data_one_hot = data_one_hot
-        self.cuda = cuda
 
         self.seq_len = None
 
     def prepare_data(self, seq_len):
-        assert len(self.data_one_hot.size()) == 1
         self.seq_len = seq_len
-
-        tail = torch.LongTensor([self.data_one_hot[-1]]).expand(self.seq_len - self.size() % self.seq_len)
-        self.data_one_hot = torch.cat((self.data_one_hot, tail))
-        assert self.size() % seq_len == 0
-        if self.cuda:
-            self.data_one_hot = self.data_one_hot.cuda()
+        self.data_one_hot = pad_tensor(self.data_one_hot, seq_len=seq_len)
 
     def get_by_index(self, index):
         if self.seq_len is None:
@@ -113,19 +106,11 @@ class ASTOneHotChunk(DataChunk):
 
 class ASTDataChunk(DataChunk):
 
-    def __init__(self, non_terminals_one_hot, terminals_one_hot, nodes_depth, cuda):
+    def __init__(self, non_terminals_one_hot, terminals_one_hot, nodes_depth):
         self.seq_len = None
-        self.non_terminals_chunk = ASTOneHotChunk(
-            data_one_hot=non_terminals_one_hot,
-            cuda=cuda
-        )
-
-        self.terminals_chunk = ASTOneHotChunk(
-            data_one_hot=terminals_one_hot,
-            cuda=cuda
-        )
-
-        self.nodes_depth_data = TensorData(data=nodes_depth, cuda=cuda)
+        self.non_terminals_chunk = ASTOneHotChunk(non_terminals_one_hot)
+        self.terminals_chunk = ASTOneHotChunk(terminals_one_hot)
+        self.nodes_depth_data = TensorData(nodes_depth)
 
         assert self.non_terminals_chunk.size() == self.terminals_chunk.size()
 
@@ -153,9 +138,9 @@ class ASTDataChunk(DataChunk):
 
 class ASTDataReader(DataReader):
 
-    def __init__(self, file_train, file_eval, cuda, seq_len, number_of_seq=20, limit=None):
+    def __init__(self, file_train, file_eval, seq_len, number_of_seq=20, limit=None):
         super().__init__()
-        self.cuda = cuda
+        self.device = get_best_device()
         self.seq_len = seq_len
         self.number_of_seq = number_of_seq
 
@@ -176,9 +161,9 @@ class ASTDataReader(DataReader):
             for line in tqdm_lim(f, total=total, lim=limit):
                 nodes = json.loads(line)
 
-                non_terminals_one_hot = torch.LongTensor(len(nodes))
-                terminals_one_hot = torch.LongTensor(len(nodes))
-                nodes_depth = torch.LongTensor(len(nodes))
+                non_terminals_one_hot = np.empty(len(nodes), dtype=int)
+                terminals_one_hot = np.empty(len(nodes), dtype=int)
+                nodes_depth = np.empty(len(nodes), dtype=int)
 
                 it = 0
                 for node in nodes:
@@ -189,10 +174,9 @@ class ASTDataReader(DataReader):
 
                 tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
                 chunks.append(ASTDataChunk(
-                    non_terminals_one_hot=non_terminals_one_hot,
-                    terminals_one_hot=terminals_one_hot,
-                    nodes_depth=nodes_depth,
-                    cuda=self.cuda
+                    non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
+                    terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
+                    nodes_depth=torch.tensor(nodes_depth, dtype=torch.long)
                 ))
 
         if count_tails:
@@ -203,8 +187,8 @@ class ASTDataReader(DataReader):
 
 class ASTDataGenerator(BatchedDataGenerator):
 
-    def __init__(self, data_reader, seq_len, batch_size, cuda):
-        super().__init__(data_reader, seq_len, batch_size, cuda)
+    def __init__(self, data_reader, seq_len, batch_size):
+        super().__init__(data_reader, seq_len, batch_size)
 
     def _retrieve_batch(self, key, buckets):
         inputs = []
@@ -227,7 +211,6 @@ if __name__ == '__main__':
     data_reader = ASTDataReader(
         file_train=file_train,
         file_eval=None,
-        cuda=False,
         seq_len=10,
         number_of_seq=20,
         limit=200
@@ -235,8 +218,7 @@ if __name__ == '__main__':
     data_generator = ASTDataGenerator(
         data_reader=data_reader,
         seq_len=10,
-        batch_size=10,
-        cuda=False
+        batch_size=10
     )
 
     its = 0

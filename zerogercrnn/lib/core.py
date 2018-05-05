@@ -5,7 +5,7 @@ import torch
 from torch import nn as nn
 
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_device
+from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device
 
 
 class HealthCheck:
@@ -150,18 +150,18 @@ class RecurrentCore(BaseModule):
         output_tensor, hidden = self.recurrent(input_tensor, hidden)
         return output_tensor, hidden
 
-    def init_hidden(self, batch_size, cuda):
-        h = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda)
+    def init_hidden(self, batch_size):
+        h = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
         if self.model_type == 'lstm':
-            c = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)), cuda)
+            c = setup_tensor(torch.zeros((self.num_layers, batch_size, self.hidden_size)))
             return h, c
         else:
             return h
 
 
-def create_lstm_cell_hidden(hidden_size, batch_size, cuda):
-    h = setup_tensor(torch.zeros((batch_size, hidden_size)), cuda=cuda)
-    c = setup_tensor(torch.zeros((batch_size, hidden_size)), cuda=cuda)
+def create_lstm_cell_hidden(hidden_size, batch_size):
+    h = setup_tensor(torch.zeros((batch_size, hidden_size)))
+    c = setup_tensor(torch.zeros((batch_size, hidden_size)))
     return h, c
 
 
@@ -183,7 +183,7 @@ class LSTMCellDropout(BaseModule):
 
     def forward(self, input_tensor, hidden_state, reinit_dropout=False):
         if (self.dropout_mask is None) or reinit_dropout:
-            self._reinit_dropout_mask(input_tensor.size()[0], input_tensor.is_cuda)
+            self._reinit_dropout_mask(input_tensor.size()[0])
 
         hidden, cell = self.lstm_cell(input_tensor, hidden_state)
         if self.training:
@@ -191,12 +191,12 @@ class LSTMCellDropout(BaseModule):
         else:
             return hidden, cell
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        return create_lstm_cell_hidden(self.hidden_size, batch_size, cuda)
+    def init_hidden(self, batch_size):
+        return create_lstm_cell_hidden(self.hidden_size, batch_size)
 
-    def _reinit_dropout_mask(self, batch_size, cuda):
+    def _reinit_dropout_mask(self, batch_size):
         if self.dropout_mask is None:
-            tensor = torch.zeros(batch_size, self.hidden_size, dtype=torch.float32, device=get_device(cuda))
+            tensor = torch.zeros(batch_size, self.hidden_size, dtype=torch.float32, device=get_best_device())
         else:
             tensor = self.dropout_mask
 

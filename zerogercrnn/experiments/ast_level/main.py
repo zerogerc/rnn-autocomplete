@@ -5,6 +5,7 @@ from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2n_cross.main import NT2NCrossMain
 from zerogercrnn.experiments.ast_level.nt2n_pre.main import NT2NBothTNTPretrainedMain
 from zerogercrnn.experiments.ast_level.nt2n_seq.main import NT2NSequentialMain
+from zerogercrnn.experiments.ast_level.nt2n_seq_attn.main import NT2NSequentialAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_sum.main import NT2NSumAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
@@ -32,7 +33,9 @@ def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
     elif args.prediction == 'nt2n_seq':
-        main = NT2NSequentialMain(args)
+        main = NT2NSequentialAttentionMain(args)
+    elif args.prediction == 'nt2n_seq_attn':
+        main = NT2NSequentialAttentionMain(args)
     elif args.prediction == 'nt2n_pre':
         main = NT2NBothTNTPretrainedMain(args)
     elif args.prediction == 'nt2n_cross':
@@ -68,12 +71,6 @@ if __name__ == '__main__':
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log
-
-    if _args.cuda and not torch.cuda.is_available():
-        raise Exception("No GPU found, please run without --cuda")
-
-    if not _args.cuda:
-        print("WARNING: You are running without cuda. Is it ok?")
 
     if _args.eval:
         evaluate(_args)

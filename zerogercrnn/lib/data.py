@@ -4,6 +4,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from zerogercrnn.lib.utils import get_best_device
+
 
 def split_train_validation(data, split_coefficient):
     train_examples = int(len(data) * split_coefficient)
@@ -67,6 +69,8 @@ class DataChunk:
 
 
 class DataChunksPool:
+    """Pool with chunks of data. Able to split data into some parts to produce many epochs from one data pool."""
+
     def __init__(self, chunks, splits=1, shuffle=True):
         self.chunks = chunks
         self.splits = splits
@@ -90,6 +94,7 @@ class DataChunksPool:
         self.right = min(self.current + self.epoch_size, len(self.chunks))
 
     def get_chunk(self):
+        """Return next chunks of data in current epoch. Returns None if epoch is finished."""
         if self.current == self.right:
             return None
         else:
@@ -150,16 +155,13 @@ class DataBucket:
 
 
 class BucketsBatch:
-    def __init__(self, pool: DataChunksPool, seq_len, batch_size, cuda):
+    def __init__(self, pool: DataChunksPool, seq_len, batch_size):
         self.pool = pool
-        self.cuda = cuda
         self.seq_len = seq_len
         self.batch_size = batch_size
         self.buckets = []
 
-        self.forget_vector = torch.FloatTensor(batch_size, 1)
-        if self.cuda:
-            self.forget_vector = self.forget_vector.cuda()
+        self.forget_vector = torch.FloatTensor(batch_size, 1).to(get_best_device())
 
         def forget(x):
             self.forget_vector[x] = 0
@@ -181,34 +183,40 @@ class BucketsBatch:
         for b in self.buckets:
             b.refill_if_necessary()
 
-        while not self.pool.is_epoch_finished():
+        while True:
             self.forget_vector.fill_(1)
             yield retriever(self.buckets), self.forget_vector
+            if self.pool.is_epoch_finished():
+                should_exit = False
+                for b in self.buckets:
+                    if b.chunk is None:
+                        should_exit = True
+                if should_exit:
+                    break
 
 
 class BatchedDataGenerator(DataGenerator):
     """Provides batched data for training and evaluation of model."""
 
-    def __init__(self, data_reader, seq_len, batch_size, cuda):
+    def __init__(self, data_reader, seq_len, batch_size, shuffle=True):
         super(BatchedDataGenerator, self).__init__()
         self.data_reader = data_reader
         self.seq_len = seq_len
         self.batch_size = batch_size
-        self.cuda = cuda
 
         self.batches = {}
 
         if data_reader.train_data is not None:
-            self.train_pool = self._prepare_data_(data_reader.train_data)
-            self.train_batcher = BucketsBatch(self.train_pool, self.seq_len, self.batch_size, self.cuda)
+            self.train_pool = self._prepare_data_(data_reader.train_data, shuffle=shuffle)
+            self.train_batcher = BucketsBatch(self.train_pool, self.seq_len, self.batch_size)
 
         if data_reader.validation_data is not None:
-            self.validation_pool = self._prepare_data_(data_reader.validation_data)
-            self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size, self.cuda)
+            self.validation_pool = self._prepare_data_(data_reader.validation_data, shuffle=shuffle)
+            self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size)
 
         if data_reader.eval_data is not None:
-            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1)
-            self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size, self.cuda)
+            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1, shuffle=shuffle)
+            self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size)
 
     @abstractmethod
     def _retrieve_batch(self, key, buckets):
@@ -231,8 +239,8 @@ class BatchedDataGenerator(DataGenerator):
     def get_eval_generator(self):
         return self._get_batched_epoch('eval', self.eval_batcher)
 
-    def _prepare_data_(self, data, splits=5):
+    def _prepare_data_(self, data, splits=5, shuffle=True):
         for i in tqdm(range(len(data))):
             data[i].prepare_data(self.seq_len)
 
-        return DataChunksPool(chunks=data, splits=splits, shuffle=True)
+        return DataChunksPool(chunks=data, splits=splits, shuffle=shuffle)

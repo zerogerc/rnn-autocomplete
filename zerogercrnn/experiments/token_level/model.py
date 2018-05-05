@@ -35,5 +35,5 @@ class TokenLevelBaseModel(nn.Module):
 
         return prediction, hidden
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent.init_hidden(batch_size, cuda)
+    def init_hidden(self, batch_size):
+        return self.recurrent.init_hidden(batch_size)
