@@ -57,7 +57,6 @@ class NT2NBaseModel(CombinedModule):
     def forward(self, m_input: ASTInput, hidden, forget_vector):
         non_terminal_input = m_input.non_terminals
         terminal_input = m_input.terminals
-        assert m_input.non_terminals.device == get_device(True)
         assert non_terminal_input.size() == terminal_input.size()
         assert non_terminal_input.size() == terminal_input.size()
 
