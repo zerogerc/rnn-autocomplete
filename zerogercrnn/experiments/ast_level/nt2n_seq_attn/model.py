@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.attn import Attn
@@ -10,8 +11,8 @@ from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidd
 from zerogercrnn.lib.utils import setup_tensor
 
 
-def create_one_hot_depths(node_depths, batch_size, layers_num):
-    node_depths = torch.clamp(node_depths, min=0, max=layers_num)
+def create_one_hot_depths(node_depths, layers_num): # checked
+    batch_size = node_depths.size()[0]
     depths_one_hot = node_depths.new(batch_size, layers_num)
     return depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1).float()
 
@@ -30,11 +31,11 @@ class LayeredRecurrent(BaseModule):
     def __init__(self, input_size, tree_layers, single_hidden_size, dropout=0.):
         super().__init__()
         self.input_size = input_size
-        self.single_hidden_size = single_hidden_size
         self.tree_layers = tree_layers
+        self.single_hidden_size = single_hidden_size
         self.output_size = single_hidden_size * 1
         self.layered_recurrent = LSTMCellDropout(
-            input_size=self.input_size,
+            input_size=self.input_size + self.tree_layers,
             hidden_size=self.single_hidden_size,
             dropout=dropout
         )
@@ -43,19 +44,22 @@ class LayeredRecurrent(BaseModule):
         layered_hidden = forget_hidden_partly_lstm_cell(
             h=layered_hidden,
             forget_vector=forget_vector.unsqueeze(1)
-        )  # TODO: check that shit
+        ) # checked
         return repackage_hidden(layered_hidden)
 
     def pick_current_output(self, layered_hidden, nodes_depth):
         o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))
-        # o_prev = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth - 1, min=0, max=self.tree_layers - 1))
-        # o_next = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth + 1, min=0, max=self.tree_layers - 1))
         return o_cur.squeeze()
 
     def forward(self, m_input, nodes_depth, layered_hidden, forget_vector, reinit_dropout):
         nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
+        nodes_depth_one_hot = create_one_hot_depths(nodes_depth, self.tree_layers)
         l_h, l_c = select_layered_lstm_hidden(layered_hidden, nodes_depth)
-        l_h, l_c = self.layered_recurrent(m_input, (l_h, l_c), reinit_dropout=reinit_dropout)
+        l_h, l_c = self.layered_recurrent(
+            torch.cat((m_input, nodes_depth_one_hot), dim=-1),
+            (l_h, l_c),
+            reinit_dropout=reinit_dropout
+        )
         return update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
 
     def init_hidden(self, batch_size):
@@ -136,7 +140,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
         sl = combined_input.size()[0]
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
-            # node_depths_one_hot = create_one_hot_depths(node_depths[i], node_depths[i].size()[0], self.num_tree_layers)
             layered_hidden = self.layered_recurrent(
                 m_input=combined_input[i],
                 nodes_depth=node_depths[i],
