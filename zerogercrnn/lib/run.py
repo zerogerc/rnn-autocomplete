@@ -148,16 +148,16 @@ class TrainEpochRunner:
                 iter_data=iter_data
             )
 
-            if self.it % self.report_train_every == 0:
-                self.metrics.report(metrics_values)
+            # if self.it % self.report_train_every == 0:
 
             if self.it % self.plot_train_every == 0:
+                self.metrics.drop_state()
+                self.metrics.report(metrics_values)
                 self.plotter.on_new_point(
                     label='train',
                     x=self.it,
                     y=self.metrics.get_current_value(should_print=False)
                 )
-                self.metrics.drop_state()
 
             self.it += 1
 
