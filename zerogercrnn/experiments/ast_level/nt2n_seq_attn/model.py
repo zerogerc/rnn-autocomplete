@@ -11,6 +11,7 @@ from zerogercrnn.lib.utils import setup_tensor
 
 
 def create_one_hot_depths(node_depths, batch_size, layers_num):
+    node_depths = torch.clamp(node_depths, min=0, max=layers_num)
     depths_one_hot = node_depths.new(batch_size, layers_num)
     return depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1).float()
 
