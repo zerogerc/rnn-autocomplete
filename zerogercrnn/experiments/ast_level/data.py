@@ -25,7 +25,7 @@ class ASTInput:
         return ASTInput(
             non_terminals=setup_tensor(input_data.non_terminals, cuda),
             terminals=setup_tensor(input_data.terminals, cuda),
-            nodes_depth=input_data.nodes_depth  # no gradients should be computed
+            nodes_depth=setup_tensor(input_data.nodes_depth, cuda)  # no gradients should be computed
         )
 
     @staticmethod

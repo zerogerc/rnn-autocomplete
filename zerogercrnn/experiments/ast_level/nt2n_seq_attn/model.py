@@ -1,13 +1,13 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
+from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, set_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, PretrainedEmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule, BaseModule
-from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
-from zerogercrnn.lib.utils import setup_tensor
+from zerogercrnn.lib.utils import setup_tensor, get_device
 
 
 def create_one_hot_depths(node_depths, batch_size, layers_num):
@@ -39,11 +39,11 @@ class LayeredRecurrent(BaseModule):
         )
 
     def repackage_hidden(self, layered_hidden, forget_vector):
-        layered_hidden = forget_hidden_partly_lstm_cell(layered_hidden,
-                                                        forget_vector=forget_vector.unsqueeze(
-                                                            1))  # TODO: check that shit
-        return repackage_hidden(layered_hidden
-                                )
+        layered_hidden = forget_hidden_partly_lstm_cell(
+            h=layered_hidden,
+            forget_vector=forget_vector.unsqueeze(1)
+        )  # TODO: check that shit
+        return repackage_hidden(layered_hidden)
 
     def pick_current_output(self, layered_hidden, nodes_depth):
         o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))
@@ -119,6 +119,15 @@ class NT2NLayeredAttentionModel(CombinedModule):
         ))
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
+        cuda = False
+        assert m_input.non_terminals.device == get_device(cuda)
+        assert m_input.terminals.device == get_device(cuda)
+        assert m_input.nodes_depth.device == get_device(cuda)
+        assert c_hidden[0][0].device == get_device(cuda)
+        assert c_hidden[0][1].device == get_device(cuda)
+        assert c_hidden[1][0].device == get_device(cuda)
+        assert c_hidden[1][1].device == get_device(cuda)
+
         hidden, layered_hidden = c_hidden
 
         nt_embedded = self.nt_embedding(m_input.non_terminals)
