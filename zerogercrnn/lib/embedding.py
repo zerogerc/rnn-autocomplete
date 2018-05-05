@@ -21,9 +21,6 @@ class Embeddings:
 
         return torch.index_select(self.embeddings_tensor, dim=0, index=index, out=out)
 
-    def cuda(self):
-        self.embeddings_tensor = self.embeddings_tensor.cuda()
-
     def _read_embeddings_squeezed(self, vector_file):
         embeddings = []
         for l in open(vector_file, mode='r', encoding=ENCODING):

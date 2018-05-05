@@ -7,17 +7,17 @@ from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
+def run_model(model, iter_data, hidden, batch_size):
     ((nt_input, t_input), (nt_target, t_target)), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    nt_input = setup_tensor(nt_input, cuda=cuda)
-    t_input = setup_tensor(t_input, cuda=cuda)
-    nt_target = setup_tensor(nt_target, cuda=cuda)
-    t_target = setup_tensor(t_target, cuda=cuda)
+    nt_input = setup_tensor(nt_input)
+    t_input = setup_tensor(t_input)
+    nt_target = setup_tensor(nt_target)
+    t_target = setup_tensor(t_target)
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+        hidden = model.init_hidden(batch_size=batch_size)
 
     model.zero_grad()
     nt_prediction, t_prediction, hidden = model(nt_input, t_input, hidden, forget_vector=forget_vector)
@@ -27,7 +27,7 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
 
 class ASTRoutine(NetworkRoutine):
 
-    def __init__(self, model, batch_size, seq_len, nt_criterion, t_criterion, optimizers, cuda):
+    def __init__(self, model, batch_size, seq_len, nt_criterion, t_criterion, optimizers):
         super().__init__(model)
         self.model = self.network
         self.batch_size = batch_size
@@ -35,7 +35,6 @@ class ASTRoutine(NetworkRoutine):
         self.nt_criterion = nt_criterion
         self.t_criterion = t_criterion
         self.optimizers = optimizers
-        self.cuda = cuda
 
         self.hidden = None
 
@@ -55,14 +54,9 @@ class ASTRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        nt_prediction, t_prediction, nt_target, t_target, hidden = run_model(
-            model=self.model,
-            iter_data=iter_data,
-            hidden=self.hidden,
-            batch_size=self.batch_size,
-            cuda=self.cuda,
-            no_grad=self.optimizers is None
-        )
+        nt_prediction, t_prediction, nt_target, t_target, hidden = run_model(model=self.model, iter_data=iter_data,
+                                                                             hidden=self.hidden,
+                                                                             batch_size=self.batch_size)
         self.hidden = hidden
 
         loss = self.calc_loss(nt_prediction, t_prediction, nt_target, t_target)
@@ -90,26 +84,12 @@ class NT2NTMain(Main):
         )
 
     def create_train_routine(self, args):
-        return ASTRoutine(
-            model=self.model,
-            batch_size=args.batch_size,
-            seq_len=args.seq_len,
-            nt_criterion=self.criterion,
-            t_criterion=self.criterion,
-            optimizers=self.optimizers,
-            cuda=args.cuda
-        )
+        return ASTRoutine(model=self.model, batch_size=args.batch_size, seq_len=args.seq_len,
+                          nt_criterion=self.criterion, t_criterion=self.criterion, optimizers=self.optimizers)
 
     def create_validation_routine(self, args):
-        return ASTRoutine(
-            model=self.model,
-            batch_size=args.batch_size,
-            seq_len=args.seq_len,
-            nt_criterion=self.criterion,
-            t_criterion=self.criterion,
-            optimizers=None,
-            cuda=args.cuda
-        )
+        return ASTRoutine(model=self.model, batch_size=args.batch_size, seq_len=args.seq_len,
+                          nt_criterion=self.criterion, t_criterion=self.criterion, optimizers=None)
 
     def create_metrics(self, args):
         return NonTerminalTerminalAccuracyMetrics()

@@ -11,7 +11,7 @@ from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.log import logger
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
-from zerogercrnn.lib.utils import get_device
+from zerogercrnn.lib.utils import get_best_device
 
 parser = argparse.ArgumentParser(description='AST level neural network')
 parser.add_argument('--title', type=str, help='Title for this run. Used in tensorboard and in saving of models.')
@@ -21,8 +21,6 @@ parser.add_argument('--embeddings_file', type=str, help='File with embedding vec
 parser.add_argument('--data_limit', type=int, help='How much lines of data to process (only for fast checking)')
 parser.add_argument('--model_save_dir', type=str, help='Where to save trained models')
 parser.add_argument('--saved_model', type=str, help='File with trained model if not fresh train')
-parser.add_argument('--cuda', action='store_true', help='Use cuda?')
-parser.add_argument('--real_data', action='store_true', help='Use real data?')
 parser.add_argument('--log', action='store_true', help='Log performance?')
 parser.add_argument('--task', type=str, help='One of: train, accuracy')
 
@@ -50,7 +48,7 @@ def calc_accuracy(args):
     model.eval()
 
     if args.saved_model is not None:
-        if args.cuda:
+        if torch.cuda.is_available():
             load_if_saved(model, args.saved_model)
         else:
             load_cuda_on_cpu(model, args.saved_model)
@@ -61,13 +59,8 @@ def calc_accuracy(args):
     hidden = None
     it = 0
     for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(
-            model=model,
-            iter_data=iter_data,
-            hidden=hidden,
-            batch_size=args.batch_size,
-            cuda=args.cuda
-        )
+        prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden,
+                                               batch_size=args.batch_size)
 
         measurer.report((prediction, target))
 
@@ -79,15 +72,15 @@ def calc_accuracy(args):
     print('Accuracy: {}'.format(measurer.get_current_value()))
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda):
+def run_model(model, iter_data, hidden, batch_size):
     (n_input, n_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    n_input = n_input.to(get_device(cuda))
-    n_target = n_target.to(get_device(cuda))
+    n_input = n_input.to(get_best_device())
+    n_target = n_target.to(get_best_device())
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+        hidden = model.init_hidden(batch_size=batch_size)
 
     model.zero_grad()
     prediction, hidden = model(n_input, hidden, forget_vector=forget_vector)
@@ -97,14 +90,13 @@ def run_model(model, iter_data, hidden, batch_size, cuda):
 
 class TokenLevelRoutine(NetworkRoutine):
 
-    def __init__(self, model, batch_size, seq_len, criterion, optimizers, cuda):
+    def __init__(self, model, batch_size, seq_len, criterion, optimizers):
         super().__init__(model)
         self.model = self.network  # TODO: refactor base
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.criterion = criterion
         self.optimizers = optimizers
-        self.cuda = cuda
 
         self.hidden = None
 
@@ -120,13 +112,8 @@ class TokenLevelRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        prediction, n_target, hidden = run_model(
-            model=self.model,
-            iter_data=iter_data,
-            hidden=self.hidden,
-            batch_size=self.batch_size,
-            cuda=self.cuda
-        )
+        prediction, n_target, hidden = run_model(model=self.model, iter_data=iter_data, hidden=self.hidden,
+                                                 batch_size=self.batch_size)
         self.hidden = hidden
 
         loss = self.calc_loss(prediction, n_target)
@@ -137,29 +124,13 @@ class TokenLevelRoutine(NetworkRoutine):
 
 
 def create_data_generator(args):
-    if args.real_data:
-        print('Running on real data')
-        embeddings = Embeddings(vector_file=args.embeddings_file, embeddings_size=50)
+    embeddings = Embeddings(vector_file=args.embeddings_file, embeddings_size=50)
 
-        reader = TokensDataReader(
-            train_file=args.train_file,
-            eval_file=args.eval_file,
-            seq_len=args.seq_len,
-            embeddings=embeddings,
-            cuda=args.cuda,
-            limit=args.data_limit
-        )
-    else:
-        print('Running on mock data')
-        reader = MockDataReader(cuda=args.cuda)
+    reader = TokensDataReader(train_file=args.train_file, eval_file=args.eval_file, embeddings=embeddings,
+                              seq_len=args.seq_len, limit=args.data_limit)
 
-    data_generator = TokensDataGenerator(
-        data_reader=reader,
-        seq_len=args.seq_len,
-        batch_size=args.batch_size,
-        embeddings_size=args.embedding_size,
-        cuda=args.cuda
-    )
+    data_generator = TokensDataGenerator(data_reader=reader, seq_len=args.seq_len, batch_size=args.batch_size,
+                                         embeddings_size=args.embedding_size)
 
     return data_generator
 
@@ -171,10 +142,7 @@ def create_model(args):
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         dropout=args.dropout
-    )
-
-    if args.cuda:
-        model = model.cuda()
+    ).to(get_best_device())
 
     return model
 
@@ -191,23 +159,11 @@ def train(args):
 
     data_generator = create_data_generator(args)
 
-    train_routine = TokenLevelRoutine(
-        model=model,
-        batch_size=args.batch_size,
-        seq_len=args.seq_len,
-        criterion=criterion,
-        optimizers=optimizers,
-        cuda=args.cuda
-    )
+    train_routine = TokenLevelRoutine(model=model, batch_size=args.batch_size, seq_len=args.seq_len,
+                                      criterion=criterion, optimizers=optimizers)
 
-    validation_routine = TokenLevelRoutine(
-        model=model,
-        batch_size=args.batch_size,
-        seq_len=args.seq_len,
-        criterion=criterion,
-        optimizers=None,
-        cuda=args.cuda
-    )
+    validation_routine = TokenLevelRoutine(model=model, batch_size=args.batch_size, seq_len=args.seq_len,
+                                           criterion=criterion, optimizers=None)
 
     runner = TrainEpochRunner(
         network=model,
@@ -231,9 +187,6 @@ if __name__ == '__main__':
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log
-
-    if _args.cuda and not torch.cuda.is_available():
-        raise Exception("No GPU found, please run without --cuda")
 
     if _args.task == 'train':
         train(_args)

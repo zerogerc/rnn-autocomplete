@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from zerogercrnn.lib.calculation import drop_matrix_rows_3d, calc_attention_combination
 from zerogercrnn.lib.core import BaseModule
-from zerogercrnn.lib.utils import init_layers_uniform
+from zerogercrnn.lib.utils import init_layers_uniform, get_best_device
 
 
 class CyclicBuffer:
@@ -118,11 +118,8 @@ class ContextAttention(BaseModule):
         # size: [batch_size, seq_len, hidden_size]
         self.context_buffer = None
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size)
-        if cuda:
-            b_matrix = b_matrix.cuda()
-
+    def init_hidden(self, batch_size):
+        b_matrix = torch.FloatTensor(batch_size, 2 * self.seq_len, self.hidden_size).to(get_best_device())
         self.context_buffer = LastKBuffer(window_len=self.seq_len, buffer=b_matrix)
 
     def forget_context_partly(self, forget_vector):

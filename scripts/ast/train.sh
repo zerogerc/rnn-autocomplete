@@ -8,8 +8,6 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --train_file "data/ast/file_train.json" \
     --data_limit 100000 \
     --model_save_dir saved/$2 \
-    --real_data \
-    --cuda \
     --seq_len 50 \
     --batch_size 80 \
     --learning_rate 0.004 \

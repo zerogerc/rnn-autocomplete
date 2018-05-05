@@ -8,15 +8,15 @@ from zerogercrnn.lib.run import NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad
 
 
-def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
+def run_model(model, iter_data, hidden, batch_size):
     (m_input, m_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
 
-    m_input = ASTInput.setup(m_input, cuda)
-    m_target = ASTTarget.setup(m_target, cuda)
+    m_input = ASTInput.setup(m_input)
+    m_target = ASTTarget.setup(m_target)
 
     if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size, cuda=cuda)
+        hidden = model.init_hidden(batch_size=batch_size)
 
     model.zero_grad()
     prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)
@@ -26,14 +26,13 @@ def run_model(model, iter_data, hidden, batch_size, cuda, no_grad):
 
 class ASTRoutine(NetworkRoutine):
 
-    def __init__(self, model, batch_size, seq_len, criterion, optimizers, cuda):
+    def __init__(self, model, batch_size, seq_len, criterion, optimizers):
         super().__init__(model)
         self.model = self.network
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.criterion = criterion
         self.optimizers = optimizers
-        self.cuda = cuda
 
         self.hidden = None
 
@@ -50,14 +49,8 @@ class ASTRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
-        prediction, target, hidden = run_model(
-            model=self.model,
-            iter_data=iter_data,
-            hidden=self.hidden,
-            batch_size=self.batch_size,
-            cuda=self.cuda,
-            no_grad=self.optimizers is None
-        )
+        prediction, target, hidden = run_model(model=self.model, iter_data=iter_data, hidden=self.hidden,
+                                               batch_size=self.batch_size)
         self.hidden = hidden
 
         if self.optimizers is not None:
@@ -80,24 +73,12 @@ class NT2NMain(Main):
         )
 
     def create_train_routine(self, args):
-        return ASTRoutine(
-            model=self.model,
-            batch_size=args.batch_size,
-            seq_len=args.seq_len,
-            criterion=self.criterion,
-            optimizers=self.optimizers,
-            cuda=args.cuda
-        )
+        return ASTRoutine(model=self.model, batch_size=args.batch_size, seq_len=args.seq_len, criterion=self.criterion,
+                          optimizers=self.optimizers)
 
     def create_validation_routine(self, args):
-        return ASTRoutine(
-            model=self.model,
-            batch_size=args.batch_size,
-            seq_len=args.seq_len,
-            criterion=self.criterion,
-            optimizers=None,
-            cuda=args.cuda
-        )
+        return ASTRoutine(model=self.model, batch_size=args.batch_size, seq_len=args.seq_len, criterion=self.criterion,
+                          optimizers=None)
 
     def create_metrics(self, args):
         return MaxPredictionAccuracyMetrics()

@@ -58,9 +58,9 @@ class LayeredRecurrent(BaseModule):
         l_h, l_c = self.layered_recurrent(m_input, (l_h, l_c), reinit_dropout=reinit_dropout)
         return update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        h = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda)
-        c = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)), cuda=cuda)
+    def init_hidden(self, batch_size):
+        h = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
+        c = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
 
         return h, c
 
@@ -160,9 +160,9 @@ class NT2NLayeredAttentionModel(CombinedModule):
         assert hidden is not None
         return prediction, (hidden, layered_hidden)
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        return self.recurrent_core.init_hidden(batch_size, cuda), \
-               self.layered_recurrent.init_hidden(batch_size, cuda)
+    def init_hidden(self, batch_size):
+        return self.recurrent_core.init_hidden(batch_size), \
+               self.layered_recurrent.init_hidden(batch_size)
 
 
 def test_select():

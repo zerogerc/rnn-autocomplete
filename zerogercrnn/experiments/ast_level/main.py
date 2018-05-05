@@ -72,12 +72,6 @@ if __name__ == '__main__':
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if _args.cuda and not torch.cuda.is_available():
-        raise Exception("No GPU found, please run without --cuda")
-
-    if not _args.cuda:
-        print("WARNING: You are running without cuda. Is it ok?")
-
     if _args.eval:
         evaluate(_args)
     else:

@@ -95,6 +95,6 @@ class NT2NSumAttentionModel(CombinedModule):
         assert hidden is not None
         return prediction, hidden
 
-    def init_hidden(self, batch_size, cuda, no_grad=False):
-        self.attention.init_hidden(batch_size, cuda)
-        return self.recurrent_core.init_hidden(batch_size, cuda)
+    def init_hidden(self, batch_size):
+        self.attention.init_hidden(batch_size)
+        return self.recurrent_core.init_hidden(batch_size)

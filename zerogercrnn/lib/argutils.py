@@ -5,8 +5,6 @@ def add_general_arguments(parser):
     parser.add_argument('--data_limit', type=int, help='How much lines of data to process (only for fast checking)')
     parser.add_argument('--model_save_dir', type=str, help='Where to save trained models')
     parser.add_argument('--saved_model', type=str, help='File with trained model if not fresh train')
-    parser.add_argument('--cuda', action='store_true', help='Use cuda?')
-    parser.add_argument('--real_data', action='store_true', help='Use real data?')
     parser.add_argument('--log', action='store_true', help='Log performance?')
 
 

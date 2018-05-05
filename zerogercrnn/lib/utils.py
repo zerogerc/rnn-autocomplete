@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 
 
+def get_best_device():
+    """Return cuda device if cuda is available."""
+    return get_device(torch.cuda.is_available())
+
+
 def get_device(cuda):
     return torch.device("cuda" if cuda else "cpu")
 
@@ -40,8 +45,8 @@ def forget_hidden_partly(h, forget_vector):
         return tuple(forget_hidden_partly(v, forget_vector) for v in h)
 
 
-def setup_tensor(tensor, cuda):
-    return tensor.to(get_device(cuda))
+def setup_tensor(tensor):
+    return tensor.to(get_best_device())
 
 
 def filter_requires_grad(parameters):

@@ -1,12 +1,13 @@
 from abc import abstractmethod
 from torch import nn as nn
+import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTDataReader, ASTDataGenerator
 from zerogercrnn.experiments.common import get_optimizers, get_scheduler_args
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
 from zerogercrnn.lib.run import TrainEpochRunner
-from zerogercrnn.lib.utils import get_device
+from zerogercrnn.lib.utils import get_best_device
 
 
 def create_terminal_embeddings(args):
@@ -29,7 +30,6 @@ def create_data_generator(args):
     data_reader = ASTDataReader(
         file_train=args.train_file,
         file_eval=args.eval_file,
-        cuda=args.cuda,
         seq_len=args.seq_len,
         number_of_seq=20,
         limit=args.data_limit
@@ -38,8 +38,7 @@ def create_data_generator(args):
     data_generator = ASTDataGenerator(
         data_reader=data_reader,
         seq_len=args.seq_len,
-        batch_size=args.batch_size,
-        cuda=args.cuda
+        batch_size=args.batch_size
     )
 
     return data_generator
@@ -50,11 +49,8 @@ class Main:
         self.non_terminal_embeddings = self.create_non_terminal_embeddings(args)
         self.terminal_embeddings = self.create_terminal_embeddings(args)
 
-        self.model = self.create_model(args)
+        self.model = self.create_model(args).to(get_best_device())
         self.load_model(args)
-
-        if args.cuda:
-            self.model = self.model.to(get_device(args.cuda))
 
         self.optimizers = self.create_optimizers(args)
         self.schedulers = self.create_schedulers(args)
@@ -139,7 +135,7 @@ class Main:
 
     def load_model(self, args):
         if args.saved_model is not None:
-            if args.cuda:
+            if torch.cuda.is_available():
                 load_if_saved(self.model, args.saved_model)
             else:
                 load_cuda_on_cpu(self.model, args.saved_model)
