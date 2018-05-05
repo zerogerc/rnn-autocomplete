@@ -3,7 +3,7 @@ import torch
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
     LogSoftmaxOutputLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden, get_device
 from zerogercrnn.experiments.ast_level.data import ASTInput
 
 
@@ -57,6 +57,7 @@ class NT2NBaseModel(CombinedModule):
     def forward(self, m_input: ASTInput, hidden, forget_vector):
         non_terminal_input = m_input.non_terminals
         terminal_input = m_input.terminals
+        assert m_input.non_terminals.device == get_device(True)
         assert non_terminal_input.size() == terminal_input.size()
         assert non_terminal_input.size() == terminal_input.size()
 
