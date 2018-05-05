@@ -119,14 +119,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
         ))
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
-        print(m_input.non_terminals.device)
-        print(m_input.terminals.device)
-        print(m_input.nodes_depth.device)
-        print(c_hidden[0][0].device)
-        print(c_hidden[0][1].device)
-        print(c_hidden[1][0].device)
-        print(c_hidden[1][1].device)
-
         hidden, layered_hidden = c_hidden
 
         nt_embedded = self.nt_embedding(m_input.non_terminals)
