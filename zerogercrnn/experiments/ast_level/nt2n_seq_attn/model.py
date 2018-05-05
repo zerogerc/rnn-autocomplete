@@ -119,7 +119,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
         ))
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
-        cuda = False
+        cuda = True
         assert m_input.non_terminals.device == get_device(cuda)
         assert m_input.terminals.device == get_device(cuda)
         assert m_input.nodes_depth.device == get_device(cuda)
