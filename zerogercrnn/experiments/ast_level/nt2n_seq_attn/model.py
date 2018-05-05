@@ -100,7 +100,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.num_tree_layers = 50
         self.layered_hidden_size = 100
         self.layered_recurrent = self.module(LayeredRecurrent(
-            input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim + self.num_tree_layers,
+            input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             tree_layers=self.num_tree_layers,
             single_hidden_size=self.layered_hidden_size,
             dropout=self.dropout
@@ -136,9 +136,9 @@ class NT2NLayeredAttentionModel(CombinedModule):
         sl = combined_input.size()[0]
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
-            node_depths_one_hot = create_one_hot_depths(node_depths[i], node_depths[i].size()[0], self.num_tree_layers)
+            # node_depths_one_hot = create_one_hot_depths(node_depths[i], node_depths[i].size()[0], self.num_tree_layers)
             layered_hidden = self.layered_recurrent(
-                m_input=torch.cat((combined_input[i], node_depths_one_hot), dim=-1),
+                m_input=combined_input[i],
                 nodes_depth=node_depths[i],
                 layered_hidden=layered_hidden,
                 forget_vector=forget_vector,
