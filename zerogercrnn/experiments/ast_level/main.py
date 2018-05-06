@@ -1,4 +1,5 @@
 import argparse
+
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
@@ -28,12 +29,15 @@ parser.add_argument('--non_terminal_embeddings_file', type=str, help='File with 
 parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_pre, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
 parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 
+# Layered LSTM args, ignored if not layered
+parser.add_argument('--layered_hidden_size', type=int, help='Size of hidden state in layered lstm')
+
 
 def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
     elif args.prediction == 'nt2n_seq':
-        main = NT2NSequentialAttentionMain(args)
+        main = NT2NSequentialMain(args)
     elif args.prediction == 'nt2n_seq_attn':
         main = NT2NSequentialAttentionMain(args)
     elif args.prediction == 'nt2n_pre':
