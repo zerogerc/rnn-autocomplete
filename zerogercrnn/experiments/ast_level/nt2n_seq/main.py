@@ -1,6 +1,5 @@
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.common import create_non_terminal_embeddings
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
 from zerogercrnn.experiments.ast_level.nt2n_seq.model import NT2NLayerModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
@@ -15,6 +14,7 @@ class NT2NSequentialMain(NT2NMain):
             terminal_embeddings=self.terminal_embeddings,
             hidden_dim=args.hidden_size,
             prediction_dim=args.non_terminals_num,
+            layered_hidden_size=args.layered_hidden_size,
             dropout=args.dropout
         )
 

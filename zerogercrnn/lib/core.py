@@ -5,8 +5,12 @@ import torch
 from torch import nn as nn
 
 from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device
+from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device, \
+    forget_hidden_partly_lstm_cell, repackage_hidden
+from zerogercrnn.lib.calculation import set_layered_hidden, select_layered_hidden
 
+
+# region Base
 
 class HealthCheck:
     """Class that do some check on the model. Usually it prints some info about model at the end of epoch."""
@@ -49,6 +53,10 @@ class CombinedModule(BaseModule):
     def health_checks(self):
         return chain(*[m.health_checks() for m in self.modules])
 
+
+# endregion
+
+# region Embeddings
 
 class PretrainedEmbeddingsModule(BaseModule):
 
@@ -117,6 +125,8 @@ class EmbeddingsModule(BaseModule):
         return self.model(model_input)
 
 
+# endregion
+
 class RecurrentCore(BaseModule):
 
     def __init__(self, input_size, hidden_size, num_layers=1, dropout=0., model_type='gru'):
@@ -163,6 +173,67 @@ def create_lstm_cell_hidden(hidden_size, batch_size):
     h = setup_tensor(torch.zeros((batch_size, hidden_size)))
     c = setup_tensor(torch.zeros((batch_size, hidden_size)))
     return h, c
+
+
+class LayeredRecurrent(BaseModule):
+    def __init__(self, input_size, tree_layers, single_hidden_size, dropout=0.):
+        super().__init__()
+        self.input_size = input_size
+        self.tree_layers = tree_layers
+        self.single_hidden_size = single_hidden_size
+        self.layered_recurrent = LSTMCellDropout(
+            input_size=self.input_size + self.tree_layers,
+            hidden_size=self.single_hidden_size,
+            dropout=dropout
+        )
+
+    @abstractmethod
+    def pick_current_output(self, layered_hidden, nodes_depth):
+        pass
+
+    def forward(self, m_input, nodes_depth, layered_hidden, reinit_dropout):
+        nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
+        nodes_depth_one_hot = LayeredRecurrent.create_one_hot_depths(nodes_depth, self.tree_layers)
+
+        l_h, l_c = LayeredRecurrent.select_layered_lstm_hidden(layered_hidden, nodes_depth)
+
+        l_h, l_c = self.layered_recurrent(
+            torch.cat((m_input, nodes_depth_one_hot), dim=-1),
+            (l_h, l_c),
+            reinit_dropout=reinit_dropout
+        )
+
+        return LayeredRecurrent.update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
+
+    def init_hidden(self, batch_size):
+        h = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
+        c = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
+
+        return h, c
+
+    @staticmethod
+    def repackage_and_partly_forget_hidden(layered_hidden, forget_vector):  # checked
+        layered_hidden = forget_hidden_partly_lstm_cell(
+            h=layered_hidden,
+            forget_vector=forget_vector.unsqueeze(1)
+        )
+        return repackage_hidden(layered_hidden)
+
+    @staticmethod
+    def create_one_hot_depths(node_depths, layers_num):  # checked
+        batch_size = node_depths.size()[0]
+        depths_one_hot = node_depths.new(batch_size, layers_num)
+        return depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1).float()
+
+    @staticmethod
+    def select_layered_lstm_hidden(layered_hidden, node_depths):  # checked
+        return select_layered_hidden(layered_hidden[0], node_depths).squeeze(1), \
+               select_layered_hidden(layered_hidden[1], node_depths).squeeze(1)
+
+    @staticmethod
+    def update_layered_lstm_hidden(layered_hidden, node_depths, new_value):  # checked
+        return set_layered_hidden(layered_hidden[0], node_depths, new_value[0]), \
+               set_layered_hidden(layered_hidden[1], node_depths, new_value[1])
 
 
 class LSTMCellDropout(BaseModule):
