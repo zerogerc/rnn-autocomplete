@@ -57,9 +57,6 @@ class NTN2TBaseModel(CombinedModule):
         terminal_input = m_input.terminals
         current_non_terminal_input = m_input.current_non_terminals
 
-        assert non_terminal_input.size() == terminal_input.size()
-        assert terminal_input.size() == current_non_terminal_input.size()
-
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
         cur_nt_embedded = self.nt_embedding(current_non_terminal_input)

@@ -1,9 +1,9 @@
 import torch
-import torch.nn.functional as F
 
+from zerogercrnn.experiments.ast_level.data import ASTInput
+from zerogercrnn.lib.attn import ContextAttention
 from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule
-from zerogercrnn.lib.attn import ContextAttention
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
@@ -56,9 +56,10 @@ class NTN2TTailAttentionModel(CombinedModule):
             output_size=self.terminals_num
         ))
 
-    def forward(self, non_terminal_input, terminal_input, current_non_terminal_input, hidden, forget_vector):
-        assert non_terminal_input.size() == terminal_input.size()
-        assert non_terminal_input.size() == terminal_input.size()
+    def forward(self, m_input: ASTInput, hidden, forget_vector):
+        non_terminal_input = m_input.non_terminals
+        terminal_input = m_input.terminals
+        current_non_terminal_input = m_input.current_non_terminals
 
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)

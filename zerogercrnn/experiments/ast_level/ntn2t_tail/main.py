@@ -1,8 +1,14 @@
-from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
+from zerogercrnn.experiments.ast_level.common import ASTMain, TerminalMetrics, TerminalsCrossEntropyLoss
+from zerogercrnn.experiments.ast_level.common import create_terminal_embeddings
 from zerogercrnn.experiments.ast_level.ntn2t_tail.model import NTN2TTailAttentionModel
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 
-class NTN2TTailAttentionMain(NT2NPretrainedTerminalsMain):
+class NTN2TTailAttentionMain(ASTMain):
+
+    def create_terminal_embeddings(self, args):
+        return create_terminal_embeddings(args)
+
     def create_model(self, args):
         return NTN2TTailAttentionModel(
             seq_len=args.seq_len,
@@ -12,3 +18,9 @@ class NTN2TTailAttentionMain(NT2NPretrainedTerminalsMain):
             hidden_dim=args.hidden_size,
             dropout=args.dropout
         )
+
+    def create_criterion(self, args):
+        return TerminalsCrossEntropyLoss()
+
+    def create_metrics(self, args):
+        return TerminalMetrics(base=MaxPredictionAccuracyMetrics())
