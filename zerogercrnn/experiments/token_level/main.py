@@ -3,7 +3,7 @@ import argparse
 import torch
 import torch.nn as nn
 
-from zerogercrnn.experiments.common import get_optimizer_args, get_scheduler_args
+from zerogercrnn.experiments.common import get_optimizer, get_scheduler
 from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.embedding import Embeddings
@@ -153,8 +153,8 @@ def train(args):
     if args.saved_model is not None:
         load_if_saved(model=model, path=args.saved_model)
 
-    optimizers = [get_optimizer_args(args, model)]
-    schedulers = [get_scheduler_args(args, optimizers[-1])]
+    optimizers = [get_optimizer(args, model)]
+    schedulers = [get_scheduler(args, optimizers[-1])]
     criterion = nn.NLLLoss()
 
     data_generator = create_data_generator(args)

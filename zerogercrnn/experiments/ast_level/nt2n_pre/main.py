@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.common import Main, create_non_terminal_embeddings
+from zerogercrnn.experiments.ast_level.common import ASTMain, create_non_terminal_embeddings
 from zerogercrnn.experiments.ast_level.nt2n_pre.model import NT2NBothTNTPretrainedModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 from zerogercrnn.lib.run import NetworkRoutine
@@ -63,7 +63,7 @@ class ASTRoutine(NetworkRoutine):
         return prediction, target
 
 
-class NT2NBothTNTPretrainedMain(Main):
+class NT2NBothTNTPretrainedMain(ASTMain):
 
     def create_non_terminal_embeddings(self, args):
         return create_non_terminal_embeddings(args)
