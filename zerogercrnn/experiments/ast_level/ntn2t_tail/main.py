@@ -1,4 +1,4 @@
-from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.ntn2t_tail.model import NTN2TTailAttentionModel
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
 

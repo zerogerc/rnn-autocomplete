@@ -1,8 +1,8 @@
-from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.model import NT2NTailAttentionModel
 
 
-class NT2NTailAttentionMain(NT2NMain):
+class NT2NTailAttentionMain(NT2NPretrainedTerminalsMain):
     def create_model(self, args):
         return NT2NTailAttentionModel(
             seq_len=args.seq_len,

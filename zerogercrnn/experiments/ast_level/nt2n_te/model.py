@@ -1,20 +1,19 @@
 import torch
 
-from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
-    LogSoftmaxOutputLayer, CombinedModule
-from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden, get_device
 from zerogercrnn.experiments.ast_level.data import ASTInput
+from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, RecurrentCore, \
+    LinearLayer, CombinedModule
+from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.lib.utils import forget_hidden_partly, repackage_hidden
 
 
-class NT2NBaseModel(CombinedModule):
+class NT2NPretrainedTerminalsModel(CombinedModule):
     def __init__(
             self,
             non_terminals_num,
             non_terminal_embedding_dim,
             terminal_embeddings: Embeddings,
             hidden_dim,
-            prediction_dim,
             num_layers,
             dropout
     ):
@@ -23,7 +22,6 @@ class NT2NBaseModel(CombinedModule):
         self.non_terminals_num = non_terminals_num
         self.non_terminal_embedding_dim = non_terminal_embedding_dim
         self.hidden_dim = hidden_dim
-        self.prediction_dim = prediction_dim
         self.num_layers = num_layers
         self.dropout = dropout
 
@@ -48,17 +46,14 @@ class NT2NBaseModel(CombinedModule):
             model_type='lstm'
         ))
 
-        self.h2o = self.module(LogSoftmaxOutputLayer(
+        self.h2o = self.module(LinearLayer(
             input_size=self.hidden_dim,
-            output_size=self.prediction_dim,
-            dim=2
+            output_size=self.non_terminals_num
         ))
 
     def forward(self, m_input: ASTInput, hidden, forget_vector):
         non_terminal_input = m_input.non_terminals
         terminal_input = m_input.terminals
-        assert non_terminal_input.size() == terminal_input.size()
-        assert non_terminal_input.size() == terminal_input.size()
 
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
