@@ -32,7 +32,7 @@ class LastKBuffer:
         self.it = window_len
 
     def add_vector(self, vector):
-        self.buffer[:, self.it, :].copy_(vector)  # TODO: general way
+        self.buffer[:, self.it, :].copy_(vector.detach())  # TODO: general way
         self.it += 1
         if self.it >= self.buffer_size:
             self.buffer.narrow(dim=1, start=0, length=self.window_len).copy_(
@@ -138,9 +138,9 @@ class ContextAttention(BaseModule):
         current_context = self.context_buffer.get()
         attn_weights = self.attn(h_t, current_context)
 
-        self.it += 1
-        if self.it % 10000 == 0:
-            print(attn_weights.data[0])
+        # self.it += 1
+        # if self.it % 10000 == 0:
+        #     print(attn_weights.data[0])
 
         # Calc current context vector as sum of previous contexts multiplied by attention coefficients
         cntx = calc_attention_combination(attn_weights, current_context)
