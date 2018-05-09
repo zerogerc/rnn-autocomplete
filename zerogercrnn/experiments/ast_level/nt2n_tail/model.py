@@ -1,9 +1,10 @@
 import torch
 import torch.nn.functional as F
 
-from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
-    LogSoftmaxOutputLayer, CombinedModule
+from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.attn import ContextAttention
+from zerogercrnn.lib.core import PretrainedEmbeddingsModule, EmbeddingsModule, LSTMCellDropout, \
+    LinearLayer, CombinedModule
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
@@ -52,15 +53,14 @@ class NT2NTailAttentionModel(CombinedModule):
             hidden_size=self.hidden_dim
         ))
 
-        self.h2o = self.module(LogSoftmaxOutputLayer(
+        self.h2o = self.module(LinearLayer(
             input_size=2 * self.hidden_dim,
-            output_size=self.prediction_dim,
-            dim=2
+            output_size=self.prediction_dim
         ))
 
-    def forward(self, non_terminal_input, terminal_input, hidden, forget_vector):
-        assert non_terminal_input.size() == terminal_input.size()
-        assert non_terminal_input.size() == terminal_input.size()
+    def forward(self, m_input: ASTInput, hidden, forget_vector):
+        non_terminal_input = m_input.non_terminals
+        terminal_input = m_input.terminals
 
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
@@ -72,16 +72,19 @@ class NT2NTailAttentionModel(CombinedModule):
 
         recurrent_output = []
         sl = combined_input.size()[0]
-        self.attention.eval()
+        self.attention.train()
         for i in range(combined_input.size()[0]):
             reinit_dropout = i == 0
-            if (i + 10 > sl) and self.training:
-                self.attention.train()
+            # if (i + 10 > sl) and self.training:
+            #     self.attention.train()
             cur_h, cur_c = self.recurrent_core(combined_input[i], hidden, reinit_dropout=reinit_dropout)
+            # if i + 2 > sl and self.training:
             cur_o = self.attention(cur_h)
+            # else:
+            #     cur_o = cur_h
 
             hidden = (cur_h, cur_c)
-            recurrent_output.append(F.relu(torch.cat((cur_h, cur_o), dim=1))) # activation was added on 23Apr
+            recurrent_output.append(F.relu(torch.cat((cur_h, cur_o), dim=1)))  # activation was added on 23Apr
 
         recurrent_output = torch.stack(recurrent_output, dim=0)
         prediction = self.h2o(recurrent_output)

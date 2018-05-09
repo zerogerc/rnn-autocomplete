@@ -3,16 +3,10 @@ import argparse
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n_base.main import NT2NBaseMain
-from zerogercrnn.experiments.ast_level.nt2n_cross.main import NT2NCrossMain
-from zerogercrnn.experiments.ast_level.nt2n_pre.main import NT2NBothTNTPretrainedMain
-from zerogercrnn.experiments.ast_level.nt2n_seq.main import NT2NSequentialMain
-from zerogercrnn.experiments.ast_level.nt2n_seq_attn.main import NT2NSequentialAttentionMain
-from zerogercrnn.experiments.ast_level.nt2n_sum.main import NT2NSumAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
-from zerogercrnn.experiments.ast_level.nt2nt.main import NT2NTMain
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
-from zerogercrnn.experiments.ast_level.ntn2t_tail.main import NT2NTailAttentionMain
+from zerogercrnn.experiments.ast_level.ntn2t_tail.main import NTN2TTailAttentionMain
 from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.lib.log import logger
@@ -39,24 +33,12 @@ def get_main(args):
         main = NT2NBaseMain(args)
     elif args.prediction == 'nt2n_te':
         main = NT2NPretrainedTerminalsMain(args)
-    elif args.prediction == 'nt2n_seq':
-        main = NT2NSequentialMain(args)
-    elif args.prediction == 'nt2n_seq_attn':
-        main = NT2NSequentialAttentionMain(args)
-    elif args.prediction == 'nt2n_pre':
-        main = NT2NBothTNTPretrainedMain(args)
-    elif args.prediction == 'nt2n_cross':
-        main = NT2NCrossMain(args)
     elif args.prediction == 'nt2n_tail':
         main = NT2NTailAttentionMain(args)
-    elif args.prediction == 'nt2n_sum':
-        main = NT2NSumAttentionMain(args)
-    elif args.prediction == 'nt2nt':
-        main = NT2NTMain(args)
     elif args.prediction == 'ntn2t':
         main = NTN2TMain(args)
     elif args.prediction == 'ntn2t_tail':
-        main = NT2NTailAttentionMain(args)
+        main = NTN2TTailAttentionMain(args)
     else:
         raise Exception('Not supported prediction type: {}'.format(args.prediction))
 
