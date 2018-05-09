@@ -1,6 +1,6 @@
 import torch
 
-from zerogercrnn.experiments.ast_level.common import Main
+from zerogercrnn.experiments.ast_level.common import ASTMain
 from zerogercrnn.experiments.ast_level.data import ASTInput, ASTTarget
 from zerogercrnn.experiments.ast_level.nt2n.model import NT2NBaseModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
@@ -60,7 +60,7 @@ class ASTRoutine(NetworkRoutine):
         return prediction, target
 
 
-class NT2NMain(Main):
+class NT2NMain(ASTMain):
     def create_model(self, args):
         return NT2NBaseModel(
             non_terminals_num=args.non_terminals_num,

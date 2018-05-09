@@ -3,6 +3,7 @@ import argparse
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_base.main import NT2NBaseMain
 from zerogercrnn.experiments.ast_level.nt2n_cross.main import NT2NCrossMain
 from zerogercrnn.experiments.ast_level.nt2n_pre.main import NT2NBothTNTPretrainedMain
 from zerogercrnn.experiments.ast_level.nt2n_seq.main import NT2NSequentialMain
@@ -36,6 +37,8 @@ parser.add_argument('--layered_hidden_size', type=int, help='Size of hidden stat
 def get_main(args):
     if args.prediction == 'nt2n':
         main = NT2NMain(args)
+    elif args.prediction == 'nt2n_base':
+        main = NT2NBaseMain(args)
     elif args.prediction == 'nt2n_seq':
         main = NT2NSequentialMain(args)
     elif args.prediction == 'nt2n_seq_attn':

@@ -1,6 +1,6 @@
 import torch
 
-from zerogercrnn.experiments.ast_level.common import Main
+from zerogercrnn.experiments.ast_level.common import ASTMain
 from zerogercrnn.experiments.ast_level.nt2nt.model import NT2NTBaseModel
 from zerogercrnn.lib.utils import filter_requires_grad, setup_tensor
 from zerogercrnn.lib.metrics import NonTerminalTerminalAccuracyMetrics
@@ -66,7 +66,7 @@ class ASTRoutine(NetworkRoutine):
         return nt_prediction, t_prediction, nt_target, t_target
 
 
-class NT2NTMain(Main):
+class NT2NTMain(ASTMain):
 
     def __init__(self, args):
         super().__init__(args)
