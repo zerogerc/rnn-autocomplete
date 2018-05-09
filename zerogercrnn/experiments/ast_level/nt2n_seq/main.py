@@ -1,11 +1,11 @@
 import torch.nn as nn
 
-from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.nt2n_seq.model import NT2NLayerModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 
-class NT2NSequentialMain(NT2NMain):
+class NT2NSequentialMain(NT2NPretrainedTerminalsMain):
 
     def create_model(self, args):
         return NT2NLayerModel(

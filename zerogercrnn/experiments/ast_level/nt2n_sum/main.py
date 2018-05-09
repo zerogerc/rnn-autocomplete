@@ -1,8 +1,8 @@
-from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.nt2n_sum.model import NT2NSumAttentionModel
 
 
-class NT2NSumAttentionMain(NT2NMain):
+class NT2NSumAttentionMain(NT2NPretrainedTerminalsMain):
     def create_model(self, args):
         return NT2NSumAttentionModel(
             context_len=50,  # last 50 for context

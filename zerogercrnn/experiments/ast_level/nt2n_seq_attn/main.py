@@ -1,12 +1,12 @@
 import torch.nn as nn
 
 from zerogercrnn.experiments.ast_level.common import create_non_terminal_embeddings
-from zerogercrnn.experiments.ast_level.nt2n.main import NT2NMain
+from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.nt2n_seq_attn.model import NT2NLayeredAttentionModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 
-class NT2NSequentialAttentionMain(NT2NMain):
+class NT2NSequentialAttentionMain(NT2NPretrainedTerminalsMain):
 
     def create_model(self, args):
         return NT2NLayeredAttentionModel(
