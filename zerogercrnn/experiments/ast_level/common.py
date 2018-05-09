@@ -132,7 +132,6 @@ def run_model(model, iter_data, hidden, batch_size):
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size)
 
-    model.zero_grad()
     prediction, hidden = model(m_input, hidden, forget_vector=forget_vector)
 
     return prediction, m_target, hidden
@@ -160,6 +159,10 @@ class ASTRoutine(NetworkRoutine):
             optimizer.step()
 
     def run(self, iter_num, iter_data):
+        if self.optimizers is not None:
+            for optimizer in self.optimizers:
+                optimizer.zero_grad()
+
         prediction, target, hidden = run_model(
             model=self.model,
             iter_data=iter_data,
