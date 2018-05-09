@@ -127,6 +127,8 @@ def run_model(model, iter_data, hidden, batch_size):
     m_input = ASTInput.setup(m_input)
     m_target = ASTTarget.setup(m_target)
 
+    m_input.current_non_terminals = m_target.non_terminals
+
     if hidden is None:
         hidden = model.init_hidden(batch_size=batch_size)
 

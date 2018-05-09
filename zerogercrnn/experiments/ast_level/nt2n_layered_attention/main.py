@@ -1,12 +1,8 @@
-import torch.nn as nn
-
-from zerogercrnn.experiments.ast_level.common import create_non_terminal_embeddings
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention.model import NT2NLayeredAttentionModel
 from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
-from zerogercrnn.experiments.ast_level.nt2n_seq_attn.model import NT2NLayeredAttentionModel
-from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
 
 
-class NT2NSequentialAttentionMain(NT2NPretrainedTerminalsMain):
+class NT2NLayeredAttentionMain(NT2NPretrainedTerminalsMain):
 
     def create_model(self, args):
         return NT2NLayeredAttentionModel(
@@ -18,9 +14,3 @@ class NT2NSequentialAttentionMain(NT2NPretrainedTerminalsMain):
             prediction_dim=args.non_terminals_num,
             dropout=args.dropout
         )
-
-    def create_criterion(self, args):
-        return nn.CrossEntropyLoss()
-
-    def create_metrics(self, args):
-        return MaxPredictionAccuracyMetrics()

@@ -3,6 +3,8 @@ import argparse
 import torch
 
 from zerogercrnn.experiments.ast_level.nt2n_base.main import NT2NBaseMain
+from zerogercrnn.experiments.ast_level.nt2n_layered.main import NT2NLayeredMain
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention.main import NT2NLayeredAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
@@ -33,6 +35,10 @@ def get_main(args):
         main = NT2NBaseMain(args)
     elif args.prediction == 'nt2n_te':
         main = NT2NPretrainedTerminalsMain(args)
+    elif args.prediction == 'nt2n_layered':
+        main = NT2NLayeredMain(args)
+    elif args.prediction == 'nt2n_layered_attention':
+        main = NT2NLayeredAttentionMain(args)
     elif args.prediction == 'nt2n_tail':
         main = NT2NTailAttentionMain(args)
     elif args.prediction == 'ntn2t':
