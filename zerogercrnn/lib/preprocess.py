@@ -35,6 +35,14 @@ def read_jsons(*files, lim=None):
             yield json.loads(line)
 
 
+def read_json(file):
+    """Reads single json from file.
+
+        :param file: file to read jsons from
+    """
+    return list(read_jsons(file))[0]
+
+
 class JsonExtractor:
     """Extracts some info from passed json. See specific implementations for more info."""
 

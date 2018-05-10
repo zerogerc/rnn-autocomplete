@@ -3,6 +3,8 @@ from abc import abstractmethod
 import torch
 
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
+from zerogercrnn.lib.constants import EOF_TOKEN, EOF_TOKEN_ID
+from zerogercrnn.lib.preprocess import read_json
 
 
 class Metrics:
@@ -88,6 +90,8 @@ class BaseAccuracyMetrics(Metrics):
         self.misses += current_misses
 
     def get_current_value(self, should_print=False):
+        if self.hits + self.misses == 0:
+            return 0
         value = float(self.hits) / (self.hits + self.misses)
 
         if should_print:
@@ -108,7 +112,7 @@ class MaxPredictionAccuracyMetrics(BaseAccuracyMetrics):
         super().report((predicted, target))
 
 
-class TerminalIndexedAccuracyMetrics(Metrics):
+class IndexedAccuracyMetrics(Metrics):
     def __init__(self, label):
         super().__init__()
         self.label = label
@@ -136,16 +140,16 @@ class TerminalAccuracyMetrics(Metrics):
         super().__init__()
         self.dim = dim
         self.general_accuracy = BaseAccuracyMetrics()
-        self.empty_accuracy = TerminalIndexedAccuracyMetrics(
+        self.empty_accuracy = IndexedAccuracyMetrics(
             label='Accuracy on terminals that ground truth is <empty>'
         )
-        self.non_empty_accuracy = TerminalIndexedAccuracyMetrics(
+        self.non_empty_accuracy = IndexedAccuracyMetrics(
             label='Accuracy on terminals that ground truth is not <empty>'
         )
-        self.ground_not_unk_accuracy = TerminalIndexedAccuracyMetrics(
+        self.ground_not_unk_accuracy = IndexedAccuracyMetrics(
             label='Accuracy on terminals that ground truth is not <unk> (and ground truth is not <empty>)'
         )
-        self.model_not_unk_accuracy = TerminalIndexedAccuracyMetrics(
+        self.model_not_unk_accuracy = IndexedAccuracyMetrics(
             label='Accuracy on terminals that model predicted to non <unk> (and ground truth is not <empty>)'
         )
 
@@ -188,6 +192,51 @@ class TerminalAccuracyMetrics(Metrics):
             self.ground_not_unk_accuracy.get_current_value(should_print=True)
             self.model_not_unk_accuracy.get_current_value(should_print=True)
         return general_accuracy
+
+
+class SingleNonTerminalAccuracyMetrics(Metrics):
+
+    def __init__(self, non_terminals_number, non_terminals_file, dim=2):
+        """
+
+        :param non_terminals_number: number of different non-terminals
+        :param non_terminals_file: file with json of non-terminals
+        :param dim: dimension to run max function on for predicted values
+        """
+        super().__init__()
+        print('NonTerminalAccuracyMetrics created!')
+
+        self.dim = dim
+        self.non_terminals_number = non_terminals_number + 1  # EOF
+        self.non_terminals = read_json(non_terminals_file)
+        self.non_terminals.append(EOF_TOKEN)
+        self.id2nt = {}
+        for i in range(non_terminals_number):
+            self.id2nt[i] = self.non_terminals[i]
+        assert self.id2nt[EOF_TOKEN_ID] == EOF_TOKEN
+
+        self.accuracies = [IndexedAccuracyMetrics(label='ERROR') for _ in range(non_terminals_number)]
+
+    def drop_state(self):
+        for accuracy in self.accuracies:
+            accuracy.drop_state()
+
+    def report(self, data):
+        prediction, target = data
+        _, predicted = torch.max(prediction, dim=self.dim)
+        predicted = predicted.view(-1)
+        target = target.non_terminals.view(-1)
+
+        for cur in range(len(self.non_terminals)):
+            indices = (target == cur).nonzero().squeeze()
+            self.accuracies[cur].report(predicted, target, indices)
+
+    def get_current_value(self, should_print=False):
+        if should_print:
+            for cur in range(len(self.non_terminals)):
+                res = self.accuracies[cur].get_current_value(should_print=False)
+                print('Accuracy on {} is {}'.format(self.id2nt[cur], res))
+        return 0  # this metrics if only for printing
 
 
 class NonTerminalTerminalAccuracyMetrics(Metrics):
