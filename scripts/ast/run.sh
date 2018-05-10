@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/ast/train.sh nt2n_base 09May_base_hs1500_sparse_fixed
+./scripts/ast/train.sh nt2n_layered_attention 10May_nt2n_layered_attention_hs1500_shs_300_no_glove

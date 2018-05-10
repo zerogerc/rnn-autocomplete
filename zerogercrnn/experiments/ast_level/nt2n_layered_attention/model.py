@@ -21,9 +21,9 @@ class NT2NLayeredAttentionModel(CombinedModule):
             self,
             non_terminals_num,
             non_terminal_embedding_dim,
-            terminal_embeddings: Embeddings,
+            terminals_num,
+            terminal_embedding_dim,
             hidden_dim,
-            prediction_dim,
             layered_hidden_size,
             dropout
     ):
@@ -31,23 +31,22 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
         self.non_terminals_num = non_terminals_num
         self.non_terminal_embedding_dim = non_terminal_embedding_dim
+        self.terminals_num = terminals_num
+        self.terminal_embedding_dim = terminal_embedding_dim
         self.hidden_dim = hidden_dim
-        self.prediction_dim = prediction_dim
         self.dropout = dropout
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
-            sparse=False
+            sparse=True
         ))
 
-        self.t_embedding = self.module(PretrainedEmbeddingsModule(
-            embeddings=terminal_embeddings,
-            requires_grad=False,
-            sparse=False
+        self.t_embedding = self.module(EmbeddingsModule(
+            num_embeddings=self.terminals_num,
+            embedding_dim=self.terminal_embedding_dim,
+            sparse=True
         ))
-
-        self.terminal_embedding_dim = self.t_embedding.embedding_dim
 
         self.num_tree_layers = 50
         self.layered_hidden_size = layered_hidden_size
@@ -68,7 +67,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,
-            output_size=self.prediction_dim
+            output_size=self.non_terminals_num
         ))
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
