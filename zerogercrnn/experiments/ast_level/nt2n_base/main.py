@@ -26,5 +26,5 @@ class NT2NBaseMain(ASTMain):
                 non_terminals_number=args.non_terminals_num,
                 non_terminals_file='data/ast/non_terminals.json'  # TODO: do not hardcode
             ),
-            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save='data/ast/temp')))
+            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save='eval/ast/nt2n_base')))
         ])

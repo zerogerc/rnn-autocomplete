@@ -120,10 +120,11 @@ class Main:
                 )
                 self.metrics.report(metrics_values)
 
-                if it % print_every == 0:
-                    self.metrics.get_current_value(should_print=True)
+                # if it % print_every == 0:
+                #     self.metrics.get_current_value(should_print=True)
                 it += 1
 
+        self.metrics.get_current_value(should_print=True)
         self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)  # TODO: maybe cleaner?
         self.metrics.get_current_value(should_print=True)
 

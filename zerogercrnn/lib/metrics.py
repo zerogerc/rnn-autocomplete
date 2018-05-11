@@ -3,6 +3,7 @@ from abc import abstractmethod
 
 import numpy as np
 import torch
+import json
 
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
 from zerogercrnn.lib.constants import EOF_TOKEN, EOF_TOKEN_ID
@@ -31,6 +32,9 @@ class Metrics:
     @abstractmethod
     def get_current_value(self, should_print=False):
         pass
+
+    def decrease_hits(self, number):
+        print('Decrease hits not implemented!!!')
 
 
 class LossMetrics(Metrics):
@@ -134,6 +138,9 @@ class MaxPredictionWrapper(Metrics):
     def get_current_value(self, should_print=False):
         return self.base.get_current_value(should_print=should_print)
 
+    def decrease_hits(self, number):
+        self.base.decrease_hits(number)
+
 
 class NonTerminalsMetricsWrapper(Metrics):
     """Metrics that extract non-terminals from target and pass non-terminals tensor to base metrics."""
@@ -151,6 +158,9 @@ class NonTerminalsMetricsWrapper(Metrics):
 
     def get_current_value(self, should_print=False):
         return self.base.get_current_value(should_print)
+
+    def decrease_hits(self, number):
+        self.base.decrease_hits(number)
 
 
 class IndexedAccuracyMetrics(Metrics):
@@ -174,6 +184,9 @@ class IndexedAccuracyMetrics(Metrics):
             print('{}: {}'.format(self.label, value))
 
         return value
+
+    def decrease_hits(self, number):
+        self.metrics.decrease_hits(number)
 
 
 class TerminalAccuracyMetrics(Metrics):
@@ -250,8 +263,8 @@ class ResultsSaver(Metrics):
 
     def report(self, predicted_target):
         predicted, target = predicted_target
-        self.predicted.append(predicted.numpy())
-        self.target.append(target.numpy())
+        self.predicted.append(predicted.cpu().numpy())
+        self.target.append(target.cpu().numpy())
 
     def get_current_value(self, should_print=False):
         """Saves value to file."""
@@ -305,9 +318,13 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
 
     def get_current_value(self, should_print=False):
         if should_print:
+            result = []
             for cur in range(len(self.non_terminals)):
-                res = self.accuracies[cur].get_current_value(should_print=False)
-                print('Accuracy on {} is {}'.format(self.id2nt[cur], res))
+                cur = self.accuracies[cur].get_current_value(should_print=False)
+                result.append(cur)
+                # print('Accuracy on {} is {}'.format(self.id2nt[cur], res))
+        with open('eval/nt2n_layered_attention/nt_acc.json', mode='w') as f:
+            f.write(json.dumps(result))
         return 0  # this metrics if only for printing
 
 

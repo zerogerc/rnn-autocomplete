@@ -7,10 +7,11 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --prediction $1 \
     --train_file "data/ast/file_train.json" \
     --data_limit 100000 \
+    --saved_model "saved/10May_nt2n_layered_attention_hs1500_shs_300_no_glove/model_epoch_30" \
     --model_save_dir saved/$2 \
     --seq_len 50 \
     --batch_size 80 \
-    --learning_rate 0.001 \
+    --learning_rate 0.0001 \
     --epochs 30 \
     --decay_after_epoch 0 \
     --decay_multiplier 0.9 \
