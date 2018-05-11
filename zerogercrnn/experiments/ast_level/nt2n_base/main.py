@@ -1,6 +1,7 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain, NonTerminalMetrics, NonTerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.nt2n_base.model import NT2NBaseModel
-from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, SingleNonTerminalAccuracyMetrics
+from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, SingleNonTerminalAccuracyMetrics, \
+    ResultsSaver, MaxPredictionWrapper, NonTerminalsMetricsWrapper
 
 
 class NT2NBaseMain(ASTMain):
@@ -24,5 +25,6 @@ class NT2NBaseMain(ASTMain):
             SingleNonTerminalAccuracyMetrics(
                 non_terminals_number=args.non_terminals_num,
                 non_terminals_file='data/ast/non_terminals.json'  # TODO: do not hardcode
-            )
+            ),
+            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save='data/ast/temp')))
         ])

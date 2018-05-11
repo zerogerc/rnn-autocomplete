@@ -1,5 +1,7 @@
+import os
 from abc import abstractmethod
 
+import numpy as np
 import torch
 
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
@@ -112,6 +114,45 @@ class MaxPredictionAccuracyMetrics(BaseAccuracyMetrics):
         super().report((predicted, target))
 
 
+class MaxPredictionWrapper(Metrics):
+    """Metrics that should be used as wrapper. During report calculate max on prediction along specified dimension
+    and pass this to the base metrics."""
+
+    def __init__(self, base: Metrics, dim=2):
+        super().__init__()
+        self.base = base
+        self.dim = dim
+
+    def drop_state(self):
+        self.base.drop_state()
+
+    def report(self, prediction_target):
+        prediction, target = prediction_target
+        _, predicted = torch.max(prediction, dim=self.dim)
+        self.base.report((predicted, target))
+
+    def get_current_value(self, should_print=False):
+        return self.base.get_current_value(should_print=should_print)
+
+
+class NonTerminalsMetricsWrapper(Metrics):
+    """Metrics that extract non-terminals from target and pass non-terminals tensor to base metrics."""
+
+    def __init__(self, base: Metrics):
+        super().__init__()
+        self.base = base
+
+    def drop_state(self):
+        self.base.drop_state()
+
+    def report(self, prediction_target):
+        prediction, target = prediction_target
+        self.base.report((prediction, target.non_terminals))
+
+    def get_current_value(self, should_print=False):
+        return self.base.get_current_value(should_print)
+
+
 class IndexedAccuracyMetrics(Metrics):
     def __init__(self, label):
         super().__init__()
@@ -194,7 +235,38 @@ class TerminalAccuracyMetrics(Metrics):
         return general_accuracy
 
 
+class ResultsSaver(Metrics):
+    """Metrics that perform saving of predicted and target tensors to file."""
+
+    def __init__(self, dir_to_save):
+        super().__init__()
+        self.file_to_save = dir_to_save
+        self.predicted = []
+        self.target = []
+
+    def drop_state(self):
+        self.predicted = []
+        self.target = []
+
+    def report(self, predicted_target):
+        predicted, target = predicted_target
+        self.predicted.append(predicted.numpy())
+        self.target.append(target.numpy())
+
+    def get_current_value(self, should_print=False):
+        """Saves value to file."""
+        predicted = np.concatenate(self.predicted, axis=0)
+        target = np.concatenate(self.target, axis=0)
+
+        if not os.path.exists(self.file_to_save):
+            os.makedirs(self.file_to_save)
+        predicted.dump(self.file_to_save + '/predicted')
+        target.dump(self.file_to_save + '/target')
+
+
 class SingleNonTerminalAccuracyMetrics(Metrics):
+    """Metrics that show accuracies per non-terminal. It should not be used for plotting, but to
+    print results on console during model evaluation."""
 
     def __init__(self, non_terminals_number, non_terminals_file, dim=2):
         """
