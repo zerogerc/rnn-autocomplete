@@ -215,7 +215,7 @@ class BatchedDataGenerator(DataGenerator):
             self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size)
 
         if data_reader.eval_data is not None:
-            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1, shuffle=shuffle)
+            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1, shuffle=False)
             self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size)
 
     @abstractmethod

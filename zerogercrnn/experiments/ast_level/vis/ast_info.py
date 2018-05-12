@@ -1,8 +1,11 @@
+import numpy as np
+import json
 import matplotlib.pyplot as plt
 
-from zerogercrnn.lib.preprocess import write_json, read_jsons, extract_jsons_info, JsonExtractor
+from zerogercrnn.lib.preprocess import write_json, read_jsons, read_json, extract_jsons_info, JsonExtractor
 
 FILE_TRAINING = 'data/programs_training.json'
+FILE_TRAINING_PROCESSED = 'data/ast/file_train.json'
 FILE_STAT_TREE_HEIGHTS = 'data/ast/stat_tree_heights.json'
 FILE_STAT_PROGRAM_LENGTHS = 'data/ast/stat_program_lengths.json'
 
@@ -122,9 +125,46 @@ def calc_programs_len(lengths_file):
 
 # endregion
 
+
+class JsonProgramDepthStatExtractor(JsonExtractor):
+
+    def extract(self, raw_json):
+        depths_prob = np.zeros(50)
+        for node in raw_json:
+            depths_prob[min(node['d'], 49)] += 1
+
+        return depths_prob
+
+def extract_depths_histogram():
+    extractor = JsonProgramDepthStatExtractor()
+
+    depths_prob = np.zeros(50)
+    for info in extract_jsons_info(extractor, FILE_TRAINING_PROCESSED):
+        depths_prob = depths_prob + info
+
+    res = [x for x in depths_prob]
+    with open('eval/ast/stat/node_depths.json', 'w') as f:
+        f.write(json.dumps(res))
+
+def draw_histogram(file):
+    values = read_json(file)
+    all = np.sum(values)
+    values /= all
+
+    plt.plot(values)
+    # n, bins, patches = plt.hist(values, 100, density=True, facecolor='g', alpha=0.75)
+
+    plt.xlabel('Smarts')
+    plt.ylabel('Probability')
+    plt.show()
+
+
 def run_main():
+    # extract_depths_histogram()
+    draw_histogram('eval/ast/stat/node_depths.json')
+
     # calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
-    plot_program_len_percentiles(FILE_STAT_PROGRAM_LENGTHS)
+    # plot_program_len_percentiles(FILE_STAT_PROGRAM_LENGTHS)
 
     # calc_tree_heights(heights_file=FILE_STAT_TREE_HEIGHTS)
     # print_tree_heights_stats_from_file(tree_heights_file=FILE_STAT_TREE_HEIGHTS)

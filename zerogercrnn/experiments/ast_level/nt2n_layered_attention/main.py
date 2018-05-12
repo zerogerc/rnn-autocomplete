@@ -1,7 +1,8 @@
-from zerogercrnn.experiments.ast_level.nt2n_layered_attention.model import NT2NLayeredAttentionModel
 from zerogercrnn.experiments.ast_level.common import ASTMain
 from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerminalsCrossEntropyLoss
-from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention.model import NT2NLayeredAttentionModel
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, ResultsSaver
+from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 
 
 class NT2NLayeredAttentionMain(ASTMain):
@@ -21,4 +22,11 @@ class NT2NLayeredAttentionMain(ASTMain):
         return NonTerminalsCrossEntropyLoss()
 
     def create_metrics(self, args):
-        return NonTerminalMetrics(base=MaxPredictionAccuracyMetrics())
+        return SequentialMetrics([
+            NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
+            SingleNonTerminalAccuracyMetrics(
+                non_terminals_number=args.non_terminals_num,
+                non_terminals_file=args.non_terminals_file
+            ),
+            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
+        ])

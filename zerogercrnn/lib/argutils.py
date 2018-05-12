@@ -25,13 +25,19 @@ def add_recurrent_core_args(parser):
     parser.add_argument('--hidden_size', type=int, help='Hidden size of recurrent part of model')
     parser.add_argument('--num_layers', type=int, help='Number of recurrent layers')
     parser.add_argument('--dropout', type=float, help='Dropout to apply to recurrent layer')
+    # Layered LSTM args, ignored if not layered
+    parser.add_argument('--layered_hidden_size', type=int, help='Size of hidden state in layered lstm')
 
 
 def add_non_terminal_args(parser):
     parser.add_argument('--non_terminals_num', type=int, help='Number of different non-terminals')
     parser.add_argument('--non_terminal_embedding_dim', type=int, help='Dimension of non-terminal embeddings')
+    parser.add_argument('--non-terminals_file', type=str, help='Json file with all non-terminals')
+    parser.add_argument('--non_terminal_embeddings_file', type=str, help='File with pretrained non-terminal embeddings')
 
 
 def add_terminal_args(parser):
     parser.add_argument('--terminals_num', type=int, help='Number of different terminals')
     parser.add_argument('--terminal_embedding_dim', type=int, help='Dimension of terminal embeddings')
+    parser.add_argument('--terminals_file', type=str, help='Json file with all terminals')
+    parser.add_argument('--terminal_embeddings_file', type=str, help='File with pretrained terminal embeddings')
