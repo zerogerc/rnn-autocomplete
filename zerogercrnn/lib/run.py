@@ -59,7 +59,7 @@ class TrainEpochRunner:
             title=None,
             report_train_every=1,
             plot_train_every=1,
-            save_iter_model_every=None
+            save_model_every=1
     ):
         """Create train runner.
         
@@ -82,7 +82,7 @@ class TrainEpochRunner:
         self.save_dir = save_dir
         self.report_train_every = report_train_every
         self.plot_train_every = plot_train_every
-        self.save_iter_model_every = save_iter_model_every
+        self.save_model_every = save_model_every
 
         self.epoch = None  # current epoch
         self.it = None  # current iteration
@@ -120,7 +120,8 @@ class TrainEpochRunner:
                 for hc in self.network.health_checks():
                     hc.do_check()
 
-                save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(self.epoch))
+                if (self.epoch + 1) % self.save_model_every == 0:
+                    save_current_model(self.network, self.save_dir, name='model_epoch_{}'.format(self.epoch))
         except KeyboardInterrupt:
             print('-' * 89)
             print('Exiting from training early')
@@ -139,9 +140,6 @@ class TrainEpochRunner:
         for iter_data in train_data:
             if self.it % LOG_EVERY == 0:
                 print('Training... Epoch: {}, Iters: {}'.format(self.epoch, self.it))
-
-            if (self.save_iter_model_every is not None) and (self.it % self.save_iter_model_every == 0):
-                save_current_model(self.network, self.save_dir, name='model_iter_{}'.format(self.it))
 
             metrics_values = self.train_routine.run(
                 iter_num=self.it,
