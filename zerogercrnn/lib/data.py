@@ -211,7 +211,7 @@ class BatchedDataGenerator(DataGenerator):
             self.train_batcher = BucketsBatch(self.train_pool, self.seq_len, self.batch_size)
 
         if data_reader.validation_data is not None:
-            self.validation_pool = self._prepare_data_(data_reader.validation_data, shuffle=shuffle)
+            self.validation_pool = self._prepare_data_(data_reader.validation_data, splits=1, shuffle=shuffle)
             self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size)
 
         if data_reader.eval_data is not None:
