@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/ast/train.sh nt2n_layered_prob_attention 11May_nt2n_layered_prob_attention_hs1500_shs_300
+./scripts/ast/train.sh ntn2t_base 12May_ntn2t_base_hs1500
