@@ -51,15 +51,15 @@ class MetricsCombination(Metrics):
 
     def report(self, *values):
         if self.is_train:
-            self.train_metrics.report(values)
+            self.train_metrics.report(*values)
         else:
-            self.eval_metrics.report(values)
+            self.eval_metrics.report(*values)
 
     def get_current_value(self, should_print=False):
         if self.is_train:
-            self.train_metrics.get_current_value(should_print)
+            return self.train_metrics.get_current_value(should_print)
         else:
-            self.eval_metrics.get_current_value(should_print)
+            return self.eval_metrics.get_current_value(should_print)
 
     def decrease_hits(self, number):
         if self.is_train:

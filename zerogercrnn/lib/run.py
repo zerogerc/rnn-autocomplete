@@ -166,7 +166,7 @@ class TrainEpochRunner:
         validation_data = self.data_generator.get_validation_generator()
 
         self.metrics.drop_state()
-        self.metrics.eval()
+        # self.metrics.eval()
         self.network.eval()
 
         with torch.no_grad():
