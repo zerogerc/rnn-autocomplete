@@ -4,12 +4,24 @@ import torch.nn.functional as F
 from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
-from zerogercrnn.lib.core import EmbeddingsModule, PretrainedEmbeddingsModule, LSTMCellDropout, \
-    LinearLayer, CombinedModule, LayeredRecurrent
-from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden, get_best_device
+from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
+    LinearLayer, CombinedModule, BaseModule, LayeredRecurrent
 from zerogercrnn.lib.preprocess import read_json
+from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden, get_best_device
 
+
+class ProbabilisticMultiplier(BaseModule):
+    def __init__(self, probabilities_file):
+        super().__init__()
+        self.nt_layered_probabilities = read_json(probabilities_file)
+        self.nt_layered_probabilities = torch.tensor(self.nt_layered_probabilities, dtype=torch.float32)
+        self.nt_layered_probabilities /= torch.sum(self.nt_layered_probabilities)
+        self.nt_layered_probabilities = self.nt_layered_probabilities.to(get_best_device()).unsqueeze(1)
+
+        assert abs(1 - torch.sum(self.nt_layered_probabilities)) < 1e-6
+
+    def forward(self, coefficients):
+        return F.softmax(coefficients * self.nt_layered_probabilities, dim=1)
 
 
 class LayeredAttentionRecurrent(LayeredRecurrent):
@@ -24,6 +36,7 @@ class NT2NLayeredProbabilisticAttentionModel(CombinedModule):
             self,
             non_terminals_num,
             non_terminal_embedding_dim,
+            layered_probabilities_file,
             terminals_num,
             terminal_embedding_dim,
             hidden_dim,
@@ -38,12 +51,6 @@ class NT2NLayeredProbabilisticAttentionModel(CombinedModule):
         self.terminal_embedding_dim = terminal_embedding_dim
         self.hidden_dim = hidden_dim
         self.dropout = dropout
-
-        self.nt_layered_probabilities = read_json('eval/ast/stat/node_depths.json')
-        self.nt_layered_probabilities = torch.tensor(self.nt_layered_probabilities, dtype=torch.float32)
-        self.nt_layered_probabilities /= torch.sum(self.nt_layered_probabilities)
-        assert abs(1 - torch.sum(self.nt_layered_probabilities)) < 1e-6
-        self.nt_layered_probabilities = self.nt_layered_probabilities.to(get_best_device()).unsqueeze(1)
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -67,6 +74,8 @@ class NT2NLayeredProbabilisticAttentionModel(CombinedModule):
         ))
 
         self.attn = self.module(Attn(method='general', hidden_size=self.layered_hidden_size))
+
+        self.prob_multiplier = self.module(ProbabilisticMultiplier(layered_probabilities_file))
 
         self.recurrent_core = self.module(LSTMCellDropout(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
@@ -121,10 +130,8 @@ class NT2NLayeredProbabilisticAttentionModel(CombinedModule):
 
             # layered attention part
             layered_output_coefficients = self.attn(current_layered, layered_hidden[0])
-            layered_output_coefficients = F.softmax(
-                layered_output_coefficients * self.nt_layered_probabilities,
-                dim=1
-            ) # check dat sht
+            layered_output_coefficients = self.prob_multiplier(layered_output_coefficients)
+
             layered_output = calc_attention_combination(layered_output_coefficients, layered_hidden[0])
             recurrent_layered_output.append(layered_output)
 

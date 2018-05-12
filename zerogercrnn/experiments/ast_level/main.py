@@ -21,14 +21,18 @@ add_optimization_args(parser)
 add_recurrent_core_args(parser)
 add_non_terminal_args(parser)
 add_terminal_args(parser)
-parser.add_argument('--terminal_embeddings_file', type=str, help='File with pretrained terminal embeddings')
-parser.add_argument('--non_terminal_embeddings_file', type=str, help='File with pretrained non terminal embeddings')
 
 parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_pre, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
-parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 
-# Layered LSTM args, ignored if not layered
-parser.add_argument('--layered_hidden_size', type=int, help='Size of hidden state in layered lstm')
+# This is for evaluation purposes
+parser.add_argument('--eval', action='store_true', help='Evaluate or train')
+parser.add_argument('--eval_results_directory', type=str, help='Where to save results of evaluation')
+
+# Additional parameters for specific models
+parser.add_argument(
+    '--nodes_depths_stat_file', type=str,
+    help='File with number of times particular depth is occurred in train file'
+)
 
 
 def get_main(args):

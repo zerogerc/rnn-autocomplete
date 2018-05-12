@@ -124,8 +124,7 @@ class Main:
                 #     self.metrics.get_current_value(should_print=True)
                 it += 1
 
-        self.metrics.get_current_value(should_print=True)
-        self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)  # TODO: maybe cleaner?
+        self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)
         self.metrics.get_current_value(should_print=True)
 
     def create_optimizers(self, args):
