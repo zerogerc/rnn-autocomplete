@@ -9,6 +9,7 @@ from zerogercrnn.experiments.ast_level.nt2n_layered_prob_attention.main import N
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
+from zerogercrnn.experiments.ast_level.ntn2t_base.main import NTN2TBaseMain
 from zerogercrnn.experiments.ast_level.ntn2t_tail.main import NTN2TTailAttentionMain
 from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
@@ -46,6 +47,8 @@ def get_main(args):
         main = NT2NLayeredAttentionMain(args)
     elif args.prediction == 'nt2n_layered_prob_attention':
         main = NT2NLayeredProbabilisticAttentionMain(args)
+    elif args.prediction == 'ntn2t_base':
+        main = NTN2TBaseMain(args)
     elif args.prediction == 'nt2n_tail':
         main = NT2NTailAttentionMain(args)
     elif args.prediction == 'ntn2t':
