@@ -118,7 +118,7 @@ if __name__ == '__main__':
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if 'grid_name' in _args:
+    if _args.grid_name is not None:
         grid_search(_args)
     elif _args.eval:
         evaluate(_args)
