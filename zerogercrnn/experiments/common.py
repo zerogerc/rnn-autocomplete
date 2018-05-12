@@ -102,7 +102,8 @@ class Main:
             save_dir=args.model_save_dir,
             title=args.title,
             report_train_every=10,
-            plot_train_every=50
+            plot_train_every=50,
+            save_model_every=args.save_model_every
         )
 
         runner.run(number_of_epochs=args.epochs)

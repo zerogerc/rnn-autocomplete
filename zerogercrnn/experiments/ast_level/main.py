@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import torch
 
@@ -24,10 +25,18 @@ add_non_terminal_args(parser)
 add_terminal_args(parser)
 
 parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_pre, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
+parser.add_argument('--save_model_every', type=int, help='How often to save model', default=1)
 
 # This is for evaluation purposes
 parser.add_argument('--eval', action='store_true', help='Evaluate or train')
 parser.add_argument('--eval_results_directory', type=str, help='Where to save results of evaluation')
+
+# Grid search parameters
+parser.add_argument('--grid_name', type=str, help='Parameter to grid search')
+parser.add_argument(
+    '--grid_values', nargs='+', type=int,
+    help='Values for grid searching'
+)  # how to make it int or float?
 
 # Additional parameters for specific models
 parser.add_argument(
@@ -71,13 +80,35 @@ def evaluate(args):
     get_main(args).eval(args, print_every=1)
 
 
+def grid_search(args):
+    parameter_name = args.grid_name
+    parameter_values = args.grid_values
+
+    initial_title = args.title
+    initial_save_dir = args.model_save_dir
+
+    for p in parameter_values:
+        suffix = '_grid_' + parameter_name + '_' + str(p)
+        args.title = initial_title + suffix
+        args.model_save_dir = initial_save_dir + suffix
+        if not os.path.exists(args.model_save_dir):
+            os.makedirs(args.model_save_dir)
+
+        setattr(args, parameter_name, p)
+
+        main = get_main(args)
+        main.train(args)
+
+
 if __name__ == '__main__':
     print(torch.__version__)
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if _args.eval:
+    if 'grid_name' in _args:
+        grid_search(_args)
+    elif _args.eval:
         evaluate(_args)
     else:
         train(_args)
