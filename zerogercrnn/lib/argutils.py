@@ -32,7 +32,7 @@ def add_recurrent_core_args(parser):
 def add_non_terminal_args(parser):
     parser.add_argument('--non_terminals_num', type=int, help='Number of different non-terminals')
     parser.add_argument('--non_terminal_embedding_dim', type=int, help='Dimension of non-terminal embeddings')
-    parser.add_argument('--non-terminals_file', type=str, help='Json file with all non-terminals')
+    parser.add_argument('--non_terminals_file', type=str, help='Json file with all non-terminals')
     parser.add_argument('--non_terminal_embeddings_file', type=str, help='File with pretrained non-terminal embeddings')
 
 

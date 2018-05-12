@@ -108,9 +108,9 @@ class Main:
         runner.run(number_of_epochs=args.epochs)
 
     def eval(self, args, print_every=1000):
-        self.metrics.drop_state()
         self.model.eval()
         self.metrics.eval()
+        self.metrics.drop_state()
         it = 0
         with torch.no_grad():
             for iter_data in self.data_generator.get_eval_generator():

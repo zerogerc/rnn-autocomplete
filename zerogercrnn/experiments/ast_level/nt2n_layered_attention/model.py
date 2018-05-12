@@ -3,9 +3,8 @@ import torch
 from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
-from zerogercrnn.lib.core import EmbeddingsModule, PretrainedEmbeddingsModule, LSTMCellDropout, \
+from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule, LayeredRecurrent
-from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
 

@@ -1,7 +1,8 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain, NonTerminalMetrics, NonTerminalsCrossEntropyLoss
-from zerogercrnn.experiments.ast_level.nt2n_base.model import NT2NBaseModel
-from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, ResultsSaver, MaxPredictionWrapper
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
+from zerogercrnn.experiments.ast_level.nt2n_base.model import NT2NBaseModel
+from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, ResultsSaver, MaxPredictionWrapper, \
+    MetricsCombination
 
 
 class NT2NBaseMain(ASTMain):
@@ -20,11 +21,14 @@ class NT2NBaseMain(ASTMain):
         return NonTerminalsCrossEntropyLoss()
 
     def create_metrics(self, args):
-        return SequentialMetrics([
-            NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
-            SingleNonTerminalAccuracyMetrics(
-                non_terminals_number=args.non_terminals_num,
-                non_terminals_file=args.non_terminals_file
-            ),
-            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
-        ])
+        return MetricsCombination(
+            train_metrics=NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
+            eval_metrics=SequentialMetrics([
+                NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
+                SingleNonTerminalAccuracyMetrics(
+                    non_terminals_file=args.non_terminals_file,
+                    results_dir=args.eval_results_directory
+                ),
+                NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
+            ])
+        )

@@ -25,8 +25,8 @@ class NT2NLayeredAttentionMain(ASTMain):
         return SequentialMetrics([
             NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
             SingleNonTerminalAccuracyMetrics(
-                non_terminals_number=args.non_terminals_num,
-                non_terminals_file=args.non_terminals_file
+                non_terminals_file=args.non_terminals_file,
+                results_dir=args.eval_results_directory
             ),
             NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
         ])

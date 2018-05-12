@@ -1,10 +1,11 @@
 import json
+import os
 
 import torch
 
-from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
+from zerogercrnn.experiments.ast_level.utils import read_non_terminals
+from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
 from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics, MaxPredictionAccuracyMetrics
-from zerogercrnn.lib.preprocess import read_json
 
 
 class NonTerminalsMetricsWrapper(Metrics):
@@ -32,24 +33,22 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
     """Metrics that show accuracies per non-terminal. It should not be used for plotting, but to
     print results on console during model evaluation."""
 
-    def __init__(self, non_terminals_number, non_terminals_file, results_dir=None, dim=2):
+    def __init__(self, non_terminals_file, results_dir=None, dim=2):
         """
 
-        :param non_terminals_number: number of different non-terminals
         :param non_terminals_file: file with json of non-terminals
         :param results_dir: where to save json with accuracies per non-terminal
         :param dim: dimension to run max function on for predicted values
         """
         super().__init__()
-        print('NonTerminalAccuracyMetrics created!')
+        print('SingleNonTerminalAccuracyMetrics created!')
 
-        self.non_terminals_number = non_terminals_number + 1  # EOF
-        self.non_terminals = read_json(non_terminals_file)
-        self.non_terminals.append(EOF_TOKEN)
+        self.non_terminals = read_non_terminals(non_terminals_file)
+        self.non_terminals_number = len(self.non_terminals)
         self.results_dir = results_dir
         self.dim = dim
 
-        self.accuracies = [IndexedAccuracyMetrics(label='ERROR') for _ in range(non_terminals_number)]
+        self.accuracies = [IndexedAccuracyMetrics(label='ERROR') for _ in self.non_terminals]
 
     def drop_state(self):
         for accuracy in self.accuracies:
@@ -66,14 +65,17 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
             self.accuracies[cur].report(predicted, target, indices)
 
     def get_current_value(self, should_print=False):
-        if should_print:
-            result = []
-            for cur in range(len(self.non_terminals)):
-                cur = self.accuracies[cur].get_current_value(should_print=False)
-                result.append(cur)
-                # print('Accuracy on {} is {}'.format(self.id2nt[cur], res))
-        with open('eval/nt2n_layered_attention/nt_acc.json', mode='w') as f:
-            f.write(json.dumps(result))
+        result = []
+        for cur in range(len(self.non_terminals)):
+            cur_accuracy = self.accuracies[cur].get_current_value(should_print=False)
+            result.append(cur_accuracy)
+            if should_print:
+                print('Accuracy on {} is {}'.format(self.non_terminals[cur], cur_accuracy))
+
+        if self.results_dir is not None:
+            with open(os.path.join(self.results_dir, 'nt_acc.json'), mode='w') as f:
+                f.write(json.dumps(result))
+
         return 0  # this metrics if only for printing
 
 
