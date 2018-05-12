@@ -127,10 +127,10 @@ def test_buckets_batch():
 
 
 def test_batched_generator():
-    data_size = 30
+    data_size = 36
     seq_len = 50
     batch_size = 3
-    reader = create_test_data_reader(2 * data_size, data_size // 5, split_coefficient=0.5)
+    reader = create_test_data_reader(data_size, data_size // 6, split_coefficient=5/6)
 
     def get_retriever(to_check_key, start=0):
         cur_chunk = [0]
