@@ -255,8 +255,10 @@ class SequentialMetrics(Metrics):
 
     def get_current_value(self, should_print=False):
         result = None
+        print('-------------------------------------------')
         for m in self.metrics:
             cur = m.get_current_value(should_print=should_print)
+            print('-------------------------------------------')
             if result is None:
                 result = cur
 

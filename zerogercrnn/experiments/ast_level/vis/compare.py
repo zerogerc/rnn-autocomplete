@@ -15,7 +15,7 @@ def compare_per_nt(file1, file2, y_label):
     y2 = np.array(res2)
 
     my_xticks = nt1
-    plt.xticks(x, my_xticks, rotation=30, horizontalalignment='right', fontsize=8)
+    plt.xticks(x, my_xticks, rotation=30, horizontalalignment='right', fontsize=5)
     plt.ylabel(y_label)
     plt.grid(True)
 
@@ -37,7 +37,7 @@ def compare_per_two_plots(file1, file2, y_label):
     y2 = np.array(res2)
 
     my_xticks = nt1
-    plt.xticks(x, my_xticks, rotation=30, horizontalalignment='right', fontsize=8)
+    plt.xticks(x, my_xticks, rotation=30, horizontalalignment='right', fontsize=5)
     plt.ylabel(y_label)
     plt.grid(True)
 
@@ -63,12 +63,12 @@ def run_main():
 if __name__ == '__main__':
     # run_main()
     compare_per_nt(
-        file1='eval_local/nt2n_base/nt_acc.txt',
-        file2='eval_local/nt2n_layered_attention/nt_acc.txt',
+        file1='eval_local/nt2n_base/nt_acc_no_group.txt',
+        file2='eval_local/nt2n_layered_attention/nt_acc_no_group.txt',
         y_label='Gain of layered attention comparing to base model'
     )
-    compare_per_two_plots(
-        file1='eval_local/nt2n_base/nt_acc.txt',
-        file2='eval_local/nt2n_layered_attention/nt_acc.txt',
-        y_label='Accuracies: Red - base model, Green - layered model'
-    )
+    # compare_per_two_plots(
+    #     file1='eval_local/nt2n_base/nt_acc_no_group.txt',
+    #     file2='eval_local/nt2n_layered_attention/nt_acc_no_group.txt',
+    #     y_label='Accuracies: Red - base model, Green - layered model'
+    # )
