@@ -4,10 +4,10 @@ from itertools import chain
 import torch
 from torch import nn as nn
 
+from zerogercrnn.lib.calculation import set_layered_hidden, select_layered_hidden
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device, \
     forget_hidden_partly_lstm_cell, repackage_hidden
-from zerogercrnn.lib.calculation import set_layered_hidden, select_layered_hidden
 
 
 # region Base
@@ -21,6 +21,26 @@ class HealthCheck:
 
 
 class BaseModule(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.report_to_additional_metrics = False
+        self.additional_metrics = self.create_additional_metrics()
+
+    def eval(self):
+        super().eval()
+        self.report_to_additional_metrics = True
+
+    def train(self, mode=True):
+        super().train(mode)
+        self.report_to_additional_metrics = False
+
+    def create_additional_metrics(self):
+        return []
+
+    def get_results_of_additional_metrics(self, should_print=True):
+        for metrics in self.additional_metrics:
+            metrics.get_current_value(should_print=should_print)
 
     def sparse_parameters(self):  # in general modules do not care about sparse parameters.
         return []

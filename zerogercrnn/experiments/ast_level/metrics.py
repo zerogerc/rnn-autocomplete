@@ -2,6 +2,7 @@ import json
 import os
 
 import torch
+import numpy as np
 
 from zerogercrnn.experiments.ast_level.utils import read_non_terminals
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
@@ -210,3 +211,28 @@ class NonTerminalTerminalAccuracyMetrics(Metrics):
             print('Terminals accuracy: {}'.format(t_value))
 
         return nt_value, t_value
+
+
+class LayeredNodeDepthsAttentionMetrics(Metrics):
+    """Metrics that is able to visualize attention coefficient per node depths"""
+
+    def __init__(self):
+        super().__init__()
+        self.per_depth_attention_sum = np.zeros((50, 50))
+
+    def drop_state(self):
+        pass
+
+    def report(self, node_depths, attention_coefficients):
+        for i in range(50):
+            index = torch.nonzero((node_depths == i))
+            if index.size()[0] == 0:
+                continue
+            selected_attention = torch.index_select(attention_coefficients, dim=0, index=index.squeeze())
+            selected_attention = selected_attention.squeeze()
+            to_report = torch.sum(selected_attention, dim=0).numpy()
+            self.per_depth_attention_sum[i] += to_report / index.size()[0]
+
+    def get_current_value(self, should_print=False):
+        np.save('eval_local/attention/per_depth_matrix', self.per_depth_attention_sum)
+        return 0  # this metrics is only for saving results to file.

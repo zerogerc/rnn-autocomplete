@@ -1,6 +1,7 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
+from zerogercrnn.experiments.ast_level.metrics import LayeredNodeDepthsAttentionMetrics
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
@@ -35,6 +36,8 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.hidden_dim = hidden_dim
         self.dropout = dropout
 
+        self.metric_node_depth_attn = self.additional_metrics[0]
+
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
             embedding_dim=self.non_terminal_embedding_dim,
@@ -68,6 +71,9 @@ class NT2NLayeredAttentionModel(CombinedModule):
             input_size=self.layered_hidden_size + self.hidden_dim,
             output_size=self.non_terminals_num
         ))
+
+    def create_additional_metrics(self):
+        return [LayeredNodeDepthsAttentionMetrics()]
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
@@ -111,6 +117,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
             # layered attention part
             layered_output_coefficients = self.attn(current_layered, layered_hidden[0])
+            self._report_node_depths_attention(node_depths[i], layered_output_coefficients)
             layered_output = calc_attention_combination(layered_output_coefficients, layered_hidden[0])
             recurrent_layered_output.append(layered_output)
 
@@ -127,3 +134,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
     def init_hidden(self, batch_size):
         return self.recurrent_core.init_hidden(batch_size), \
                self.layered_recurrent.init_hidden(batch_size)
+
+    def _report_node_depths_attention(self, node_depths, attention_coefficients):
+        if self.report_to_additional_metrics:
+            self.metric_node_depth_attn.report(node_depths, attention_coefficients)
