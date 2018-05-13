@@ -4,7 +4,7 @@ import os
 import torch
 
 from zerogercrnn.experiments.ast_level.utils import read_non_terminals
-from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
+from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
 from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics, MaxPredictionAccuracyMetrics
 
 
@@ -33,7 +33,7 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
     """Metrics that show accuracies per non-terminal. It should not be used for plotting, but to
     print results on console during model evaluation."""
 
-    def __init__(self, non_terminals_file, results_dir=None, dim=2):
+    def __init__(self, non_terminals_file, results_dir=None, group=False, dim=2):
         """
 
         :param non_terminals_file: file with json of non-terminals
@@ -46,6 +46,7 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
         self.non_terminals = read_non_terminals(non_terminals_file)
         self.non_terminals_number = len(self.non_terminals)
         self.results_dir = results_dir
+        self.group = group
         self.dim = dim
 
         self.accuracies = [IndexedAccuracyMetrics(label='ERROR') for _ in self.non_terminals]
@@ -56,7 +57,10 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
 
     def report(self, data):
         prediction, target = data
-        _, predicted = torch.max(prediction, dim=self.dim)
+        if self.dim is None:
+            predicted = prediction
+        else:
+            _, predicted = torch.max(prediction, dim=self.dim)
         predicted = predicted.view(-1)
         target = target.non_terminals.view(-1)
 
@@ -72,11 +76,54 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
             if should_print:
                 print('Accuracy on {} is {}'.format(self.non_terminals[cur], cur_accuracy))
 
-        if self.results_dir is not None:
-            with open(os.path.join(self.results_dir, 'nt_acc.json'), mode='w') as f:
-                f.write(json.dumps(result))
+        self.save_to_file(result)
 
         return 0  # this metrics if only for printing
+
+    def save_to_file(self, result):
+        if self.results_dir is not None:
+            if self.group:
+                nt, res = self.get_grouped_result()
+            else:
+                nt, res = self.non_terminals, result
+
+            with open(os.path.join(self.results_dir, 'nt_acc.txt'), mode='w') as f:
+                f.write(json.dumps(nt))
+                f.write('\n')
+                f.write(json.dumps(res))
+
+    def get_grouped_result(self):
+        """Calc accuracies ignoring last two bits of information."""
+        nt = set()
+        hits = {}
+        misses = {}
+        for i in range(len(self.non_terminals)):
+            base = self.non_terminals[i]
+            if self.non_terminals[i] != EOF_TOKEN:
+                base = base[:-2]  # remove last two bits
+
+            nt.add(base)
+
+            if base not in hits:
+                hits[base] = 0
+            if base not in misses:
+                misses[base] = 0
+
+            hits[base] += self.accuracies[i].metrics.hits
+            misses[base] += self.accuracies[i].metrics.misses
+
+        nt = sorted(list(nt))
+        result = []
+
+        nt.remove('Program')
+        nt.remove('AssignmentPattern')
+        for cur in nt:
+            if hits[cur] + misses[cur] == 0:
+                result.append(0)
+            else:
+                result.append(float(hits[cur]) / (hits[cur] + misses[cur]))
+
+        return nt, result
 
 
 class TerminalAccuracyMetrics(Metrics):
