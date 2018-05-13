@@ -22,7 +22,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --hidden_size 1500 \
     --num_layers 1 \
     --dropout 0.01 \
-    --layered_hidden_size 300 \
+    --layered_hidden_size 500 \
     --non_terminals_num 97 \
     --non_terminal_embedding_dim 20 \
     --non_terminals_file "data/ast/non_terminals.json" \
