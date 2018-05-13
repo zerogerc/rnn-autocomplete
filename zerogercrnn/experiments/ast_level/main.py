@@ -12,7 +12,7 @@ from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTermina
 from zerogercrnn.experiments.ast_level.ntn2t.main import NTN2TMain
 from zerogercrnn.experiments.ast_level.ntn2t_base.main import NTN2TBaseMain
 from zerogercrnn.experiments.ast_level.ntn2t_tail.main import NTN2TTailAttentionMain
-from zerogercrnn.experiments.ast_level.vis.model import visualize_tensor, draw_line_plot
+from zerogercrnn.experiments.ast_level.vis.utils import draw_line_plot, visualize_tensor
 from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
 from zerogercrnn.lib.log import logger

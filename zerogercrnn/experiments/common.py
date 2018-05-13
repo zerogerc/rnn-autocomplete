@@ -1,11 +1,15 @@
 from abc import abstractmethod
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 
+from zerogercrnn.lib.core import BaseModule
+from zerogercrnn.lib.data import BatchedDataGenerator
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
-from zerogercrnn.lib.run import TrainEpochRunner
+from zerogercrnn.lib.metrics import Metrics
+from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
 from zerogercrnn.lib.utils import filter_requires_grad, get_best_device
 
 
@@ -67,27 +71,27 @@ class Main:
         self.plotter = 'tensorboard'
 
     @abstractmethod
-    def create_data_generator(self, args):
+    def create_data_generator(self, args) -> BatchedDataGenerator:
         pass
 
     @abstractmethod
-    def create_model(self, args):
+    def create_model(self, args) -> BaseModule:
         pass
 
     @abstractmethod
-    def create_criterion(self, args):
+    def create_criterion(self, args) -> nn.Module:
         pass
 
     @abstractmethod
-    def create_train_routine(self, args):
+    def create_train_routine(self, args) -> NetworkRoutine:
         pass
 
     @abstractmethod
-    def create_validation_routine(self, args):
+    def create_validation_routine(self, args) -> NetworkRoutine:
         pass
 
     @abstractmethod
-    def create_metrics(self, args):
+    def create_metrics(self, args) -> Metrics:
         pass
 
     def train(self, args):
@@ -127,6 +131,7 @@ class Main:
 
         self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)
         self.metrics.get_current_value(should_print=True)
+        self.model.get_results_of_additional_metrics(should_print=True)
 
     def create_optimizers(self, args):
         return get_optimizers(args, self.model)

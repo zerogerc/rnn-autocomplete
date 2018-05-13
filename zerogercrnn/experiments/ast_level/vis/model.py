@@ -1,24 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from zerogercrnn.experiments.ast_level.vis.utils import visualize_attention_matrix
+
 """
 Tools for model visualization.
 """
 
 
-def visualize_tensor(tensor_to_visualize):
-    """Draws a heatmap of tensor."""
-    tensor_to_visualize = tensor_to_visualize.detach().numpy()
-    X = np.arange(0, tensor_to_visualize.shape[0])
-    Y = np.arange(0, tensor_to_visualize.shape[1])
-    X, Y = np.meshgrid(X, Y, indexing='ij')
-
-    plt.figure()
-    plt.pcolor(X, Y, tensor_to_visualize)
-    plt.colorbar()
-    plt.show()
+def visualize_attention(file):
+    """Visualize attention matrix stored as numpy array"""
+    tensor = np.load(file)
+    visualize_attention_matrix(tensor)
 
 
-def draw_line_plot(line):
-    plt.plot(line)
-    plt.show()
+if __name__ == '__main__':
+    visualize_attention('eval_local/attention/per_depth_matrix.npy')
