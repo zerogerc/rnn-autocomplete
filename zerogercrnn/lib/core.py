@@ -26,6 +26,8 @@ class BaseModule(nn.Module):
         super().__init__()
         self.report_to_additional_metrics = False
         self.additional_metrics = self.create_additional_metrics()
+        for metrics in self.additional_metrics:
+            metrics.drop_state()
 
     def eval(self):
         super().eval()
