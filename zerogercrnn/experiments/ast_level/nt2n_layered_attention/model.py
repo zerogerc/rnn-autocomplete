@@ -117,8 +117,8 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
             # layered attention part
             layered_output_coefficients = self.attn(current_layered, layered_hidden[0])
-            if self.report_to_additional_metrics:
-                self.metric_node_depth_attn.report(node_depths[i], layered_output_coefficients)
+            # if self.report_to_additional_metrics:
+            #     self.metric_node_depth_attn.report(node_depths[i], layered_output_coefficients)
             layered_output = calc_attention_combination(layered_output_coefficients, layered_hidden[0])
             recurrent_layered_output.append(layered_output)
 
