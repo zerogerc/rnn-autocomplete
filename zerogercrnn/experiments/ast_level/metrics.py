@@ -7,6 +7,7 @@ import numpy as np
 from zerogercrnn.experiments.ast_level.utils import read_non_terminals
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
 from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics, MaxPredictionAccuracyMetrics
+from zerogercrnn.lib.utils import get_best_device
 
 
 class NonTerminalsMetricsWrapper(Metrics):
@@ -235,4 +236,25 @@ class LayeredNodeDepthsAttentionMetrics(Metrics):
 
     def get_current_value(self, should_print=False):
         np.save('eval_local/attention/per_depth_matrix', self.per_depth_attention_sum)
+        return 0  # this metrics is only for saving results to file.
+
+
+
+class ConcatenatedAttentionMetrics(Metrics):
+    """Metrics that is able to visualize attention coefficient per node depths"""
+
+    def __init__(self):
+        super().__init__()
+        self.sum = torch.from_numpy(np.zeros(2000)).float().to(get_best_device())
+        self.reported = 0
+
+    def drop_state(self):
+        pass
+
+    def report(self, output):
+        self.sum += torch.sum(torch.sum(output, dim=0), dim=0) / (output.size()[0] * output.size()[1])
+        self.reported += 1
+
+    def get_current_value(self, should_print=False):
+        np.save('eval/temp/output_sum_matrix', self.sum.detach().cpu().numpy())
         return 0  # this metrics is only for saving results to file.

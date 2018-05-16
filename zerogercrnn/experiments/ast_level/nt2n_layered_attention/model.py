@@ -1,7 +1,7 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
-from zerogercrnn.experiments.ast_level.metrics import LayeredNodeDepthsAttentionMetrics
+from zerogercrnn.experiments.ast_level.metrics import ConcatenatedAttentionMetrics
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
@@ -36,7 +36,8 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.hidden_dim = hidden_dim
         self.dropout = dropout
 
-        self.metric_node_depth_attn = self.additional_metrics[0]
+        # self.metric_node_depth_attn = self.additional_metrics[0]
+        # self.metric_concat = self.additional_metrics[0]
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -67,13 +68,15 @@ class NT2NLayeredAttentionModel(CombinedModule):
             dropout=self.dropout
         ))
 
+        self.norm = torch.nn.BatchNorm1d(self.hidden_dim + self.layered_hidden_size)
+
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,
             output_size=self.non_terminals_num
         ))
 
     def create_additional_metrics(self):
-        return [LayeredNodeDepthsAttentionMetrics()]
+        return []
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
@@ -89,7 +92,12 @@ class NT2NLayeredAttentionModel(CombinedModule):
             forget_vector=forget_vector
         )
 
-        prediction = self.h2o(torch.cat((recurrent_output, recurrent_layered_output), dim=-1))
+        concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
+        seq_len, batch_size, features_size = concat_output.size()
+        concat_output = self.norm(concat_output.view(-1, features_size))
+        concat_output = concat_output.view(seq_len, batch_size, -1)
+        # self.metric_concat.report(concat_output)
+        prediction = self.h2o(concat_output)
 
         assert hidden is not None
         return prediction, (hidden, layered_hidden)
