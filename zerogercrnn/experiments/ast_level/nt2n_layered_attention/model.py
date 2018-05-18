@@ -6,7 +6,7 @@ from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule, LayeredRecurrent
-from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
+from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden, init_layers_uniform
 
 
 class LayeredAttentionRecurrent(LayeredRecurrent):
@@ -68,7 +68,16 @@ class NT2NLayeredAttentionModel(CombinedModule):
             dropout=self.dropout
         ))
 
+        # TODO: self.module
         self.norm = torch.nn.BatchNorm1d(self.hidden_dim + self.layered_hidden_size)
+        for p in self.norm.parameters():
+            self.param(p)
+        init_layers_uniform(-0.05, 0.05, [self.norm])
+
+        # print(self.norm.weight)
+        # print(self.norm.bias)
+        # print(self.norm.running_mean)
+        # print(self.norm.running_var)
 
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,

@@ -43,4 +43,9 @@ def load_cuda_on_cpu(model, path):
 
 def save_model(model, path):
     """Saves state of the model by specified path."""
+    # print(model.state_dict().keys())
+    # print(model.norm.weight)
+    # print(model.norm.bias)
+    # print(model.norm.running_mean)
+    # print(model.norm.running_var)
     torch.save(model.state_dict(), path)
