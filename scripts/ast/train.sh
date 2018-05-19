@@ -17,7 +17,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --learning_rate 0.001 \
     --epochs 30 \
     --decay_after_epoch 0 \
-    --decay_multiplier 0.8 \
+    --decay_multiplier 0.9 \
     --weight_decay=0. \
     --hidden_size 1500 \
     --num_layers 1 \
