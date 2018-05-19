@@ -12,7 +12,7 @@ from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidd
 class LayeredAttentionRecurrent(LayeredRecurrent):
 
     def pick_current_output(self, layered_hidden, nodes_depth):
-        o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.tree_layers - 1))
+        o_cur = select_layered_hidden(layered_hidden[0], torch.clamp(nodes_depth, min=0, max=self.num_tree_layers - 1))
         return o_cur.squeeze()
 
 
@@ -37,9 +37,9 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.dropout = dropout
 
         # self.metric_node_depth_attn = self.additional_metrics[0]
-        self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
-        self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
-        self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
+        # self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
+        # self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
+        # self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -57,7 +57,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.layered_hidden_size = layered_hidden_size
         self.layered_recurrent = self.module(LayeredAttentionRecurrent(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
-            tree_layers=self.num_tree_layers,
+            num_tree_layers=self.num_tree_layers,
             single_hidden_size=self.layered_hidden_size,
             dropout=self.dropout
         ))
@@ -86,10 +86,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
             output_size=self.non_terminals_num
         ))
 
-    def get_results_of_additional_metrics(self, should_print=True):
-        super().get_results_of_additional_metrics(should_print)
-        self.layered_recurrent.get_results_of_additional_metrics(should_print=should_print)
-
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
 
@@ -105,12 +101,12 @@ class NT2NLayeredAttentionModel(CombinedModule):
         )
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
-        self.metric_concat_before.report(concat_output)
+        # self.metric_concat_before.report(concat_output)
 
         seq_len, batch_size, features_size = concat_output.size()
         concat_output = self.norm(concat_output.view(-1, features_size))
         concat_output = concat_output.view(seq_len, batch_size, -1)
-        self.metric_concat_after.report(concat_output)
+        # self.metric_concat_after.report(concat_output)
         prediction = self.h2o(concat_output)
 
         assert hidden is not None

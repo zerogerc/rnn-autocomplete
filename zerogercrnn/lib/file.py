@@ -38,21 +38,10 @@ def load_cuda_on_cpu(model, path):
     if os.path.isfile(path):
         model.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
         print('Model restored from file.')
-        print(model.norm.weight)
-        print(model.norm.bias)
-        print(model.norm.running_mean)
-        print(model.norm.running_var)
-        np.save('eval/temp/running_mean', model.norm.running_mean.detach().cpu().numpy())
-        np.save('eval/temp/running_var', model.norm.running_var.detach().cpu().numpy())
     else:
         raise Exception('Model file not exists. File: {}'.format(path))
 
 
 def save_model(model, path):
     """Saves state of the model by specified path."""
-    # print(model.state_dict().keys())
-    print(model.norm.weight)
-    print(model.norm.bias)
-    print(model.norm.running_mean)
-    print(model.norm.running_var)
     torch.save(model.state_dict(), path)
