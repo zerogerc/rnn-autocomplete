@@ -212,8 +212,10 @@ class LayeredRecurrent(BaseModule):
             self.depths_dim = self.depth_embedding_dim
             self.depth_embeddings = nn.Linear(
                 in_features=self.num_tree_layers,
-                out_features=self.depth_embedding_dim
+                out_features=self.depth_embedding_dim,
+                bias=False
             )
+            init_layers_uniform(-0.05, 0.05, [self.depth_embeddings])
 
         if self.normalize:
             self.norm = NormalizationLayer(features_num=self.input_size + self.depths_dim)
@@ -224,9 +226,9 @@ class LayeredRecurrent(BaseModule):
             dropout=dropout
         )
 
-        self.layered_input_vis_before = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_before')
-        self.layered_input_vis_after = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_after')
-        self.additional_metrics = [self.layered_input_vis_before, self.layered_input_vis_after]
+        # self.layered_input_vis_before = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_before')
+        # self.layered_input_vis_after = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_after')
+        # self.additional_metrics = [self.layered_input_vis_before, self.layered_input_vis_after]
 
     @abstractmethod
     def pick_current_output(self, layered_hidden, nodes_depth):
@@ -243,11 +245,11 @@ class LayeredRecurrent(BaseModule):
             nodes_in = self.depth_embeddings(nodes_in)
 
         l_input = torch.cat((m_input, nodes_in), dim=-1)
-        self.layered_input_vis_before.report(l_input)
+        # self.layered_input_vis_before.report(l_input)
         if self.normalize:
             l_input = self.norm(l_input)
 
-        self.layered_input_vis_after.report(l_input)
+        # self.layered_input_vis_after.report(l_input)
 
         l_h, l_c = self.layered_recurrent(
             l_input,

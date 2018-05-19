@@ -40,9 +40,9 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
         self.dropout = dropout
 
         # self.metric_node_depth_attn = self.additional_metrics[0]
-        self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
-        self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
-        self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
+        # self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
+        # self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
+        # self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -82,9 +82,9 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
             output_size=self.non_terminals_num
         ))
 
-    def get_results_of_additional_metrics(self, should_print=True):
-        super().get_results_of_additional_metrics(should_print)
-        self.layered_recurrent.get_results_of_additional_metrics(should_print=should_print)
+    # def get_results_of_additional_metrics(self, should_print=True):
+    #     super().get_results_of_additional_metrics(should_print)
+    #     self.layered_recurrent.get_results_of_additional_metrics(should_print=should_print)
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
@@ -101,9 +101,9 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
         )
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
-        self.metric_concat_before.report(concat_output)
+        # self.metric_concat_before.report(concat_output)
         concat_output = self.h_norm(concat_output)
-        self.metric_concat_after.report(concat_output)
+        # self.metric_concat_after.report(concat_output)
         prediction = self.h2o(concat_output)
 
         assert hidden is not None
