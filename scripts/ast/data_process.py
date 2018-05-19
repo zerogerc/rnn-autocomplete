@@ -1,10 +1,10 @@
-import json
 import argparse
+import json
 from itertools import chain
 
 from zerogercrnn.experiments.ast_level.raw_data import TokensRetriever, JsonConverter, OneHotConverter
-from zerogercrnn.lib.preprocess import extract_jsons_info, JsonListKeyExtractor
 from zerogercrnn.lib.constants import ENCODING
+from zerogercrnn.lib.preprocess import extract_jsons_info, JsonListKeyExtractor
 
 parser = argparse.ArgumentParser(description='Data processing for token level neural network')
 parser.add_argument('--file_train_raw', type=str, help='Raw train file')
@@ -97,13 +97,14 @@ def form_one_hot(args):
         lim=LIM
     )
 
+
 def create_glove_non_terminals_file(args):
     """Create GloVe non-terminals file from one-hot file. """
 
     with open(file=args.file_glove_non_terminals, mode='w', encoding=ENCODING) as f:
         nt_extractor = JsonListKeyExtractor(key='N')  # extract non terminals for one-hot files
         for nt_generator in extract_jsons_info(nt_extractor, args.file_train, args.file_eval):
-            f.write(' '.join(map(str, chain(nt_generator, [-1]*10))))
+            f.write(' '.join(map(str, chain(nt_generator, [-1] * 10))))
             f.write(' ')
 
 

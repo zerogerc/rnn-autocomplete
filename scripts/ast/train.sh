@@ -10,9 +10,8 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --prediction $1 \
     --eval_results_directory eval/$2 \
     --train_file "data/ast/file_train.json" \
-    --data_limit 100000 \
+    --data_limit 1000 \
     --model_save_dir saved/$2 \
-    --saved_model "saved/16May_nt2n_layered_attention_normalized_hs1500_shs500/model_epoch_30" \
     --seq_len 50 \
     --batch_size 80 \
     --learning_rate 0.0001 \
@@ -29,8 +28,9 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --non_terminals_file "data/ast/non_terminals.json" \
     --non_terminal_embeddings_file "data/ast/non_terminal_embeddings.txt" \
     --terminals_num 50001 \
-    --terminal_embedding_dim 100 \
+    --terminal_embedding_dim 20 \
     --terminals_file "data/ast/terminals.json" \
     --terminal_embeddings_file "data/ast/terminal_embeddings.txt" \
+    --node_depths_embedding_dim 20 \
     --nodes_depths_stat_file "eval/ast/stat/node_depths.json"
 

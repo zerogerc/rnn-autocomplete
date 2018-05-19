@@ -25,9 +25,7 @@ class BaseModule(nn.Module):
     def __init__(self):
         super().__init__()
         self.report_to_additional_metrics = False
-        self.additional_metrics = self.create_additional_metrics()
-        for metrics in self.additional_metrics:
-            metrics.drop_state()
+        self.additional_metrics = []
 
     def eval(self):
         super().eval()
@@ -36,9 +34,6 @@ class BaseModule(nn.Module):
     def train(self, mode=True):
         super().train(mode)
         self.report_to_additional_metrics = False
-
-    def create_additional_metrics(self):
-        return []
 
     def get_results_of_additional_metrics(self, should_print=True):
         for metrics in self.additional_metrics:
@@ -198,29 +193,59 @@ def create_lstm_cell_hidden(hidden_size, batch_size):
 
 
 class LayeredRecurrent(BaseModule):
-    def __init__(self, input_size, tree_layers, single_hidden_size, dropout=0.):
+    def __init__(
+            self, input_size, num_tree_layers, single_hidden_size,
+            depth_embedding_dim=None, normalize=False, dropout=0.
+    ):
         super().__init__()
         self.input_size = input_size
-        self.tree_layers = tree_layers
+        self.num_tree_layers = num_tree_layers
         self.single_hidden_size = single_hidden_size
+        self.depth_embedding_dim = depth_embedding_dim
+        self.normalize = normalize
+        self.dropout = dropout
+
+        self.depths_dim = self.num_tree_layers
+
+        if self.depth_embedding_dim is not None:
+            self.depths_dim = self.depth_embedding_dim
+            self.depth_embeddings = nn.Linear(
+                in_features=self.num_tree_layers,
+                out_features=self.depth_embedding_dim
+            )
+
+        if self.normalize:
+            self.norm = NormalizationLayer(features_num=self.input_size + self.depths_dim)
+
         self.layered_recurrent = LSTMCellDropout(
-            input_size=self.input_size + self.tree_layers,
+            input_size=self.input_size + self.depths_dim,
             hidden_size=self.single_hidden_size,
             dropout=dropout
         )
+
+        # self.layered_input_vis = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix')
+        # self.additional_metrics = [self.layered_input_vis]
 
     @abstractmethod
     def pick_current_output(self, layered_hidden, nodes_depth):
         pass
 
     def forward(self, m_input, nodes_depth, layered_hidden, reinit_dropout):
-        nodes_depth = torch.clamp(nodes_depth, max=self.tree_layers - 1)
-        nodes_depth_one_hot = LayeredRecurrent.create_one_hot_depths(nodes_depth, self.tree_layers)
+        nodes_depth = torch.clamp(nodes_depth, max=self.num_tree_layers - 1)
+        nodes_depth_one_hot = LayeredRecurrent.create_one_hot_depths(nodes_depth, self.num_tree_layers)
 
         l_h, l_c = LayeredRecurrent.select_layered_lstm_hidden(layered_hidden, nodes_depth)
 
+        nodes_in = nodes_depth_one_hot
+        if self.depth_embedding_dim is not None:
+            nodes_in = self.depth_embeddings(nodes_in)
+
+        l_input = torch.cat((m_input, nodes_in), dim=-1)
+        if self.normalize:
+            l_input = self.norm(l_input)
+
         l_h, l_c = self.layered_recurrent(
-            torch.cat((m_input, nodes_depth_one_hot), dim=-1),
+            l_input,
             (l_h, l_c),
             reinit_dropout=reinit_dropout
         )
@@ -228,8 +253,8 @@ class LayeredRecurrent(BaseModule):
         return LayeredRecurrent.update_layered_lstm_hidden(layered_hidden, nodes_depth, (l_h, l_c))
 
     def init_hidden(self, batch_size):
-        h = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
-        c = setup_tensor(torch.zeros((batch_size, self.tree_layers, self.single_hidden_size)))
+        h = setup_tensor(torch.zeros((batch_size, self.num_tree_layers, self.single_hidden_size)))
+        c = setup_tensor(torch.zeros((batch_size, self.num_tree_layers, self.single_hidden_size)))
 
         return h, c
 
@@ -389,3 +414,18 @@ class AlphaBetaSumHealthCheck(HealthCheck):
     def do_check(self):
         print('Alpha: {}'.format(self.module.mult_alpha))
         print('Beta: {}'.format(self.module.mult_beta))
+
+
+class NormalizationLayer(BaseModule):
+    def __init__(self, features_num):
+        super().__init__()
+        self.features_num = features_num
+        self.norm = torch.nn.BatchNorm1d(features_num)
+        init_layers_uniform(-0.05, 0.05, [self.norm])
+
+    def forward(self, m_input):
+        sizes = m_input.size()
+        assert sizes[-1] == self.features_num
+
+        m_output = self.norm(m_input.view(-1, self.features_num))
+        return m_output.view(sizes)

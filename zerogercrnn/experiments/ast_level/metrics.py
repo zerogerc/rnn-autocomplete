@@ -1,8 +1,8 @@
 import json
 import os
 
-import torch
 import numpy as np
+import torch
 
 from zerogercrnn.experiments.ast_level.utils import read_non_terminals
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
@@ -239,14 +239,48 @@ class LayeredNodeDepthsAttentionMetrics(Metrics):
         return 0  # this metrics is only for saving results to file.
 
 
+class TensorVisualizerMetrics(Metrics):
+
+    def __init__(self, mapper, file='eval/temp/tensor_visualization'):
+        super().__init__()
+        self.mapper = mapper
+        self.file = file
+        self.sum = None
+        self.reported = 0
+
+    def drop_state(self):
+        pass
+
+    def report(self, output):
+        current_sum = self.mapper(output.detach())
+        if self.sum is None:
+            self.sum = current_sum
+        else:
+            self.sum += current_sum
+        # self.sum += torch.sum(torch.sum(output, dim=0), dim=0) / (output.size()[0] * output.size()[1])
+        self.reported += 1
+
+    def get_current_value(self, should_print=False):
+        np.save(self.file, self.sum.cpu().numpy())
+        return 0  # this metrics is only for saving results to file.
+
+
+class TensorVisualizer2DMetrics(TensorVisualizerMetrics):
+    def __init__(self, dim=0, file='eval/temp/tensor_visualizer2d'):
+        super().__init__(
+            mapper=lambda output: torch.sum(output, dim=dim) / output.size()[dim],
+            file=file
+        )
+
 
 class ConcatenatedAttentionMetrics(Metrics):
     """Metrics that is able to visualize attention coefficient per node depths"""
 
-    def __init__(self):
+    def __init__(self, file='eval/temp/output_sum_matrix'):
         super().__init__()
         self.sum = torch.from_numpy(np.zeros(2000)).float().to(get_best_device())
         self.reported = 0
+        self.file = file
 
     def drop_state(self):
         pass
@@ -256,5 +290,5 @@ class ConcatenatedAttentionMetrics(Metrics):
         self.reported += 1
 
     def get_current_value(self, should_print=False):
-        np.save('eval/temp/output_sum_matrix', self.sum.detach().cpu().numpy())
+        np.save(self.file, self.sum.detach().cpu().numpy())
         return 0  # this metrics is only for saving results to file.

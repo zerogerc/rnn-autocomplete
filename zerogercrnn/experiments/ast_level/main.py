@@ -2,10 +2,10 @@ import argparse
 import os
 
 import torch
-
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention.main import NT2NLayeredAttentionMain
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm.main import NT2NLayeredAttentionNormalizedMain
 from zerogercrnn.experiments.ast_level.nt2n_base.main import NT2NBaseMain
 from zerogercrnn.experiments.ast_level.nt2n_layered.main import NT2NLayeredMain
-from zerogercrnn.experiments.ast_level.nt2n_layered_attention.main import NT2NLayeredAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_layered_prob_attention.main import NT2NLayeredProbabilisticAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_te.main import NT2NPretrainedTerminalsMain
@@ -41,6 +41,10 @@ parser.add_argument(
 
 # Additional parameters for specific models
 parser.add_argument(
+    '--node_depths_embedding_dim', type=int,
+    help='Dimension of continuous representation of node depth'
+)
+parser.add_argument(
     '--nodes_depths_stat_file', type=str,
     help='File with number of times particular depth is occurred in train file'
 )
@@ -55,6 +59,8 @@ def get_main(args):
         main = NT2NLayeredMain(args)
     elif args.prediction == 'nt2n_layered_attention':
         main = NT2NLayeredAttentionMain(args)
+    elif args.prediction == 'nt2n_layered_attention_norm':
+        main = NT2NLayeredAttentionNormalizedMain(args)
     elif args.prediction == 'nt2n_layered_prob_attention':
         main = NT2NLayeredProbabilisticAttentionMain(args)
     elif args.prediction == 'ntn2t_base':
