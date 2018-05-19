@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 
-from zerogercrnn.experiments.ast_level.vis.utils import visualize_attention_matrix, draw_line_plot
+from zerogercrnn.experiments.ast_level.vis.utils import visualize_attention_matrix
 
 """
 Tools for model visualization.
@@ -14,12 +14,46 @@ def visualize_attention(file):
     visualize_attention_matrix(tensor)
 
 
-def visualize_output_combination(file):
-    tensor = np.load(file)
-    print(np.sum(tensor[:1500]) / 1500)
-    print(np.sum(tensor[-500:]) / 500)
-    draw_line_plot(tensor)
+def visualize_output_combination(file_before, file_after):
+    tensor_before = np.load(file_before)
+    print(np.sum(tensor_before[:1500]) / 1500)
+    print(np.sum(tensor_before[-500:]) / 500)
+    plt.plot(tensor_before, 'r')
+
+    tensor_after = np.load(file_after)
+    print(np.sum(tensor_after[:1500]) / 1500)
+    print(np.sum(tensor_after[-500:]) / 500)
+    plt.plot(tensor_after, 'g')
+
+    plt.show()
+
+
+def visualize_line(file):
+    line = np.load(file)
+    plt.plot(line)
+    plt.show()
+
+
+def visualize_running_mean_and_variance(mean_file, variance_file):
+    mean = np.load(mean_file)
+    variance = np.load(variance_file)
+
+    plt.plot(variance)
+    plt.show()
+
 
 if __name__ == '__main__':
+    # visualize_line('eval/temp/layered_input_matrix.npy')
     # visualize_attention('eval_local/attention/per_depth_matrix.npy')
-    visualize_output_combination('eval/temp/output_sum_matrix.npy')
+    # visualize_output_combination(
+    #     file_before='eval/temp/output_sum_before_matrix.npy',
+    #     file_after='eval/temp/output_sum_after_matrix.npy'
+    # )
+    visualize_output_combination(
+        file_before='eval/temp/layered_input_matrix_before.npy',
+        file_after='eval/temp/layered_input_matrix_after.npy'
+    )
+    # visualize_running_mean_and_variance(
+    #     mean_file='eval/temp/running_mean.npy',
+    #     variance_file='eval/temp/running_var.npy'
+    # )

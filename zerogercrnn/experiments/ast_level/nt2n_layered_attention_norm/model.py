@@ -1,12 +1,12 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
-from zerogercrnn.experiments.ast_level.metrics import ConcatenatedAttentionMetrics
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
-    LinearLayer, CombinedModule, LayeredRecurrent
-from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden, init_layers_uniform
+    LinearLayer, CombinedModule, LayeredRecurrent, NormalizationLayer
+from zerogercrnn.experiments.ast_level.metrics import ConcatenatedAttentionMetrics
+from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
 
 class LayeredAttentionRecurrent(LayeredRecurrent):
@@ -16,7 +16,7 @@ class LayeredAttentionRecurrent(LayeredRecurrent):
         return o_cur.squeeze()
 
 
-class NT2NLayeredAttentionModel(CombinedModule):
+class NT2NLayeredAttentionNormalizedModel(CombinedModule):
     def __init__(
             self,
             non_terminals_num,
@@ -25,15 +25,18 @@ class NT2NLayeredAttentionModel(CombinedModule):
             terminal_embedding_dim,
             hidden_dim,
             layered_hidden_size,
+            node_depths_embedding_dim,
             dropout
     ):
         super().__init__()
+        print('NT2NLayeredAttentionNormalizedModel created!')
 
         self.non_terminals_num = non_terminals_num
         self.non_terminal_embedding_dim = non_terminal_embedding_dim
         self.terminals_num = terminals_num
         self.terminal_embedding_dim = terminal_embedding_dim
         self.hidden_dim = hidden_dim
+        self.node_depths_embedding_dim = node_depths_embedding_dim
         self.dropout = dropout
 
         # self.metric_node_depth_attn = self.additional_metrics[0]
@@ -59,6 +62,8 @@ class NT2NLayeredAttentionModel(CombinedModule):
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             num_tree_layers=self.num_tree_layers,
             single_hidden_size=self.layered_hidden_size,
+            depth_embedding_dim=self.node_depths_embedding_dim,
+            normalize=True,
             dropout=self.dropout
         ))
 
@@ -70,21 +75,16 @@ class NT2NLayeredAttentionModel(CombinedModule):
             dropout=self.dropout
         ))
 
-        # TODO: self.module
-        self.norm = torch.nn.BatchNorm1d(self.hidden_dim + self.layered_hidden_size)
-        for p in self.norm.parameters():
-            self.param(p)
-        init_layers_uniform(-0.05, 0.05, [self.norm])
-
-        # print(self.norm.weight)
-        # print(self.norm.bias)
-        # print(self.norm.running_mean)
-        # print(self.norm.running_var)
+        self.h_norm = self.module(NormalizationLayer(features_num=self.hidden_dim + self.layered_hidden_size))
 
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,
             output_size=self.non_terminals_num
         ))
+
+    # def get_results_of_additional_metrics(self, should_print=True):
+    #     super().get_results_of_additional_metrics(should_print)
+    #     self.layered_recurrent.get_results_of_additional_metrics(should_print=should_print)
 
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
@@ -102,10 +102,7 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
         # self.metric_concat_before.report(concat_output)
-
-        seq_len, batch_size, features_size = concat_output.size()
-        concat_output = self.norm(concat_output.view(-1, features_size))
-        concat_output = concat_output.view(seq_len, batch_size, -1)
+        concat_output = self.h_norm(concat_output)
         # self.metric_concat_after.report(concat_output)
         prediction = self.h2o(concat_output)
 
