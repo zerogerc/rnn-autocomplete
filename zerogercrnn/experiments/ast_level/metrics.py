@@ -261,7 +261,7 @@ class TensorVisualizerMetrics(Metrics):
         self.reported += 1
 
     def get_current_value(self, should_print=False):
-        np.save(self.file, self.sum.cpu().numpy())
+        np.save(self.file, self.sum.cpu().numpy() / self.reported)
         return 0  # this metrics is only for saving results to file.
 
 
@@ -278,7 +278,7 @@ class ConcatenatedAttentionMetrics(Metrics):
 
     def __init__(self, file='eval/temp/output_sum_matrix'):
         super().__init__()
-        self.sum = torch.from_numpy(np.zeros(2000)).float().to(get_best_device())
+        self.sum = torch.from_numpy(np.zeros(300)).float().to(get_best_device())
         self.reported = 0
         self.file = file
 
@@ -290,5 +290,5 @@ class ConcatenatedAttentionMetrics(Metrics):
         self.reported += 1
 
     def get_current_value(self, should_print=False):
-        np.save(self.file, self.sum.detach().cpu().numpy())
+        np.save(self.file, self.sum.detach().cpu().numpy() / self.reported)
         return 0  # this metrics is only for saving results to file.

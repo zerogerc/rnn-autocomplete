@@ -4,6 +4,7 @@ from itertools import chain
 import torch
 from torch import nn as nn
 
+from zerogercrnn.experiments.ast_level.metrics import TensorVisualizer2DMetrics
 from zerogercrnn.lib.calculation import set_layered_hidden, select_layered_hidden
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device, \
@@ -223,8 +224,9 @@ class LayeredRecurrent(BaseModule):
             dropout=dropout
         )
 
-        # self.layered_input_vis = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix')
-        # self.additional_metrics = [self.layered_input_vis]
+        self.layered_input_vis_before = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_before')
+        self.layered_input_vis_after = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_after')
+        self.additional_metrics = [self.layered_input_vis_before, self.layered_input_vis_after]
 
     @abstractmethod
     def pick_current_output(self, layered_hidden, nodes_depth):
@@ -241,8 +243,11 @@ class LayeredRecurrent(BaseModule):
             nodes_in = self.depth_embeddings(nodes_in)
 
         l_input = torch.cat((m_input, nodes_in), dim=-1)
+        self.layered_input_vis_before.report(l_input)
         if self.normalize:
             l_input = self.norm(l_input)
+
+        self.layered_input_vis_after.report(l_input)
 
         l_h, l_c = self.layered_recurrent(
             l_input,
