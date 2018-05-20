@@ -1,6 +1,7 @@
-import numpy as np
 import json
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from zerogercrnn.lib.preprocess import write_json, read_jsons, read_json, extract_jsons_info, JsonExtractor
 
@@ -135,6 +136,7 @@ class JsonProgramDepthStatExtractor(JsonExtractor):
 
         return depths_prob
 
+
 def extract_depths_histogram():
     extractor = JsonProgramDepthStatExtractor()
 
@@ -145,6 +147,7 @@ def extract_depths_histogram():
     res = [x for x in depths_prob]
     with open('eval/ast/stat/node_depths.json', 'w') as f:
         f.write(json.dumps(res))
+
 
 def draw_histogram(file):
     values = read_json(file)
@@ -159,9 +162,84 @@ def draw_histogram(file):
     plt.show()
 
 
+class EasyNonTerminalsExtractor(JsonExtractor):
+
+    def __init__(self):
+        super().__init__()
+        self.parents_table = {}
+
+    def extract(self, raw_json):
+        for i in range(len(raw_json) - 1):
+            node = raw_json[i]
+            if 'children' in node:
+                parent_type = node['type']
+                children = node['children']
+                for position in range(len(children)):
+                    child_type = raw_json[int(children[position])]['type']
+
+                    if child_type not in self.parents_table:
+                        self.parents_table[child_type] = []
+
+                    self.parents_table[child_type].append(parent_type + '_' + str(position))
+
+
+def get_easy_non_terminals(file, lim=None):
+    extractor = EasyNonTerminalsExtractor()
+    for info in extract_jsons_info(extractor, file, lim=lim):
+        print(info)
+
+
+class NonTerminalsStatExtractor(JsonExtractor):
+    def __init__(self):
+        super().__init__()
+        self.stat = {}
+
+    def extract(self, raw_json):
+        for i in range(len(raw_json) - 1):
+            t = raw_json[i]['type']
+            if t not in self.stat:
+                self.stat[t] = 0
+
+            self.stat[t] += 1
+
+        return True
+
+
+def visualize_nt_stat(file):
+    stat = read_json(file)
+    labels = []
+    values = []
+    sum = 0
+    for k in sorted(stat.keys()):
+        labels.append(k)
+        values.append(stat[k])
+        sum += stat[k]
+
+    x = np.arange(len(values))
+    y = np.array(values) / sum * 100
+
+    plt.xticks(x, labels, rotation=30, horizontalalignment='right', fontsize=5)
+    plt.grid(True)
+
+    plt.plot(x, y)
+    plt.show()
+
+
+def get_non_terminals_statistic(file, lim=None):
+    extractor = NonTerminalsStatExtractor()
+    list(extract_jsons_info(extractor, file, lim=lim))
+
+    with open('data/ast/stat_nt_occurrences.json', mode='w') as f:
+        f.write(json.dumps(extractor.stat))
+
+
 def run_main():
     # extract_depths_histogram()
-    draw_histogram('eval/ast/stat/node_depths.json')
+    # draw_histogram('eval/ast/stat/node_depths.json')
+
+    # get_easy_non_terminals(file='data/programs_eval_10000.json', lim=100)
+    # get_non_terminals_statistic(file='data/programs_eval_10000.json', lim=10000)
+    visualize_nt_stat(file='data/ast/stat_nt_occurrences.json')
 
     # calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
     # plot_program_len_percentiles(FILE_STAT_PROGRAM_LENGTHS)
