@@ -3,7 +3,7 @@ from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerm
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm.model import NT2NLayeredAttentionNormalizedModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, \
-    ResultsSaver, TensorVisualizer3DMetrics
+    ResultsSaver, TensorVisualizer3DMetrics, FeaturesMeanVarianceMetrics
 
 
 class NT2NLayeredAttentionNormalizedMain(ASTMain):
@@ -40,15 +40,37 @@ class NT2NLayeredAttentionNormalizedMain(ASTMain):
         return add_eval_hooks(self.model)
 
 
+def register_forward_hook(module, metrics, picker):
+    module.register_forward_hook(lambda _, m_input, m_output: metrics.report(picker(m_input, m_output)))
+
+
+def register_output_hook(module, metrics, picker=None):
+    if picker is None:
+        picker = lambda m_output: m_output
+    register_forward_hook(module, metrics, lambda m_input, m_output: picker(m_output))
+
+
+def register_input_hook(module, metrics, picker=None):
+    if picker is None:
+        picker = lambda m_input: m_input[0]
+    register_forward_hook(module, metrics, lambda m_input, m_output: picker(m_input))
+
+
 def add_eval_hooks(model: NT2NLayeredAttentionNormalizedModel):
     before_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_before_matrix')
     after_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_after_matrix')
 
-    def output_normalization_hook(module, m_input, m_output):
-        assert m_input[0].size() == m_output.size()
-        before_output_metrics.report(m_input[0])
-        after_output_metrics.report(m_output)
+    register_input_hook(model.h_norm, before_output_metrics)
+    register_output_hook(model.h_norm, after_output_metrics)
 
-    model.h_norm.register_forward_hook(output_normalization_hook)
+    concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
+    register_input_hook(model.recurrent_core, concatenated_input_metrics)
 
-    return before_output_metrics, after_output_metrics
+    concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
+    register_input_hook(
+        model.h_norm,
+        concatenated_hidden_metrics,
+        picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
+    )
+
+    return before_output_metrics, after_output_metrics, concatenated_input_metrics, concatenated_hidden_metrics

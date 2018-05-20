@@ -1,12 +1,15 @@
 from __future__ import unicode_literals, print_function, division
 
-import numpy as np
 import os
 from io import open
 
 import torch
 
 DEFAULT_ENCODING = 'ISO-8859-1'
+
+
+def create_directory_if_not_exists(path):
+    os.makedirs(path, exist_ok=True)
 
 
 def read_lines(filename, encoding=DEFAULT_ENCODING):
