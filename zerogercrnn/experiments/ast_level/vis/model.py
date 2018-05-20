@@ -45,14 +45,14 @@ def visualize_running_mean_and_variance(mean_file, variance_file):
 if __name__ == '__main__':
     # visualize_line('eval/temp/layered_input_matrix.npy')
     # visualize_attention('eval_local/attention/per_depth_matrix.npy')
-    visualize_output_combination(
-        file_before='eval/temp/new_output_sum_before_matrix.npy',
-        file_after='eval/temp/new_output_sum_after_matrix.npy'
-    )
     # visualize_output_combination(
-    #     file_before='eval/temp/layered_input_matrix_before.npy',
-    #     file_after='eval/temp/layered_input_matrix_after.npy'
+    #     file_before='eval/temp/new_output_sum_before_matrix.npy',
+    #     file_after='eval/temp/new_output_sum_after_matrix.npy'
     # )
+    visualize_output_combination(
+        file_before='eval/temp/test_before.npy',
+        file_after='eval/temp/test_after.npy'
+    )
     # visualize_running_mean_and_variance(
     #     mean_file='eval/temp/running_mean.npy',
     #     variance_file='eval/temp/running_var.npy'
