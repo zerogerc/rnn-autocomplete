@@ -4,41 +4,15 @@ from itertools import chain
 import torch
 from torch import nn as nn
 
-from zerogercrnn.experiments.ast_level.metrics import TensorVisualizer2DMetrics
 from zerogercrnn.lib.calculation import set_layered_hidden, select_layered_hidden
 from zerogercrnn.lib.embedding import Embeddings
+from zerogercrnn.lib.health import AlphaBetaSumHealthCheck
 from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, setup_tensor, get_best_device, \
     forget_hidden_partly_lstm_cell, repackage_hidden
 
 
 # region Base
-
-class HealthCheck:
-    """Class that do some check on the model. Usually it prints some info about model at the end of epoch."""
-
-    @abstractmethod
-    def do_check(self):
-        pass
-
-
 class BaseModule(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-        self.report_to_additional_metrics = False
-        self.additional_metrics = []
-
-    def eval(self):
-        super().eval()
-        self.report_to_additional_metrics = True
-
-    def train(self, mode=True):
-        super().train(mode)
-        self.report_to_additional_metrics = False
-
-    def get_results_of_additional_metrics(self, should_print=True):
-        for metrics in self.additional_metrics:
-            metrics.get_current_value(should_print=should_print)
 
     def sparse_parameters(self):  # in general modules do not care about sparse parameters.
         return []
@@ -226,10 +200,6 @@ class LayeredRecurrent(BaseModule):
             dropout=dropout
         )
 
-        # self.layered_input_vis_before = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_before')
-        # self.layered_input_vis_after = TensorVisualizer2DMetrics(file='eval/temp/layered_input_matrix_after')
-        # self.additional_metrics = [self.layered_input_vis_before, self.layered_input_vis_after]
-
     @abstractmethod
     def pick_current_output(self, layered_hidden, nodes_depth):
         pass
@@ -245,11 +215,8 @@ class LayeredRecurrent(BaseModule):
             nodes_in = self.depth_embeddings(nodes_in)
 
         l_input = torch.cat((m_input, nodes_in), dim=-1)
-        # self.layered_input_vis_before.report(l_input)
         if self.normalize:
             l_input = self.norm(l_input)
-
-        # self.layered_input_vis_after.report(l_input)
 
         l_h, l_c = self.layered_recurrent(
             l_input,
@@ -410,17 +377,6 @@ class AlphaBetaSumLayer(BaseModule):
 
     def health_checks(self):
         return [AlphaBetaSumHealthCheck(self)]
-
-
-class AlphaBetaSumHealthCheck(HealthCheck):
-
-    def __init__(self, module: AlphaBetaSumLayer):
-        super().__init__()
-        self.module = module
-
-    def do_check(self):
-        print('Alpha: {}'.format(self.module.mult_alpha))
-        print('Beta: {}'.format(self.module.mult_beta))
 
 
 class NormalizationLayer(BaseModule):

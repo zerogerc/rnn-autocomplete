@@ -5,7 +5,6 @@ from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule, LayeredRecurrent, NormalizationLayer
-from zerogercrnn.experiments.ast_level.metrics import ConcatenatedAttentionMetrics
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden
 
 
@@ -38,11 +37,6 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
         self.hidden_dim = hidden_dim
         self.node_depths_embedding_dim = node_depths_embedding_dim
         self.dropout = dropout
-
-        # self.metric_node_depth_attn = self.additional_metrics[0]
-        # self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
-        # self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
-        # self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -82,10 +76,6 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
             output_size=self.non_terminals_num
         ))
 
-    # def get_results_of_additional_metrics(self, should_print=True):
-    #     super().get_results_of_additional_metrics(should_print)
-    #     self.layered_recurrent.get_results_of_additional_metrics(should_print=should_print)
-
     def forward(self, m_input: ASTInput, c_hidden, forget_vector):
         hidden, layered_hidden = c_hidden
 
@@ -101,9 +91,7 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
         )
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
-        # self.metric_concat_before.report(concat_output)
         concat_output = self.h_norm(concat_output)
-        # self.metric_concat_after.report(concat_output)
         prediction = self.h2o(concat_output)
 
         assert hidden is not None
@@ -123,8 +111,8 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
 
             # layered part
             layered_hidden = self.layered_recurrent(
-                m_input=combined_input[i],
-                nodes_depth=node_depths[i],
+                combined_input[i],
+                node_depths[i],
                 layered_hidden=layered_hidden,
                 reinit_dropout=reinit_dropout
             )
@@ -132,8 +120,6 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
 
             # layered attention part
             layered_output_coefficients = self.attn(current_layered, layered_hidden[0])
-            # if self.report_to_additional_metrics:
-            #     self.metric_node_depth_attn.report(node_depths[i], layered_output_coefficients)
             layered_output = calc_attention_combination(layered_output_coefficients, layered_hidden[0])
             recurrent_layered_output.append(layered_output)
 

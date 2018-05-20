@@ -67,7 +67,8 @@ class Main:
 
         self.train_routine = self.create_train_routine(args)
         self.validation_routine = self.create_validation_routine(args)
-        self.metrics = self.create_metrics(args)
+        self.train_metrics = self.create_train_metrics(args)
+        self.eval_metrics = self.create_eval_metrics(args)
         self.plotter = 'tensorboard'
 
     @abstractmethod
@@ -91,15 +92,19 @@ class Main:
         pass
 
     @abstractmethod
-    def create_metrics(self, args) -> Metrics:
+    def create_train_metrics(self, args) -> Metrics:
         pass
+
+    @abstractmethod
+    def create_eval_metrics(self, args) -> Metrics:
+        return self.create_train_metrics(args)  # Good enough if you don't want to eval now
 
     def train(self, args):
         runner = TrainEpochRunner(
             network=self.model,
             train_routine=self.train_routine,
             validation_routine=self.validation_routine,
-            metrics=self.metrics,
+            metrics=self.train_metrics,
             data_generator=self.data_generator,
             schedulers=self.schedulers,
             plotter=self.plotter,
@@ -112,26 +117,30 @@ class Main:
 
         runner.run(number_of_epochs=args.epochs)
 
-    def eval(self, args, print_every=1000):
+    def eval(self, args):
         self.model.eval()
-        self.metrics.eval()
-        self.metrics.drop_state()
+        self.eval_metrics.eval()
+        self.eval_metrics.drop_state()
         it = 0
+        hook_metrics = self.register_eval_hooks()
+
         with torch.no_grad():
             for iter_data in self.data_generator.get_eval_generator():
                 metrics_values = self.validation_routine.run(
                     iter_num=it,
                     iter_data=iter_data
                 )
-                self.metrics.report(metrics_values)
-
-                # if it % print_every == 0:
-                #     self.metrics.get_current_value(should_print=True)
+                self.eval_metrics.report(metrics_values)
                 it += 1
 
-        self.metrics.decrease_hits(self.data_generator.data_reader.eval_tails)
-        self.metrics.get_current_value(should_print=True)
-        self.model.get_results_of_additional_metrics(should_print=True)
+        self.eval_metrics.decrease_hits(self.data_generator.data_reader.eval_tails)
+        self.eval_metrics.get_current_value(should_print=True)
+
+        for m in hook_metrics:
+            m.get_current_value(should_print=True)
+
+    def register_eval_hooks(self):
+        return []
 
     def create_optimizers(self, args):
         return get_optimizers(args, self.model)

@@ -196,7 +196,11 @@ class ASTMain(Main):
         pass
 
     @abstractmethod
-    def create_metrics(self, args):
+    def create_train_metrics(self, args):
+        pass
+
+    @abstractmethod
+    def create_eval_metrics(self, args):
         pass
 
     def create_data_generator(self, args):

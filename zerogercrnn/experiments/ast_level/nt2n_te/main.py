@@ -23,5 +23,5 @@ class NT2NPretrainedTerminalsMain(ASTMain):
     def create_criterion(self, args):
         return NonTerminalsCrossEntropyLoss()
 
-    def create_metrics(self, args):
+    def create_train_metrics(self, args):
         return NonTerminalMetrics(base=MaxPredictionAccuracyMetrics())

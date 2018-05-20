@@ -3,7 +3,7 @@ from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerm
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm.model import NT2NLayeredAttentionNormalizedModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, \
-    ResultsSaver, MetricsCombination
+    ResultsSaver, TensorVisualizer3DMetrics
 
 
 class NT2NLayeredAttentionNormalizedMain(ASTMain):
@@ -23,15 +23,32 @@ class NT2NLayeredAttentionNormalizedMain(ASTMain):
     def create_criterion(self, args):
         return NonTerminalsCrossEntropyLoss()
 
-    def create_metrics(self, args):
-        return MetricsCombination(
-            train_metrics=NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
-            eval_metrics=SequentialMetrics([
-                NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
-                SingleNonTerminalAccuracyMetrics(
-                    non_terminals_file=args.non_terminals_file,
-                    results_dir=args.eval_results_directory
-                ),
-                NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
-            ])
-        )
+    def create_train_metrics(self, args):
+        return NonTerminalMetrics(base=MaxPredictionAccuracyMetrics())
+
+    def create_eval_metrics(self, args):
+        return SequentialMetrics([
+            NonTerminalMetrics(base=MaxPredictionAccuracyMetrics()),
+            SingleNonTerminalAccuracyMetrics(
+                non_terminals_file=args.non_terminals_file,
+                results_dir=args.eval_results_directory
+            ),
+            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
+        ])
+
+    def register_eval_hooks(self):
+        return add_eval_hooks(self.model)
+
+
+def add_eval_hooks(model: NT2NLayeredAttentionNormalizedModel):
+    before_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_before_matrix')
+    after_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_after_matrix')
+
+    def output_normalization_hook(module, m_input, m_output):
+        assert m_input[0].size() == m_output.size()
+        before_output_metrics.report(m_input[0])
+        after_output_metrics.report(m_output)
+
+    model.h_norm.register_forward_hook(output_normalization_hook)
+
+    return before_output_metrics, after_output_metrics

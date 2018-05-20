@@ -1,7 +1,6 @@
 import torch
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
-from zerogercrnn.experiments.ast_level.metrics import ConcatenatedAttentionMetrics
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_combination
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
@@ -35,11 +34,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
         self.terminal_embedding_dim = terminal_embedding_dim
         self.hidden_dim = hidden_dim
         self.dropout = dropout
-
-        # self.metric_node_depth_attn = self.additional_metrics[0]
-        # self.metric_concat_before = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_before_matrix')
-        # self.metric_concat_after = ConcatenatedAttentionMetrics(file='eval/temp/output_sum_after_matrix')
-        # self.additional_metrics = [self.metric_concat_before, self.metric_concat_after]
 
         self.nt_embedding = self.module(EmbeddingsModule(
             num_embeddings=self.non_terminals_num,
@@ -76,11 +70,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
             self.param(p)
         init_layers_uniform(-0.05, 0.05, [self.norm])
 
-        # print(self.norm.weight)
-        # print(self.norm.bias)
-        # print(self.norm.running_mean)
-        # print(self.norm.running_var)
-
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,
             output_size=self.non_terminals_num
@@ -101,12 +90,10 @@ class NT2NLayeredAttentionModel(CombinedModule):
         )
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
-        # self.metric_concat_before.report(concat_output)
 
         seq_len, batch_size, features_size = concat_output.size()
         concat_output = self.norm(concat_output.view(-1, features_size))
         concat_output = concat_output.view(seq_len, batch_size, -1)
-        # self.metric_concat_after.report(concat_output)
         prediction = self.h2o(concat_output)
 
         assert hidden is not None
@@ -135,8 +122,6 @@ class NT2NLayeredAttentionModel(CombinedModule):
 
             # layered attention part
             layered_output_coefficients = self.attn(current_layered, layered_hidden[0])
-            # if self.report_to_additional_metrics:
-            #     self.metric_node_depth_attn.report(node_depths[i], layered_output_coefficients)
             layered_output = calc_attention_combination(layered_output_coefficients, layered_hidden[0])
             recurrent_layered_output.append(layered_output)
 
