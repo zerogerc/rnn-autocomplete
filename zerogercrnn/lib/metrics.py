@@ -35,39 +35,6 @@ class Metrics:
         print('Decrease hits not implemented!!!')
 
 
-class MetricsCombination(Metrics):
-    """Combination of metrics to perform only lightweight checks during training and a full analysis during eval."""
-
-    def __init__(self, train_metrics: Metrics, eval_metrics: Metrics):
-        super().__init__()
-        self.train_metrics = train_metrics
-        self.eval_metrics = eval_metrics
-
-    def drop_state(self):
-        if self.is_train:
-            self.train_metrics.drop_state()
-        else:
-            self.eval_metrics.drop_state()
-
-    def report(self, *values):
-        if self.is_train:
-            self.train_metrics.report(*values)
-        else:
-            self.eval_metrics.report(*values)
-
-    def get_current_value(self, should_print=False):
-        if self.is_train:
-            return self.train_metrics.get_current_value(should_print)
-        else:
-            return self.eval_metrics.get_current_value(should_print)
-
-    def decrease_hits(self, number):
-        if self.is_train:
-            self.train_metrics.decrease_hits(number)
-        else:
-            self.eval_metrics.decrease_hits(number)
-
-
 class LossMetrics(Metrics):
     """Metric that calculates average loss."""
 
@@ -267,6 +234,61 @@ class SequentialMetrics(Metrics):
     def decrease_hits(self, number):
         for m in self.metrics:
             m.decrease_hits(number)
+
+
+class TensorVisualizerMetrics(Metrics):
+    """Metrics that saves average value of reported values of tensor."""
+
+    def __init__(self, mapper, file='eval/temp/tensor_visualization'):
+        super().__init__()
+        self.mapper = mapper
+        self.file = file
+        self.sum = None
+        self.reported = 0
+
+    def drop_state(self):
+        pass
+
+    def report(self, output):
+        current_sum = self.mapper(output.detach())
+        if self.sum is None:
+            self.sum = current_sum
+        else:
+            self.sum += current_sum
+        # self.sum += torch.sum(torch.sum(output, dim=0), dim=0) / (output.size()[0] * output.size()[1])
+        self.reported += 1
+
+    def get_current_value(self, should_print=False):
+        np.save(self.file, self.sum.cpu().numpy() / self.reported)
+        return 0  # this metrics is only for saving results to file.
+
+
+class TensorVisualizer2DMetrics(TensorVisualizerMetrics):
+    """Metrics that sums a 2d tensor along a specified dimension and reports average values in the form of 1D array."""
+
+    def __init__(self, dim=0, file='eval/temp/tensor_visualization2d'):
+        super().__init__(
+            mapper=lambda output: torch.sum(output, dim=dim) / output.size()[dim],
+            file=file
+        )
+
+    def report(self, output):
+        assert len(output.size()) == 2
+        super().report(output)
+
+
+class TensorVisualizer3DMetrics(TensorVisualizerMetrics):
+    """Metrics that visualize sum of features on a last dimension."""
+
+    def __init__(self, file='eval/temp/tensor_visualization3d'):
+        super().__init__(
+            mapper=lambda output: output.sum(0).sum(0) / (output.size()[0] * output.size()[1]),
+            file=file
+        )
+
+    def report(self, output):
+        assert len(output.size()) == 3
+        super().report(output)
 
 
 if __name__ == '__main__':

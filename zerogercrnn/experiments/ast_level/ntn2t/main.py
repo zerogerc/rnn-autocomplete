@@ -22,5 +22,5 @@ class NTN2TMain(ASTMain):
     def create_criterion(self, args):
         return TerminalsCrossEntropyLoss()
 
-    def create_metrics(self, args):
+    def create_train_metrics(self, args):
         return TerminalMetrics(base=MaxPredictionAccuracyMetrics())

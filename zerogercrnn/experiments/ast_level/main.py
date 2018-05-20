@@ -84,7 +84,7 @@ def train(args):
 def evaluate(args):
     if args.saved_model is None:
         print('WARNING: Running eval without saved_model. Not a good idea')
-    get_main(args).eval(args, print_every=1)
+    get_main(args).eval(args)
 
 
 def grid_search(args):
