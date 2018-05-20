@@ -56,8 +56,6 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
             num_tree_layers=self.num_tree_layers,
             single_hidden_size=self.layered_hidden_size,
-            depth_embedding_dim=self.node_depths_embedding_dim,
-            normalize=True,
             dropout=self.dropout
         ))
 
