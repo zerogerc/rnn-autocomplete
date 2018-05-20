@@ -4,6 +4,8 @@ from abc import abstractmethod
 import numpy as np
 import torch
 
+from zerogercrnn.lib.file import create_directory_if_not_exists
+
 
 class Metrics:
     """Base class for all metrics. Metrics is runned on results of model run either during training or evaluation.
@@ -289,6 +291,33 @@ class TensorVisualizer3DMetrics(TensorVisualizerMetrics):
     def report(self, output):
         assert len(output.size()) == 3
         super().report(output)
+
+
+class FeaturesMeanVarianceMetrics(Metrics):
+    def __init__(self, dim, directory='eval/temp'):
+        super().__init__()
+        self.dim = dim
+        self.directory = directory
+        create_directory_if_not_exists(self.directory)
+        self.matrix = None
+
+    def drop_state(self):
+        self.matrix = None
+
+    def report(self, value):
+        if self.matrix is None:
+            self.matrix = value.detach()
+        else:
+            self.matrix = torch.cat((self.matrix, value.detach()), dim=self.dim)
+
+    def get_current_value(self, should_print=False):
+        mean = self.matrix.mean(dim=self.dim)
+        deviation = self.matrix.std(dim=self.dim)
+        variance = self.matrix.var(dim=self.dim)
+
+        np.save(os.path.join(self.directory, 'mean'), mean.cpu().numpy())
+        np.save(os.path.join(self.directory, 'deviation'), deviation.cpu().numpy())
+        np.save(os.path.join(self.directory, 'variance'), variance.cpu().numpy())
 
 
 if __name__ == '__main__':

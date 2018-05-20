@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -42,17 +44,39 @@ def visualize_running_mean_and_variance(mean_file, variance_file):
     plt.show()
 
 
+def draw_1d_plot_from_file(*files):
+    legend = []
+    for f in files:
+        cur, = plt.plot(np.load(f), label=f)
+        legend.append(cur)
+
+    plt.legend(handles=legend)
+    plt.show()
+
+
+def draw_mean_deviation_variance(directory='eval/temp'):
+    draw_1d_plot_from_file(
+        os.path.join(directory, 'mean.npy'),
+        os.path.join(directory, 'deviation.npy'),
+        os.path.join(directory, 'variance.npy')
+    )
+
+
 if __name__ == '__main__':
+    draw_mean_deviation_variance(directory='eval/temp/concat_hidden')
+    # draw_1d_plot_from_file('eval/temp/deviation.npy')
+    # draw_1d_plot_from_file('eval/temp/variance.npy')
+
     # visualize_line('eval/temp/layered_input_matrix.npy')
     # visualize_attention('eval_local/attention/per_depth_matrix.npy')
     # visualize_output_combination(
     #     file_before='eval/temp/new_output_sum_before_matrix.npy',
     #     file_after='eval/temp/new_output_sum_after_matrix.npy'
     # )
-    visualize_output_combination(
-        file_before='eval/temp/test_before.npy',
-        file_after='eval/temp/test_after.npy'
-    )
+    # visualize_output_combination(
+    #     file_before='eval/temp/test_before.npy',
+    #     file_after='eval/temp/test_after.npy'
+    # )
     # visualize_running_mean_and_variance(
     #     mean_file='eval/temp/running_mean.npy',
     #     variance_file='eval/temp/running_var.npy'
