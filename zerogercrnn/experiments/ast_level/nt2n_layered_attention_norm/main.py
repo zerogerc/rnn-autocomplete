@@ -3,7 +3,7 @@ from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerm
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm.model import NT2NLayeredAttentionNormalizedModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, \
-    ResultsSaver, TensorVisualizer3DMetrics
+    ResultsSaver, TensorVisualizer2DMetrics, TensorVisualizer3DMetrics
 
 
 class NT2NLayeredAttentionNormalizedMain(ASTMain):
@@ -41,14 +41,29 @@ class NT2NLayeredAttentionNormalizedMain(ASTMain):
 
 
 def add_eval_hooks(model: NT2NLayeredAttentionNormalizedModel):
+    # before_output_metrics = TensorVisualizer2DMetrics(file='eval/temp/output_sum_before_matrix')
+    # after_output_metrics = TensorVisualizer2DMetrics(file='eval/temp/output_sum_after_matrix')
+
     before_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_before_matrix')
     after_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_after_matrix')
 
-    def output_normalization_hook(module, m_input, m_output):
+    attention = TensorVisualizer2DMetrics(file='eval/temp/attention_matrix')
+
+    def attention_hook(module, m_input, m_output):
+        attention.report(m_output.squeeze(2))
+
+    def layered_normalization_hook(module, m_input, m_output):
         assert m_input[0].size() == m_output.size()
         before_output_metrics.report(m_input[0])
         after_output_metrics.report(m_output)
 
-    model.h_norm.register_forward_hook(output_normalization_hook)
+    # def output_normalization_hook(module, m_input, m_output):
+    #     assert m_input[0].size() == m_output.size()
+    #     before_output_metrics.report(m_input[0])
+    #     after_output_metrics.report(m_output)
 
-    return before_output_metrics, after_output_metrics
+    model.h_norm.register_forward_hook(layered_normalization_hook)
+    model.attn.register_forward_hook(attention_hook)
+    # model.layered_recurrent.norm.register_forward_hook(layered_normalization_hook)
+
+    return before_output_metrics, after_output_metrics, attention

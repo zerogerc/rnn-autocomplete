@@ -42,13 +42,19 @@ def visualize_running_mean_and_variance(mean_file, variance_file):
     plt.show()
 
 
+def draw_1d_plot_from_file(file):
+    line = np.load(file)
+    plt.plot(line)
+    plt.show()
+
+
 if __name__ == '__main__':
     # visualize_line('eval/temp/layered_input_matrix.npy')
-    # visualize_attention('eval_local/attention/per_depth_matrix.npy')
-    visualize_output_combination(
-        file_before='eval/temp/new_output_sum_before_matrix.npy',
-        file_after='eval/temp/new_output_sum_after_matrix.npy'
-    )
+    draw_1d_plot_from_file('eval/temp/attention_matrix.npy')
+    # visualize_output_combination(
+    #     file_before='eval/temp/output_sum_before_matrix.npy',
+    #     file_after='eval/temp/output_sum_after_matrix.npy'
+    # )
     # visualize_output_combination(
     #     file_before='eval/temp/layered_input_matrix_before.npy',
     #     file_after='eval/temp/layered_input_matrix_after.npy'
