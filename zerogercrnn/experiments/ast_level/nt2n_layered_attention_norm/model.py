@@ -49,6 +49,9 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
             embedding_dim=self.terminal_embedding_dim,
             sparse=True
         ))
+        self.input_norm = self.module(
+            NormalizationLayer(features_num=self.non_terminal_embedding_dim + self.terminal_embedding_dim)
+        )
 
         self.num_tree_layers = 50
         self.layered_hidden_size = layered_hidden_size
@@ -68,6 +71,7 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
         ))
 
         self.h_norm = self.module(NormalizationLayer(features_num=self.hidden_dim + self.layered_hidden_size))
+        # self.norm = torch.nn.BatchNorm1d(self.hidden_dim + self.layered_hidden_size)
 
         self.h2o = self.module(LinearLayer(
             input_size=self.layered_hidden_size + self.hidden_dim,
@@ -79,9 +83,11 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
 
         nt_embedded = self.nt_embedding(m_input.non_terminals)
         t_embedded = self.t_embedding(m_input.terminals)
+        concat_input = torch.cat([nt_embedded, t_embedded], dim=2)
+        concat_input = self.input_norm(concat_input)
 
         recurrent_output, hidden, recurrent_layered_output, layered_hidden = self.get_recurrent_layers_outputs(
-            combined_input=torch.cat([nt_embedded, t_embedded], dim=2),
+            combined_input=concat_input,
             node_depths=m_input.nodes_depth,
             hidden=hidden,
             layered_hidden=layered_hidden,
@@ -90,6 +96,9 @@ class NT2NLayeredAttentionNormalizedModel(CombinedModule):
 
         concat_output = torch.cat((recurrent_output, recurrent_layered_output), dim=-1)
         concat_output = self.h_norm(concat_output)
+        # sizes = concat_output.size()
+        # concat_output = self.norm(concat_output.view(-1, sizes[-1])).view(sizes)
+
         prediction = self.h2o(concat_output)
 
         assert hidden is not None

@@ -299,24 +299,34 @@ class FeaturesMeanVarianceMetrics(Metrics):
         self.dim = dim
         self.directory = directory
         create_directory_if_not_exists(self.directory)
-        self.matrix = None
+        self.sum = None
+        self.squres_sum = None
+        self.reported = 0
 
     def drop_state(self):
-        self.matrix = None
+        self.sum = None
+        self.squres_sum = None
+        self.reported = 0
 
     def report(self, value):
-        if self.matrix is None:
-            self.matrix = value.detach()
+        value = value.view(-1, value.size()[-1])
+        assert len(value.size()) == 2
+        batch_size = value.size()[0]
+        c_sum = torch.sum(value.detach(), dim=0) / batch_size
+        c_squared_sum = torch.sum(value.detach() ** 2, dim=0) / batch_size
+        if self.sum is None:
+            self.sum = c_sum
+            self.squres_sum = c_squared_sum
         else:
-            self.matrix = torch.cat((self.matrix, value.detach()), dim=self.dim)
+            self.sum += c_sum
+            self.squres_sum += c_squared_sum
+        self.reported += 1
 
     def get_current_value(self, should_print=False):
-        mean = self.matrix.mean(dim=self.dim)
-        deviation = self.matrix.std(dim=self.dim)
-        variance = self.matrix.var(dim=self.dim)
+        mean = self.sum / self.reported
+        variance = (self.squres_sum / self.reported) - (self.sum / self.reported) ** 2
 
         np.save(os.path.join(self.directory, 'mean'), mean.cpu().numpy())
-        np.save(os.path.join(self.directory, 'deviation'), deviation.cpu().numpy())
         np.save(os.path.join(self.directory, 'variance'), variance.cpu().numpy())
 
 
