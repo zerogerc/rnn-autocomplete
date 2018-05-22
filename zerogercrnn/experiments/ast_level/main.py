@@ -4,6 +4,8 @@ import os
 import torch
 from zerogercrnn.experiments.ast_level.nt2n_layered_attention.main import NT2NLayeredAttentionMain
 from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm.main import NT2NLayeredAttentionNormalizedMain
+from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm_full_grad.main import \
+    NT2NLayeredAttentionNormalizedFullGradMain
 from zerogercrnn.experiments.ast_level.nt2n_base.main import NT2NBaseMain
 from zerogercrnn.experiments.ast_level.nt2n_layered.main import NT2NLayeredMain
 from zerogercrnn.experiments.ast_level.nt2n_tail.main import NT2NTailAttentionMain
@@ -60,6 +62,8 @@ def get_main(args):
         main = NT2NLayeredAttentionMain(args)
     elif args.prediction == 'nt2n_layered_attention_norm':
         main = NT2NLayeredAttentionNormalizedMain(args)
+    elif args.prediction == 'nt2n_layered_attention_norm_full_grad':
+        main = NT2NLayeredAttentionNormalizedFullGradMain(args)
     elif args.prediction == 'ntn2t_base':
         main = NTN2TBaseMain(args)
     elif args.prediction == 'nt2n_tail':

@@ -166,6 +166,99 @@ def create_lstm_cell_hidden(hidden_size, batch_size):
     c = setup_tensor(torch.zeros((batch_size, hidden_size)))
     return h, c
 
+# region LayeredExperiment
+
+
+class LayeredRecurrentUpdateAfter(BaseModule):
+    def __init__(
+            self, input_size, num_tree_layers, single_hidden_size,
+            depth_embedding_dim=None, normalize=False, dropout=0.
+    ):
+        super().__init__()
+        self.input_size = input_size
+        self.num_tree_layers = num_tree_layers
+        self.single_hidden_size = single_hidden_size
+        self.depth_embedding_dim = depth_embedding_dim
+        self.normalize = normalize
+        self.dropout = dropout
+
+        self.depths_dim = self.num_tree_layers
+
+        if self.depth_embedding_dim is not None:
+            self.depths_dim = self.depth_embedding_dim
+            self.depth_embeddings = nn.Linear(
+                in_features=self.num_tree_layers,
+                out_features=self.depth_embedding_dim,
+                bias=False
+            )
+            init_layers_uniform(-0.05, 0.05, [self.depth_embeddings])
+
+        if self.normalize:
+            self.norm = NormalizationLayer(features_num=self.input_size + self.depths_dim)
+
+        self.layered_recurrent = LSTMCellDropout(
+            input_size=self.input_size + self.depths_dim,
+            hidden_size=self.single_hidden_size,
+            dropout=dropout
+        )
+
+    @abstractmethod
+    def pick_current_output(self, layered_hidden, nodes_depth):
+        pass
+
+    def forward(self, m_input, nodes_depth, layered_hidden, reinit_dropout):
+        nodes_depth = torch.clamp(nodes_depth, max=self.num_tree_layers - 1)
+        nodes_depth_one_hot = LayeredRecurrent.create_one_hot_depths(nodes_depth, self.num_tree_layers)
+
+        l_h, l_c = LayeredRecurrent.select_layered_lstm_hidden(layered_hidden, nodes_depth)
+
+        nodes_in = nodes_depth_one_hot
+        if self.depth_embedding_dim is not None:
+            nodes_in = self.depth_embeddings(nodes_in)
+
+        l_input = torch.cat((m_input, nodes_in), dim=-1)
+        if self.normalize:
+            l_input = self.norm(l_input)
+
+        l_h, l_c = self.layered_recurrent(
+            l_input,
+            (l_h, l_c),
+            reinit_dropout=reinit_dropout
+        )
+
+        return l_h, l_c
+
+    def init_hidden(self, batch_size):
+        h = setup_tensor(torch.zeros((batch_size, self.num_tree_layers, self.single_hidden_size)))
+        c = setup_tensor(torch.zeros((batch_size, self.num_tree_layers, self.single_hidden_size)))
+
+        return h, c
+
+    @staticmethod
+    def repackage_and_partly_forget_hidden(layered_hidden, forget_vector):  # checked
+        layered_hidden = forget_hidden_partly_lstm_cell(
+            h=layered_hidden,
+            forget_vector=forget_vector.unsqueeze(1)
+        )
+        return repackage_hidden(layered_hidden)
+
+    @staticmethod
+    def create_one_hot_depths(node_depths, layers_num):  # checked
+        batch_size = node_depths.size()[0]
+        depths_one_hot = node_depths.new(batch_size, layers_num)
+        return depths_one_hot.zero_().scatter_(1, node_depths.unsqueeze(1), 1).float()
+
+    @staticmethod
+    def select_layered_lstm_hidden(layered_hidden, node_depths):  # checked
+        return select_layered_hidden(layered_hidden[0], node_depths).squeeze(1), \
+               select_layered_hidden(layered_hidden[1], node_depths).squeeze(1)
+
+    @staticmethod
+    def update_layered_lstm_hidden(layered_hidden, node_depths, new_value):  # checked
+        return set_layered_hidden(layered_hidden[0], node_depths, new_value[0]), \
+               set_layered_hidden(layered_hidden[1], node_depths, new_value[1])
+
+# endregion
 
 class LayeredRecurrent(BaseModule):
     def __init__(
