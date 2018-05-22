@@ -62,8 +62,19 @@ def draw_mean_deviation_variance(directory='eval/temp'):
     )
 
 
+def draw_mean_variance(directory='eval/temp'):
+    c1, = plt.plot(np.load(os.path.join(directory, 'mean.npy')), label=os.path.join(directory, 'mean.npy'))
+    c2, = plt.plot(np.sqrt(np.load(os.path.join(directory, 'variance.npy'))), label=os.path.join(directory, 'std.npy'))
+    plt.legend(handles=[c1,c2])
+    plt.show()
+
+
 if __name__ == '__main__':
-    draw_mean_deviation_variance(directory='eval/temp/concat_hidden')
+    draw_mean_variance(directory='eval/temp/before_input')
+    draw_mean_variance(directory='eval/temp/after_input')
+
+    draw_mean_variance(directory='eval/temp/before_output')
+    draw_mean_variance(directory='eval/temp/after_output')
     # draw_1d_plot_from_file('eval/temp/deviation.npy')
     # draw_1d_plot_from_file('eval/temp/variance.npy')
 

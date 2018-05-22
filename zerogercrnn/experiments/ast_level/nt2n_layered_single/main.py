@@ -1,20 +1,19 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain
 from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
-from zerogercrnn.experiments.ast_level.nt2n_layered_attention_norm_full_grad.model import NT2NLayeredAttentionNormalizedFullGradModel
+from zerogercrnn.experiments.ast_level.nt2n_layered_single.model import NT2NSingleLSTMLayeredAttentionModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, \
     ResultsSaver, TensorVisualizer3DMetrics, FeaturesMeanVarianceMetrics
-from zerogercrnn.experiments.ast_level.vis.utils import visualize_tensor
 
-class NT2NLayeredAttentionNormalizedFullGradMain(ASTMain):
+
+class NT2NSingleLSTMLayeredAttentionMain(ASTMain):
 
     def create_model(self, args):
-        return NT2NLayeredAttentionNormalizedFullGradModel(
+        return NT2NSingleLSTMLayeredAttentionModel(
             non_terminals_num=args.non_terminals_num,
             non_terminal_embedding_dim=args.non_terminal_embedding_dim,
             terminals_num=args.terminals_num,
             terminal_embedding_dim=args.terminal_embedding_dim,
-            layered_hidden_size=args.layered_hidden_size,
             hidden_dim=args.hidden_size,
             node_depths_embedding_dim=args.node_depths_embedding_dim,
             dropout=args.dropout
@@ -56,28 +55,21 @@ def register_input_hook(module, metrics, picker=None):
     register_forward_hook(module, metrics, lambda m_input, m_output: picker(m_input))
 
 
-def add_eval_hooks(model: NT2NLayeredAttentionNormalizedFullGradModel):
-    visualize_tensor(model.h2o.affine.weight.detach().cpu())
-    # before_input_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/before_input')
-    # after_input_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/after_input')
-    #
-    # register_input_hook(model.input_norm, before_input_metrics)
-    # register_output_hook(model.input_norm, after_input_metrics)
-    #
-    # before_output_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/before_output')
-    # after_output_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/after_output')
-    #
-    # register_input_hook(model.h_norm, before_output_metrics)
-    # register_output_hook(model.h_norm, after_output_metrics)
+def add_eval_hooks(model: NT2NSingleLSTMLayeredAttentionModel):
+    before_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_before_matrix')
+    after_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_after_matrix')
 
-    # concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
-    # register_input_hook(model.recurrent_core, concatenated_input_metrics)
-    #
-    # concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
-    # register_input_hook(
-    #     model.h_norm,
-    #     concatenated_hidden_metrics,
-    #     picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
-    # )
+    register_input_hook(model.h_norm, before_output_metrics)
+    register_output_hook(model.h_norm, after_output_metrics)
 
-    return [] # before_input_metrics, before_output_metrics, after_input_metrics, after_output_metrics
+    concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
+    register_input_hook(model.recurrent_core, concatenated_input_metrics)
+
+    concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
+    register_input_hook(
+        model.h_norm,
+        concatenated_hidden_metrics,
+        picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
+    )
+
+    return before_output_metrics, after_output_metrics, concatenated_input_metrics, concatenated_hidden_metrics

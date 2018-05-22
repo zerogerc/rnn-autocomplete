@@ -13,11 +13,12 @@ ENCODING = 'ISO-8859-1'
 
 
 class ASTInput:
-    def __init__(self, non_terminals, terminals, nodes_depth=None):
+    def __init__(self, non_terminals, terminals, nodes_depth=None, nodes_depth_target=None):
         self.non_terminals = non_terminals
         self.terminals = terminals
         self.current_non_terminals = None
         self.nodes_depth = nodes_depth
+        self.nodes_depth_target = nodes_depth_target
 
     @staticmethod
     def setup(input_data):
@@ -25,7 +26,8 @@ class ASTInput:
         return ASTInput(
             non_terminals=setup_tensor(input_data.non_terminals),
             terminals=setup_tensor(input_data.terminals),
-            nodes_depth=setup_tensor(input_data.nodes_depth)  # no gradients should be computed
+            nodes_depth=setup_tensor(input_data.nodes_depth),  # no gradients should be computed
+            nodes_depth_target=setup_tensor(input_data.nodes_depth_target)
         )
 
     @staticmethod
@@ -34,8 +36,9 @@ class ASTInput:
         non_terminals_combined = torch.stack([i.non_terminals for i in inputs], dim=dim)
         terminals_combined = torch.stack([i.terminals for i in inputs], dim=dim)
         depths_combined = torch.stack([i.nodes_depth for i in inputs], dim=dim)
+        depths_target_combined = torch.stack([i.nodes_depth_target for i in inputs], dim=dim)
 
-        return ASTInput(non_terminals_combined, terminals_combined, depths_combined)
+        return ASTInput(non_terminals_combined, terminals_combined, depths_combined, depths_target_combined)
 
 
 class ASTTarget:
@@ -128,8 +131,9 @@ class ASTDataChunk(DataChunk):
         non_terminals_input, non_terminals_target = self.non_terminals_chunk.get_by_index(index)
         terminals_input, terminals_target = self.terminals_chunk.get_by_index(index)
         nodes_depth_input = self.nodes_depth_data.get_by_index(index, seq_len=self.seq_len - 1)
+        nodes_depth_target = self.nodes_depth_data.get_by_index(index+1, seq_len=self.seq_len - 1)
 
-        return ASTInput(non_terminals_input, terminals_input, nodes_depth_input), \
+        return ASTInput(non_terminals_input, terminals_input, nodes_depth_input, nodes_depth_target), \
                ASTTarget(non_terminals_target, terminals_target)
 
     def size(self):
