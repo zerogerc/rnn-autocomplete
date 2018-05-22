@@ -10,7 +10,7 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --prediction $1 \
     --eval_results_directory eval/$2 \
     --train_file "data/ast/file_train.json" \
-    --data_limit 100000 \
+    --data_limit 1000 \
     --model_save_dir saved/$2 \
     --seq_len 50 \
     --batch_size 80 \

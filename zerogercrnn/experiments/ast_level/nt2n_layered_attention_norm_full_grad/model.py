@@ -125,7 +125,7 @@ class NT2NLayeredAttentionNormalizedFullGradModel(CombinedModule):
             recurrent_layered_output.append(torch.cat([l_h, layered_output], dim=-1))
             layered_hidden = LayeredRecurrentUpdateAfter.update_layered_lstm_hidden(
                 layered_hidden=layered_hidden,
-                node_depths=node_depths[i],
+                node_depths=torch.clamp(node_depths[i], max=self.num_tree_layers - 1),
                 new_value=(l_h, l_c)
             )
 

@@ -207,10 +207,10 @@ class LayeredRecurrentUpdateAfter(BaseModule):
         pass
 
     def forward(self, m_input, nodes_depth, layered_hidden, reinit_dropout):
-        nodes_depth = torch.clamp(nodes_depth, max=self.num_tree_layers - 1)
-        nodes_depth_one_hot = LayeredRecurrent.create_one_hot_depths(nodes_depth, self.num_tree_layers)
+        nodes_depth = torch.clamp(nodes_depth, min=0, max=self.num_tree_layers - 1)
+        nodes_depth_one_hot = LayeredRecurrentUpdateAfter.create_one_hot_depths(nodes_depth, self.num_tree_layers)
 
-        l_h, l_c = LayeredRecurrent.select_layered_lstm_hidden(layered_hidden, nodes_depth)
+        l_h, l_c = LayeredRecurrentUpdateAfter.select_layered_lstm_hidden(layered_hidden, nodes_depth)
 
         nodes_in = nodes_depth_one_hot
         if self.depth_embedding_dim is not None:
