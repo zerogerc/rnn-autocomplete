@@ -59,13 +59,13 @@ def register_input_hook(module, metrics, picker=None):
 
 
 def add_eval_hooks(model: NT2NSingleLSTMLayeredAttentionModel):
-    draw_line_plot(torch.sum(model.h2o.affine.weight, dim=0).detach().cpu().numpy() / model.h2o.affine.weight.size()[0])
+    # draw_line_plot(torch.sum(model.h2o.affine.weight, dim=0).detach().cpu().numpy() / model.h2o.affine.weight.size()[0])
 
 
-    before_output_metrics = FeaturesMeanVarianceMetrics(directory='eval/temp/output_sum_before_matrix')
+    # before_output_metrics = FeaturesMeanVarianceMetrics(directory='eval/temp/output_sum_before_matrix')
     # after_output_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/output_sum_after_matrix')
 
-    register_input_hook(model.h2o, before_output_metrics)
+    # register_input_hook(model.h2o, before_output_metrics)
     # register_output_hook(model.h_norm, after_output_metrics)
 
     # concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
@@ -78,4 +78,5 @@ def add_eval_hooks(model: NT2NSingleLSTMLayeredAttentionModel):
     #     picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
     # )
 
-    return before_output_metrics, model.layered_attention.attention_metrics
+    # return before_output_metrics, model.layered_attention.attention_metrics
+    return []

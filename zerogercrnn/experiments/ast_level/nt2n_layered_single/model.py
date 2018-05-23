@@ -20,12 +20,12 @@ class LayeredAttention(CombinedModule):
         super().__init__()
         self.input_size = input_size
         self.num_tree_layers = num_tree_layers
-        self.attention_metrics = LayeredNodeDepthsAttentionMetrics()
+        # self.attention_metrics = LayeredNodeDepthsAttentionMetrics()
         self.attn = self.module(Attn(method='general', hidden_size=self.input_size))
 
     def forward(self, m_input, layered_hidden, nodes_depth_target):
         attn_output_coefficients = self.attn(m_input, layered_hidden)
-        self.attention_metrics.report(nodes_depth_target, attn_output_coefficients)
+        # self.attention_metrics.report(nodes_depth_target, attn_output_coefficients)
         attn_output = calc_attention_combination(attn_output_coefficients, layered_hidden)
         return attn_output
 
