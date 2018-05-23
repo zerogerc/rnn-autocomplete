@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 def visualize_attention_matrix(matrix):
     plt.matshow(matrix)
+    plt.colorbar()
     plt.show()
 
 

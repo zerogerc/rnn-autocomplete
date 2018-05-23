@@ -6,6 +6,7 @@ from zerogercrnn.lib.calculation import select_layered_hidden, calc_attention_co
 from zerogercrnn.lib.core import EmbeddingsModule, LSTMCellDropout, \
     LinearLayer, CombinedModule, LayeredRecurrent, NormalizationLayer, BaseModule
 from zerogercrnn.lib.utils import forget_hidden_partly_lstm_cell, repackage_hidden, setup_tensor
+from zerogercrnn.experiments.ast_level.metrics import LayeredNodeDepthsAttentionMetrics
 
 
 def create_one_hot_depths(node_depths, layers_num):  # checked
@@ -19,10 +20,12 @@ class LayeredAttention(CombinedModule):
         super().__init__()
         self.input_size = input_size
         self.num_tree_layers = num_tree_layers
+        self.attention_metrics = LayeredNodeDepthsAttentionMetrics()
         self.attn = self.module(Attn(method='general', hidden_size=self.input_size))
 
-    def forward(self, m_input, layered_hidden):
+    def forward(self, m_input, layered_hidden, nodes_depth_target):
         attn_output_coefficients = self.attn(m_input, layered_hidden)
+        self.attention_metrics.report(nodes_depth_target, attn_output_coefficients)
         attn_output = calc_attention_combination(attn_output_coefficients, layered_hidden)
         return attn_output
 
@@ -139,7 +142,7 @@ class NT2NSingleLSTMLayeredAttentionModel(CombinedModule):
             recurrent_output.append(cur_h)
 
             # layered part
-            attn_output = self.layered_attention(cur_h, layered_hidden)
+            attn_output = self.layered_attention(cur_h, layered_hidden, node_depths_target[i])
             layered_attn_output.append(attn_output)
 
             # update according to known depths

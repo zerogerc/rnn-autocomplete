@@ -219,6 +219,7 @@ class LayeredNodeDepthsAttentionMetrics(Metrics):
     def __init__(self):
         super().__init__()
         self.per_depth_attention_sum = np.zeros((50, 50))
+        self.per_depth_reports = np.zeros((50))
 
     def drop_state(self):
         pass
@@ -229,10 +230,14 @@ class LayeredNodeDepthsAttentionMetrics(Metrics):
             if index.size()[0] == 0:
                 continue
             selected_attention = torch.index_select(attention_coefficients, dim=0, index=index.squeeze())
-            selected_attention = selected_attention.squeeze()
-            to_report = torch.sum(selected_attention, dim=0).numpy()
-            self.per_depth_attention_sum[i] += to_report / index.size()[0]
+            selected_attention = selected_attention.squeeze(2)
+            to_report = torch.sum(selected_attention, dim=0).cpu().numpy()
+            self.per_depth_attention_sum[i] += to_report
+            self.per_depth_reports[i] += index.size()[0]
 
     def get_current_value(self, should_print=False):
-        np.save('eval_local/attention/per_depth_matrix', self.per_depth_attention_sum)
+        for i in range(50):
+            if abs(self.per_depth_reports[i]) > 1e-6:
+                self.per_depth_attention_sum[i] /= self.per_depth_reports[i]
+        np.save('eval/temp/attention/per_depth_matrix', self.per_depth_attention_sum)
         return 0  # this metrics is only for saving results to file.
