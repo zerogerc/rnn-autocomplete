@@ -101,7 +101,7 @@ class DataChunksPool:
             cur = self.current
             self.current += 1
 
-            if self.current % 1000 == 0:
+            if self.current % 100 == 0:
                 print('Processed {} programs'.format(self.current))
 
             return self.chunks[self.indexes[cur]]
@@ -215,7 +215,7 @@ class BatchedDataGenerator(DataGenerator):
             self.validation_batcher = BucketsBatch(self.validation_pool, self.seq_len, self.batch_size)
 
         if data_reader.eval_data is not None:
-            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1, shuffle=False)
+            self.eval_pool = self._prepare_data_(data_reader.eval_data, splits=1, shuffle=True)
             self.eval_batcher = BucketsBatch(self.eval_pool, self.seq_len, self.batch_size)
 
     @abstractmethod

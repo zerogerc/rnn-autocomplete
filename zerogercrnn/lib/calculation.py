@@ -73,3 +73,10 @@ def set_layered_hidden(layered_hidden, node_depths, updated):
     node_depths_update.to(layered_hidden.device)
 
     return layered_hidden.scatter(1, node_depths_update, updated)
+
+
+def create_one_hot(vector, one_hot_size):
+    """Creates one-hot matrix from 1D vector"""
+    batch_size = vector.size()[0]
+    depths_one_hot = vector.new(batch_size, one_hot_size)
+    return depths_one_hot.zero_().scatter_(1, vector.unsqueeze(1), 1).float()

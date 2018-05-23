@@ -1,9 +1,12 @@
+import torch
+
 from zerogercrnn.experiments.ast_level.common import ASTMain
 from zerogercrnn.experiments.ast_level.common import NonTerminalMetrics, NonTerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 from zerogercrnn.experiments.ast_level.nt2n_layered_single.model import NT2NSingleLSTMLayeredAttentionModel
 from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, SequentialMetrics, MaxPredictionWrapper, \
     ResultsSaver, TensorVisualizer3DMetrics, FeaturesMeanVarianceMetrics
+from zerogercrnn.experiments.ast_level.vis.utils import visualize_tensor, draw_line_plot
 
 
 class NT2NSingleLSTMLayeredAttentionMain(ASTMain):
@@ -56,20 +59,23 @@ def register_input_hook(module, metrics, picker=None):
 
 
 def add_eval_hooks(model: NT2NSingleLSTMLayeredAttentionModel):
-    before_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_before_matrix')
-    after_output_metrics = TensorVisualizer3DMetrics(file='eval/temp/output_sum_after_matrix')
+    draw_line_plot(torch.sum(model.h2o.affine.weight, dim=0).detach().cpu().numpy() / model.h2o.affine.weight.size()[0])
 
-    register_input_hook(model.h_norm, before_output_metrics)
-    register_output_hook(model.h_norm, after_output_metrics)
 
-    concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
-    register_input_hook(model.recurrent_core, concatenated_input_metrics)
+    before_output_metrics = FeaturesMeanVarianceMetrics(directory='eval/temp/output_sum_before_matrix')
+    # after_output_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/output_sum_after_matrix')
 
-    concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
-    register_input_hook(
-        model.h_norm,
-        concatenated_hidden_metrics,
-        picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
-    )
+    register_input_hook(model.h2o, before_output_metrics)
+    # register_output_hook(model.h_norm, after_output_metrics)
 
-    return before_output_metrics, after_output_metrics, concatenated_input_metrics, concatenated_hidden_metrics
+    # concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
+    # register_input_hook(model.recurrent_core, concatenated_input_metrics)
+    #
+    # concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
+    # register_input_hook(
+    #     model.h_norm,
+    #     concatenated_hidden_metrics,
+    #     picker=lambda m_input: m_input[0].view(-1, m_input[0].size()[-1])
+    # )
+
+    return before_output_metrics, model.layered_attention.attention_metrics

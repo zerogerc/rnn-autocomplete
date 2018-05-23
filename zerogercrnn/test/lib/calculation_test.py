@@ -1,7 +1,8 @@
 import torch
+import numpy as np
 
 from zerogercrnn.lib.calculation import shift_left, pad_tensor, calc_attention_combination, drop_matrix_rows_3d, \
-    select_layered_hidden, set_layered_hidden
+    select_layered_hidden, set_layered_hidden, create_one_hot
 from zerogercrnn.testutils.utils import assert_tensors_equal
 
 
@@ -142,3 +143,19 @@ def test_set_layered_hidden():
     assert torch.nonzero(old_hidden - layered_hidden).size()[0] == batch_size * hidden_size
     for i in range(node_depths.size()[0]):
         assert torch.nonzero(layered_hidden[i][node_depths[i]] == updated[i]).size()[0] == hidden_size
+
+
+def test_create_one_hot():
+    tensor = torch.from_numpy(np.array([1, 2, 3, 4, 0]))
+    size = 5
+    expected = torch.from_numpy(np.array([
+        [0, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0]
+    ]
+    ))
+
+    one_hot = create_one_hot(tensor, size)
+    assert_tensors_equal(one_hot, expected)

@@ -63,10 +63,10 @@ def add_eval_hooks(model: NT2NLayeredAttentionNormalizedModel):
     register_input_hook(model.h_norm, before_output_metrics)
     register_output_hook(model.h_norm, after_output_metrics)
 
-    concatenated_input_metrics = FeaturesMeanVarianceMetrics(dim=0)
+    concatenated_input_metrics = FeaturesMeanVarianceMetrics()
     register_input_hook(model.recurrent_core, concatenated_input_metrics)
 
-    concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(dim=0, directory='eval/temp/concat_hidden')
+    concatenated_hidden_metrics = FeaturesMeanVarianceMetrics(directory='eval/temp/concat_hidden')
     register_input_hook(
         model.h_norm,
         concatenated_hidden_metrics,

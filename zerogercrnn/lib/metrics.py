@@ -241,9 +241,11 @@ class SequentialMetrics(Metrics):
 class TensorVisualizerMetrics(Metrics):
     """Metrics that saves average value of reported values of tensor."""
 
-    def __init__(self, mapper, file='eval/temp/tensor_visualization'):
+    def __init__(self, mapper=None, file='eval/temp/tensor_visualization'):
         super().__init__()
         self.mapper = mapper
+        if self.mapper is None:
+            self.mapper = lambda x: x
         self.file = file
         self.sum = None
         self.reported = 0
@@ -256,12 +258,14 @@ class TensorVisualizerMetrics(Metrics):
         if self.sum is None:
             self.sum = current_sum
         else:
-            self.sum += current_sum
-        # self.sum += torch.sum(torch.sum(output, dim=0), dim=0) / (output.size()[0] * output.size()[1])
+            self.sum = self.sum + current_sum
         self.reported += 1
 
     def get_current_value(self, should_print=False):
-        np.save(self.file, self.sum.cpu().numpy() / self.reported)
+        value = self.sum / self.reported
+        if self.file is None:
+            return value # for test only
+        np.save(self.file, value.cpu().numpy())
         return 0  # this metrics is only for saving results to file.
 
 
@@ -270,7 +274,7 @@ class TensorVisualizer2DMetrics(TensorVisualizerMetrics):
 
     def __init__(self, dim=0, file='eval/temp/tensor_visualization2d'):
         super().__init__(
-            mapper=lambda output: torch.sum(output, dim=dim) / output.size()[dim],
+            mapper=lambda output: torch.sum(output, dim=dim).float() / output.size()[dim],
             file=file
         )
 
@@ -284,7 +288,7 @@ class TensorVisualizer3DMetrics(TensorVisualizerMetrics):
 
     def __init__(self, file='eval/temp/tensor_visualization3d'):
         super().__init__(
-            mapper=lambda output: output.sum(0).sum(0) / (output.size()[0] * output.size()[1]),
+            mapper=lambda output: output.view(-1, output.size()[-1]).sum(0) / (output.size()[0] * output.size()[1]),
             file=file
         )
 
@@ -294,40 +298,48 @@ class TensorVisualizer3DMetrics(TensorVisualizerMetrics):
 
 
 class FeaturesMeanVarianceMetrics(Metrics):
-    def __init__(self, dim, directory='eval/temp'):
+    """Saves graphs of mean an variance of vector corresponding to last dimension in output. """
+
+    def __init__(self, directory='eval/temp'):
         super().__init__()
-        self.dim = dim
         self.directory = directory
         create_directory_if_not_exists(self.directory)
+
         self.sum = None
-        self.squres_sum = None
+        self.squares_sum = None
         self.reported = 0
 
     def drop_state(self):
         self.sum = None
-        self.squres_sum = None
+        self.squares_sum = None
         self.reported = 0
 
     def report(self, value):
+        # reshape tensor to calculate sum
         value = value.view(-1, value.size()[-1])
         assert len(value.size()) == 2
         batch_size = value.size()[0]
+
+        # calculate current sum and squared sum
         c_sum = torch.sum(value.detach(), dim=0) / batch_size
         c_squared_sum = torch.sum(value.detach() ** 2, dim=0) / batch_size
+
+        # update
         if self.sum is None:
             self.sum = c_sum
-            self.squres_sum = c_squared_sum
+            self.squares_sum = c_squared_sum
         else:
             self.sum += c_sum
-            self.squres_sum += c_squared_sum
+            self.squares_sum += c_squared_sum
         self.reported += 1
 
     def get_current_value(self, should_print=False):
         mean = self.sum / self.reported
-        variance = (self.squres_sum / self.reported) - (self.sum / self.reported) ** 2
+        variance = (self.squares_sum / self.reported) - (self.sum / self.reported) ** 2
 
         np.save(os.path.join(self.directory, 'mean'), mean.cpu().numpy())
         np.save(os.path.join(self.directory, 'variance'), variance.cpu().numpy())
+
 
 if __name__ == '__main__':
     _tensor = torch.LongTensor([[1, 2, 3], [2, 1, 1]]).view(-1)

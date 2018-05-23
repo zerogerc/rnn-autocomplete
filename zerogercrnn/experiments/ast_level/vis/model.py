@@ -70,11 +70,13 @@ def draw_mean_variance(directory='eval/temp'):
 
 
 if __name__ == '__main__':
-    draw_mean_variance(directory='eval/temp/before_input')
-    draw_mean_variance(directory='eval/temp/after_input')
-
-    draw_mean_variance(directory='eval/temp/before_output')
-    draw_mean_variance(directory='eval/temp/after_output')
+    draw_mean_variance(directory='eval/temp/output_sum_before_matrix')
+    # visualize_attention(file='eval/temp/attention/per_depth_matrix.npy')
+    # draw_mean_variance(directory='eval/temp/before_input')
+    # draw_mean_variance(directory='eval/temp/after_input')
+    #
+    # draw_mean_variance(directory='eval/temp/before_output')
+    # draw_mean_variance(directory='eval/temp/after_output')
     # draw_1d_plot_from_file('eval/temp/deviation.npy')
     # draw_1d_plot_from_file('eval/temp/variance.npy')
 
