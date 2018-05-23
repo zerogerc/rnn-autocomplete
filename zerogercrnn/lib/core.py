@@ -28,16 +28,25 @@ class CombinedModule(BaseModule):
         super().__init__()
         self.params = []
         self.modules = []
+        self.torch_modules = []
 
     def param(self, param):
         self.params.append(param)
+
+    def torch_module(self, module):
+        self.torch_modules.append(module)
+        return module
 
     def module(self, module):
         self.modules.append(module)
         return module
 
     def parameters(self):
-        return chain(self.params, *[m.parameters() for m in self.modules])
+        return chain(
+            self.params,
+            *[m.parameters() for m in self.torch_modules],
+            *[m.parameters() for m in self.modules]
+        )
 
     def sparse_parameters(self):
         return chain(*[m.sparse_parameters() for m in self.modules])
@@ -166,6 +175,7 @@ def create_lstm_cell_hidden(hidden_size, batch_size):
     c = setup_tensor(torch.zeros((batch_size, hidden_size)))
     return h, c
 
+
 # region LayeredExperiment
 
 
@@ -257,6 +267,7 @@ class LayeredRecurrentUpdateAfter(BaseModule):
     def update_layered_lstm_hidden(layered_hidden, node_depths, new_value):  # checked
         return set_layered_hidden(layered_hidden[0], node_depths, new_value[0]), \
                set_layered_hidden(layered_hidden[1], node_depths, new_value[1])
+
 
 # endregion
 
