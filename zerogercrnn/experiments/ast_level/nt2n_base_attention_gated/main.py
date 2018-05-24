@@ -1,12 +1,12 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain, NonTerminalMetrics, NonTerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
-from zerogercrnn.experiments.ast_level.nt2n_base_attention_alpha_buffer.model import NT2NBaseAttentionModelAlphaBuffer
+from zerogercrnn.experiments.ast_level.nt2n_base_attention_gated.model import NT2NBaseAttentionGatedBufferModel
 from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, ResultsSaver, MaxPredictionWrapper
 
 
-class NT2NBaseAttentionMainAlphaBuffer(ASTMain):
+class NT2NBaseAttentionGatedBufferMain(ASTMain):
     def create_model(self, args):
-        return NT2NBaseAttentionModelAlphaBuffer(
+        return NT2NBaseAttentionGatedBufferModel(
             non_terminals_num=args.non_terminals_num,
             non_terminal_embedding_dim=args.non_terminal_embedding_dim,
             terminals_num=args.terminals_num,

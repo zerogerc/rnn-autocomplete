@@ -4,8 +4,10 @@ from zerogercrnn.lib.utils import setup_tensor, repackage_hidden
 from zerogercrnn.lib.core import CombinedModule, AlphaBetaSumLayer, EmbeddingsModule, LinearLayer
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import calc_attention_combination
+import torch.nn.functional as F
 
 from zerogercrnn.experiments.ast_level.data import ASTInput
+
 
 class ASTNT2NModule(CombinedModule):
 
@@ -41,7 +43,6 @@ class ASTNT2NModule(CombinedModule):
             input_size=self.recurrent_output_size,
             output_size=self.non_terminals_num
         ))
-
 
     @abstractmethod
     def get_recurrent_output(self, combined_input, ast_input: ASTInput, m_hidden, forget_vector):
@@ -82,13 +83,11 @@ class LastKBuffer:
     def get(self):
         return torch.stack(self.buffer, dim=1)
 
+    def init_buffer(self, batch_size):
+        self.buffer = [setup_tensor(torch.zeros((batch_size, self.hidden_size))) for _ in range(self.window_len)]
 
-def init_buffer(self, batch_size):
-    self.buffer = [setup_tensor(torch.zeros((batch_size, self.hidden_size))) for _ in range(self.window_len)]
-
-
-def repackage_and_forget_buffer_partly(self, forget_vector):
-    self.buffer = [repackage_hidden(b.mul(forget_vector)) for b in self.buffer]
+    def repackage_and_forget_buffer_partly(self, forget_vector):
+        self.buffer = [repackage_hidden(b.mul(forget_vector)) for b in self.buffer]
 
 
 class LastKAttention(CombinedModule):
@@ -154,3 +153,52 @@ class LastKAttentionBase(CombinedModule):
     def init_hidden(self, batch_size):
         self.context_buffer = LastKBuffer(window_len=self.k, hidden_size=self.hidden_size)
         self.context_buffer.init_buffer(batch_size)
+
+
+class GatedLastKAttention(CombinedModule):
+
+    def __init__(self, input_size, hidden_size, k):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+        self.base_attn = self.module(
+            LastKAttentionBase(
+                hidden_size=self.hidden_size,
+                k=k
+            )
+        )
+
+        self.w_cntx = self.module(LinearLayer(
+            input_size=self.hidden_size + self.input_size,
+            output_size=self.hidden_size,
+            bias=False
+        ))
+
+        self.w_h = self.module(LinearLayer(
+            input_size=self.hidden_size + self.input_size,
+            output_size=self.hidden_size,
+            bias=False
+        ))
+
+    def repackage_and_forget_buffer_partly(self, forget_vector):
+        self.base_attn.repackage_and_forget_buffer_partly(forget_vector)
+
+    def forward(self, current_input, current_hidden):
+        x = current_input
+        h = current_hidden
+        cntx = self.base_attn(current_hidden)
+
+        cntx_x = torch.cat((cntx, x), dim=-1)
+        h_x = torch.cat((h, x), dim=-1)
+
+        g_cntx = F.sigmoid(self.w_cntx(cntx_x))
+        g_h = F.sigmoid(self.w_h(h_x))
+
+        m_output = (g_cntx * cntx) + (g_h * h)
+        self.base_attn.add_vector(m_output)
+
+        return m_output
+
+    def init_hidden(self, batch_size):
+        self.base_attn.init_hidden(batch_size)
