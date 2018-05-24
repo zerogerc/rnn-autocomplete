@@ -14,6 +14,10 @@ from zerogercrnn.lib.utils import init_layers_uniform, init_recurrent_layers, se
 # region Base
 class BaseModule(nn.Module):
 
+    def __init__(self):
+        super().__init__()
+        print("{} created!".format(self.__class__.__name__))
+
     def sparse_parameters(self):  # in general modules do not care about sparse parameters.
         return []
 
@@ -472,8 +476,8 @@ class AlphaBetaSumLayer(BaseModule):
         self.mult_alpha = nn.Parameter(torch.randn(1))
         self.mult_beta = nn.Parameter(torch.randn(1))
 
-        nn.init.uniform(self.mult_alpha, min_value, max_value)
-        nn.init.uniform(self.mult_beta, min_value, max_value)
+        nn.init.uniform_(self.mult_alpha, min_value, max_value)
+        nn.init.uniform_(self.mult_beta, min_value, max_value)
 
     def forward(self, first_tensor, second_tensor):
         assert first_tensor.size() == second_tensor.size()
