@@ -7,7 +7,7 @@ from zerogercrnn.lib.utils import repackage_hidden, forget_hidden_partly_lstm_ce
 
 
 class NT2NBaseAttentionGatedBufferModel(ASTNT2NModule):
-    """Base Model with attention on last n hidden states of LSTM."""
+    """Model with gated attention on last n hidden states of LSTM."""
 
     def __init__(
             self,

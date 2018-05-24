@@ -46,7 +46,7 @@ class ASTNT2NModule(CombinedModule):
 
     @abstractmethod
     def get_recurrent_output(self, combined_input, ast_input: ASTInput, m_hidden, forget_vector):
-        pass
+        return None, None
 
     def forward(self, ast_input: ASTInput, m_hidden, forget_vector):
         non_terminal_input = ast_input.non_terminals
@@ -54,7 +54,7 @@ class ASTNT2NModule(CombinedModule):
 
         nt_embedded = self.nt_embedding(non_terminal_input)
         t_embedded = self.t_embedding(terminal_input)
-        combined_input = torch.cat([nt_embedded, t_embedded], dim=2)
+        combined_input = torch.cat([nt_embedded, t_embedded], dim=-1)
 
         recurrent_output, new_m_hidden = self.get_recurrent_output(
             combined_input=combined_input,
@@ -64,7 +64,7 @@ class ASTNT2NModule(CombinedModule):
         )
 
         m_output = self.h2o(recurrent_output)
-        return m_output, m_hidden
+        return m_output, new_m_hidden
 
 
 class LastKBuffer:
@@ -91,6 +91,7 @@ class LastKBuffer:
 
 
 class LastKAttention(CombinedModule):
+    """TODO: make it use base K attention"""
     def __init__(self, hidden_size, k=50, ab_transform=False):
         super().__init__()
         self.hidden_size = hidden_size
@@ -126,6 +127,10 @@ class LastKAttention(CombinedModule):
 
 
 class LastKAttentionBase(CombinedModule):
+    """Layer that stores buffer of last k vectors passed to add_vector.
+    forward will compute attention of input to all vectors in buffer.
+    """
+
     def __init__(self, hidden_size, k=50):
         super().__init__()
         self.hidden_size = hidden_size
@@ -172,33 +177,36 @@ class GatedLastKAttention(CombinedModule):
         self.w_cntx = self.module(LinearLayer(
             input_size=self.hidden_size + self.input_size,
             output_size=self.hidden_size,
-            bias=False
+            bias=True
         ))
 
         self.w_h = self.module(LinearLayer(
             input_size=self.hidden_size + self.input_size,
             output_size=self.hidden_size,
-            bias=False
+            bias=True
         ))
-
-    def repackage_and_forget_buffer_partly(self, forget_vector):
-        self.base_attn.repackage_and_forget_buffer_partly(forget_vector)
 
     def forward(self, current_input, current_hidden):
         x = current_input
         h = current_hidden
         cntx = self.base_attn(current_hidden)
 
+        # combine cntx and h with current_input to allow model to make different decisions based on current input.
         cntx_x = torch.cat((cntx, x), dim=-1)
         h_x = torch.cat((h, x), dim=-1)
 
+        # calculated gated functions
         g_cntx = F.sigmoid(self.w_cntx(cntx_x))
         g_h = F.sigmoid(self.w_h(h_x))
 
+        # calculate output as sum of cntx and h multiplied by corresponding activations.
         m_output = (g_cntx * cntx) + (g_h * h)
         self.base_attn.add_vector(m_output)
 
         return m_output
+
+    def repackage_and_forget_buffer_partly(self, forget_vector):
+        self.base_attn.repackage_and_forget_buffer_partly(forget_vector)
 
     def init_hidden(self, batch_size):
         self.base_attn.init_hidden(batch_size)

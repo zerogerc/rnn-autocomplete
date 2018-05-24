@@ -13,7 +13,6 @@ class NT2NBaseAttentionPlusLayeredMain(ASTMain):
             terminal_embedding_dim=args.terminal_embedding_dim,
             hidden_dim=args.hidden_size,
             layered_hidden_size=args.layered_hidden_size,
-            num_layers=args.num_layers,
             dropout=args.dropout
         )
 
