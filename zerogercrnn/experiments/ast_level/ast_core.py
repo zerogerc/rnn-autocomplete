@@ -194,7 +194,7 @@ class GatedLastKAttention(CombinedModule):
 
     def forward(self, current_input, current_hidden):
         x = self.x_norm(current_input)
-        h = self.h_norm(current_hidden)
+        h = current_hidden
         cntx = self.base_attn(current_hidden)
 
         # combine cntx and h with current_input to allow model to make different decisions based on current input.

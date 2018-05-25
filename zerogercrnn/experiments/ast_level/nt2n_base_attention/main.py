@@ -13,7 +13,8 @@ class NT2NBaseAttentionMain(ASTMain):
             terminal_embedding_dim=args.terminal_embedding_dim,
             hidden_dim=args.hidden_size,
             num_layers=args.num_layers,
-            dropout=args.dropout
+            dropout=args.dropout,
+            is_eval=args.eval
         )
 
     def create_criterion(self, args):
@@ -31,3 +32,12 @@ class NT2NBaseAttentionMain(ASTMain):
             ),
             NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
         ])
+
+    def register_eval_hooks(self):
+        return add_eval_hooks(self.model)
+
+
+def add_eval_hooks(model: NT2NBaseAttentionModel):
+    return model.last_k_attention.attn_metrics
+
+

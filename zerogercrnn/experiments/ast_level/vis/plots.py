@@ -9,6 +9,7 @@ COLOR_BASE = '#607D8B'
 COLOR_RED = '#f44336'
 COLOR_GREEN = '#4CAF50'
 
+
 class Plot:
     def __init__(self, data, label=None):
         self.data = data
@@ -146,11 +147,15 @@ def compare_per_nt_diff_only(file1, file2, y_label='New'):
     plt.ylabel(y_label)
     plt.show()
 
+
 def main():
     res_file_base = 'eval_verified/nt2n_base/nt_acc_grouped.txt'
+    res_file_base_30k = 'eval_verified/nt2n_base_30k/nt_acc_grouped.txt'
     res_file_base_attention = 'eval_verified/nt2n_base_attention/nt_acc_grouped.txt'
+    res_file_base_attention_30k = 'eval_verified/nt2n_base_attention_30k/nt_acc_grouped.txt'
     # draw_per_nt_plot(res_file)
-    compare_per_nt_diff_only(res_file_base, res_file_base_attention)
+    compare_per_nt_diff_only(res_file_base_30k, res_file_base_attention_30k)
+
 
 if __name__ == '__main__':
     main()

@@ -6,6 +6,7 @@ from zerogercrnn.lib.core import CombinedModule, EmbeddingsModule, RecurrentCore
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.utils import repackage_hidden, forget_hidden_partly, get_best_device, setup_tensor, forget_hidden_partly_lstm_cell
 from zerogercrnn.lib.calculation import calc_attention_combination, set_layered_hidden
+from zerogercrnn.experiments.ast_level.metrics import PerNtAttentionMetrics
 
 
 class LastKBuffer:
@@ -33,12 +34,16 @@ class LastKBuffer:
 
 
 class LastKAttention(CombinedModule):
-    def __init__(self, hidden_size, k=50):
+    def __init__(self, hidden_size, k=50, is_eval=False):
         super().__init__()
         self.hidden_size = hidden_size
         self.k = k
         self.context_buffer = None
         self.attn = self.module(Attn(method='general', hidden_size=self.hidden_size))
+        self.is_eval = is_eval
+
+        if self.is_eval:
+            self.attn_metrics = PerNtAttentionMetrics()
 
     def repackage_and_forget_buffer_partly(self, forget_vector):
         self.context_buffer.repackage_and_forget_buffer_partly(forget_vector)
@@ -47,13 +52,16 @@ class LastKAttention(CombinedModule):
         self.context_buffer = LastKBuffer(window_len=self.k, hidden_size=self.hidden_size)
         self.context_buffer.init_buffer(batch_size)
 
-    def forward(self, current_hidden):
+    def forward(self, current_input, current_hidden):
         if self.context_buffer is None:
             raise Exception('You should init buffer first')
 
         current_buffer = self.context_buffer.get()
         attn_output_coefficients = self.attn(current_hidden, current_buffer)
         attn_output = calc_attention_combination(attn_output_coefficients, current_buffer)
+
+        if self.is_eval:
+            self.attn_metrics.report(current_input, attn_output_coefficients)
 
         self.context_buffer.add_vector(current_hidden)
         return attn_output
@@ -70,7 +78,8 @@ class NT2NBaseAttentionModel(CombinedModule):
             terminal_embedding_dim,
             hidden_dim,
             num_layers,
-            dropout
+            dropout,
+            is_eval
     ):
         super().__init__()
 
@@ -110,7 +119,8 @@ class NT2NBaseAttentionModel(CombinedModule):
 
         self.last_k_attention = self.module(LastKAttention(
             hidden_size=self.hidden_dim,
-            k=50
+            k=50,
+            is_eval=is_eval
         ))
 
         self.h2o = self.module(LinearLayer(
@@ -128,6 +138,7 @@ class NT2NBaseAttentionModel(CombinedModule):
         combined_input = torch.cat([nt_embedded, t_embedded], dim=2)
 
         recurrent_output, new_hidden, attn_output = self.get_recurrent_layers_outputs(
+            ast_input=m_input,
             combined_input=combined_input,
             hidden=hidden,
             forget_vector=forget_vector
@@ -139,7 +150,7 @@ class NT2NBaseAttentionModel(CombinedModule):
         return prediction, new_hidden
 
     def get_recurrent_layers_outputs(
-            self, combined_input, hidden, forget_vector):
+            self, ast_input: ASTInput, combined_input, hidden, forget_vector):
         hidden = repackage_hidden(forget_hidden_partly_lstm_cell(hidden, forget_vector=forget_vector))
         self.last_k_attention.repackage_and_forget_buffer_partly(forget_vector)
 
@@ -154,7 +165,7 @@ class NT2NBaseAttentionModel(CombinedModule):
             recurrent_output.append(cur_h)
 
             # layered part
-            attn_output = self.last_k_attention(cur_h)
+            attn_output = self.last_k_attention(ast_input.non_terminals[i], cur_h)
             layered_attn_output.append(attn_output)
 
 

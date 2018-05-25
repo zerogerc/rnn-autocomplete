@@ -241,3 +241,28 @@ class LayeredNodeDepthsAttentionMetrics(Metrics):
                 self.per_depth_attention_sum[i] /= self.per_depth_reports[i]
         np.save('eval/temp/attention/per_depth_matrix', self.per_depth_attention_sum)
         return 0  # this metrics is only for saving results to file.
+
+
+class PerNtAttentionMetrics(Metrics):
+    def __init__(self):
+        super().__init__()
+
+    def report(self, current_input, attention_coefficients):
+        nt_ids = torch.argmax(current_input, dim=-1)
+
+        for i in range(97): # TODO: check
+            index = torch.nonzero((nt_ids == i))
+            if index.size()[0] == 0:
+                continue
+            selected_attention = torch.index_select(attention_coefficients, dim=0, index=index.squeeze())
+            selected_attention = selected_attention.squeeze(2)
+            to_report = torch.sum(selected_attention, dim=0).cpu().numpy()
+            self.per_depth_attention_sum[i] += to_report
+            self.per_depth_reports[i] += index.size()[0]
+
+
+    def drop_state(self):
+        pass
+
+    def get_current_value(self, should_print=False):
+        pass

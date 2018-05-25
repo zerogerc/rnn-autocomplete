@@ -66,15 +66,15 @@ def eval_nt(results_dir, save_dir, group=False):
 
 def get_res_dir(model_type):
     if model_type == 'nt2n_base':
-        return 'eval_verified/nt2n_base'
+        return 'eval_verified/nt2n_base_30k'
     elif model_type == 'nt2n_base_attention':
-        return 'eval_verified/nt2n_base_attention'
+        return 'eval_verified/nt2n_base_attention_30k'
     else:
         raise Exception('Unknown model_type')
 
 
 def main():
-    res_dir = get_res_dir(model_type='nt2n_base_attention')
+    res_dir = get_res_dir(model_type='nt2n_base')
     save_dir = 'eval_local'
 
     eval_nt(
