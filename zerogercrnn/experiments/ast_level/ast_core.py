@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import torch
 from zerogercrnn.lib.utils import setup_tensor, repackage_hidden
-from zerogercrnn.lib.core import CombinedModule, AlphaBetaSumLayer, EmbeddingsModule, LinearLayer
+from zerogercrnn.lib.core import CombinedModule, AlphaBetaSumLayer, EmbeddingsModule, LinearLayer, NormalizationLayer
 from zerogercrnn.lib.attn import Attn
 from zerogercrnn.lib.calculation import calc_attention_combination
 import torch.nn.functional as F
@@ -46,6 +46,9 @@ class ASTNT2NModule(CombinedModule):
 
     @abstractmethod
     def get_recurrent_output(self, combined_input, ast_input: ASTInput, m_hidden, forget_vector):
+        """Method should return tensor that will be passed to h2o and updated hidden that will be passed
+        to next invocation of get_recurrent_output as m_hidden."""
+
         return None, None
 
     def forward(self, ast_input: ASTInput, m_hidden, forget_vector):
@@ -174,30 +177,33 @@ class GatedLastKAttention(CombinedModule):
             )
         )
 
+        self.x_norm = self.module(NormalizationLayer(features_num=self.input_size))
+        self.h_norm = self.module(NormalizationLayer(features_num=self.hidden_size))
+
         self.w_cntx = self.module(LinearLayer(
             input_size=self.hidden_size + self.input_size,
             output_size=self.hidden_size,
-            bias=True
+            bias=False
         ))
 
         self.w_h = self.module(LinearLayer(
             input_size=self.hidden_size + self.input_size,
             output_size=self.hidden_size,
-            bias=True
+            bias=False
         ))
 
     def forward(self, current_input, current_hidden):
-        x = current_input
-        h = current_hidden
+        x = self.x_norm(current_input)
+        h = self.h_norm(current_hidden)
         cntx = self.base_attn(current_hidden)
 
         # combine cntx and h with current_input to allow model to make different decisions based on current input.
         cntx_x = torch.cat((cntx, x), dim=-1)
         h_x = torch.cat((h, x), dim=-1)
 
-        # calculated gated functions
-        g_cntx = F.sigmoid(self.w_cntx(cntx_x))
-        g_h = F.sigmoid(self.w_h(h_x))
+        # calculate gated functions
+        g_cntx = F.tanh(self.w_cntx(cntx_x))
+        g_h = F.tanh(self.w_h(h_x))
 
         # calculate output as sum of cntx and h multiplied by corresponding activations.
         m_output = (g_cntx * cntx) + (g_h * h)

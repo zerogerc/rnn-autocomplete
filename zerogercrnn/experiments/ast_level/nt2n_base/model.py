@@ -3,9 +3,10 @@ import torch
 from zerogercrnn.experiments.ast_level.data import ASTInput
 from zerogercrnn.lib.core import CombinedModule, EmbeddingsModule, RecurrentCore, LinearLayer
 from zerogercrnn.lib.utils import repackage_hidden, forget_hidden_partly
+from zerogercrnn.experiments.ast_level.ast_core import ASTNT2NModule
 
 
-class NT2NBaseModel(CombinedModule):
+class NT2NBaseModel(ASTNT2NModule):
     def __init__(
             self,
             non_terminals_num,
@@ -16,27 +17,16 @@ class NT2NBaseModel(CombinedModule):
             num_layers,
             dropout
     ):
-        super().__init__()
-
-        self.non_terminals_num = non_terminals_num
-        self.non_terminal_embedding_dim = non_terminal_embedding_dim
-        self.terminals_num = terminals_num
-        self.terminal_embedding_dim = terminal_embedding_dim
+        super().__init__(
+            non_terminals_num=non_terminals_num,
+            non_terminal_embedding_dim=non_terminal_embedding_dim,
+            terminals_num=terminals_num,
+            terminal_embedding_dim=terminal_embedding_dim,
+            recurrent_output_size=hidden_dim
+        )
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
-
-        self.nt_embedding = self.module(EmbeddingsModule(
-            num_embeddings=self.non_terminals_num,
-            embedding_dim=self.non_terminal_embedding_dim,
-            sparse=True
-        ))
-
-        self.t_embedding = self.module(EmbeddingsModule(
-            num_embeddings=self.terminals_num,
-            embedding_dim=self.terminal_embedding_dim,
-            sparse=True
-        ))
 
         self.recurrent_core = self.module(RecurrentCore(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,
@@ -46,27 +36,15 @@ class NT2NBaseModel(CombinedModule):
             model_type='lstm'
         ))
 
-        self.h2o = self.module(LinearLayer(
-            input_size=self.hidden_dim,
-            output_size=self.non_terminals_num
-        ))
+    def get_recurrent_output(self, combined_input, ast_input: ASTInput, m_hidden, forget_vector):
+        hidden = m_hidden
 
-    def forward(self, m_input: ASTInput, hidden, forget_vector):
-        non_terminal_input = m_input.non_terminals
-        terminal_input = m_input.terminals
-
-        nt_embedded = self.nt_embedding(non_terminal_input)
-        t_embedded = self.t_embedding(terminal_input)
-
-        combined_input = torch.cat([nt_embedded, t_embedded], dim=2)
-
-        hidden = repackage_hidden(hidden)
         hidden = forget_hidden_partly(hidden, forget_vector=forget_vector)
+        hidden = repackage_hidden(hidden)
+
         recurrent_output, new_hidden = self.recurrent_core(combined_input, hidden)
 
-        prediction = self.h2o(recurrent_output)
-
-        return prediction, new_hidden
+        return recurrent_output, new_hidden
 
     def init_hidden(self, batch_size):
         return self.recurrent_core.init_hidden(batch_size)

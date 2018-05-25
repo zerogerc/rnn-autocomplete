@@ -100,7 +100,7 @@ class TrainEpochRunner:
     def run(self, number_of_epochs):
         self.epoch = -1
         self.it = 0
-        self._validate()  # first validation for plot.
+        # self._validate()  # first validation for plot.
 
         try:
             while self.epoch < number_of_epochs:

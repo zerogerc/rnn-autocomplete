@@ -7,6 +7,8 @@ from zerogercrnn.experiments.ast_level.metrics import SingleNonTerminalAccuracyM
 from zerogercrnn.lib.metrics import SequentialMetrics, BaseAccuracyMetrics
 
 
+# region Utils
+
 class ResultsReader:
     """Class that could read results from lib.metrics.ResultsSaver and then produce matrices for visualization."""
 
@@ -31,27 +33,30 @@ def get_accuracy_result(results_dir):
     run_nt_metrics(reader, metrics)
 
 
-def get_per_nt_result(results_dir, save_dir):
+def get_per_nt_result(results_dir, save_dir, group=False):
     reader = ResultsReader(results_dir=results_dir)
     metrics = SingleNonTerminalAccuracyMetrics(
         non_terminals_file='data/ast/non_terminals.json',
         results_dir=save_dir,
-        group=True,
+        group=group,
         dim=None
     )
 
     run_nt_metrics(reader, metrics)
 
 
-def eval_nt(results_dir):
+# endregion
+
+
+def eval_nt(results_dir, save_dir, group=False):
     reader = ResultsReader(results_dir=results_dir)
 
     metrics = SequentialMetrics([
         NonTerminalsMetricsWrapper(BaseAccuracyMetrics()),
         SingleNonTerminalAccuracyMetrics(
             non_terminals_file='data/ast/non_terminals.json',
-            results_dir=None,
-            group=True,
+            results_dir=save_dir,
+            group=group,
             dim=None
         )
     ])
@@ -59,15 +64,25 @@ def eval_nt(results_dir):
     run_nt_metrics(reader, metrics)
 
 
-if __name__ == '__main__':
-    base_res_dir = 'eval/ast/nt2n_base'
-    base_save_dir = 'eval_local'
-    layered_attention_res_dir = 'eval/ast/nt2n_layered_attention'
-    layered_attention_save_dir = 'eval_local'
+def get_res_dir(model_type):
+    if model_type == 'nt2n_base':
+        return 'eval_verified/nt2n_base'
+    elif model_type == 'nt2n_base_attention':
+        return 'eval_verified/nt2n_base_attention'
+    else:
+        raise Exception('Unknown model_type')
 
-    get_per_nt_result(
-        results_dir=base_res_dir,
-        save_dir=base_save_dir
+
+def main():
+    res_dir = get_res_dir(model_type='nt2n_base_attention')
+    save_dir = 'eval_local'
+
+    eval_nt(
+        results_dir=res_dir,
+        save_dir=save_dir,
+        group=False
     )
 
-    # eval_nt(results_dir=base_res_dir)
+
+if __name__ == '__main__':
+    main()

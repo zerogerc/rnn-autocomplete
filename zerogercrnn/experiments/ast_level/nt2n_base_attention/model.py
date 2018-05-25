@@ -73,7 +73,6 @@ class NT2NBaseAttentionModel(CombinedModule):
             dropout
     ):
         super().__init__()
-        print('NT2NBaseAttentionModel created!')
 
         self.non_terminals_num = non_terminals_num
         self.non_terminal_embedding_dim = non_terminal_embedding_dim
