@@ -38,6 +38,6 @@ class NT2NBaseAttentionMain(ASTMain):
 
 
 def add_eval_hooks(model: NT2NBaseAttentionModel):
-    return model.last_k_attention.attn_metrics
+    return [model.last_k_attention.attn_metrics]
 
 

@@ -19,6 +19,7 @@ from zerogercrnn.experiments.ast_level.nt2n_base_attention_norm.main import NT2N
 from zerogercrnn.experiments.ast_level.nt2n_base_attention_alpha_buffer.main import NT2NBaseAttentionMainAlphaBuffer
 from zerogercrnn.experiments.ast_level.nt2n_base_attention_plus_layered.main import NT2NBaseAttentionPlusLayeredMain
 from zerogercrnn.experiments.ast_level.nt2n_base_attention_gated.main import NT2NBaseAttentionGatedBufferMain
+from zerogercrnn.experiments.ast_level.nt2n_base_attention_propagated.main import NT2NBaseAttentionPropaGatedBufferMain
 from zerogercrnn.experiments.ast_level.vis.utils import draw_line_plot, visualize_tensor
 from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
     add_recurrent_core_args, add_non_terminal_args, add_terminal_args
@@ -90,6 +91,8 @@ def get_main(args):
         main = NT2NBaseAttentionGatedBufferMain(args)
     elif args.prediction == 'nt2n_base_attention_plus_layered':
         main = NT2NBaseAttentionPlusLayeredMain(args)
+    elif args.prediction == 'nt2n_base_attention_propagated':
+        main = NT2NBaseAttentionPropaGatedBufferMain(args)
     else:
         raise Exception('Not supported prediction type: {}'.format(args.prediction))
 

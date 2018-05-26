@@ -10,11 +10,12 @@ from zerogercrnn.experiments.ast_level.metrics import PerNtAttentionMetrics
 
 
 class LastKBuffer:
-    def __init__(self, window_len, hidden_size):
+    def __init__(self, window_len, hidden_size, is_eval=False):
         self.buffer = None
         self.window_len = window_len
         self.hidden_size = hidden_size
         self.it = 0
+        self.is_eval = is_eval
 
     def add_vector(self, vector):
         self.buffer[self.it] = vector
@@ -26,7 +27,11 @@ class LastKBuffer:
         return torch.stack(self.buffer, dim=1)
 
     def init_buffer(self, batch_size):
-        self.buffer = [setup_tensor(torch.zeros((batch_size, self.hidden_size))) for _ in range(self.window_len)]
+        c = 1
+        if self.is_eval:
+            c = 2
+
+        self.buffer = [setup_tensor(torch.zeros((batch_size, self.hidden_size))) for _ in range(c * self.window_len)]
 
     def repackage_and_forget_buffer_partly(self, forget_vector):
         # self.buffer = self.buffer.mul(forget_vector.unsqueeze(1)) TODO: implement forgetting
@@ -40,8 +45,8 @@ class LastKAttention(CombinedModule):
         self.k = k
         self.context_buffer = None
         self.attn = self.module(Attn(method='general', hidden_size=self.hidden_size))
-        self.is_eval = is_eval
 
+        self.is_eval = is_eval
         if self.is_eval:
             self.attn_metrics = PerNtAttentionMetrics()
 
