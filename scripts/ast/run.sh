@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/ast/train.sh nt2n_base_attention_plus_layered 25May_nt2n_base_attention_plus_layered_hs500
+./scripts/ast/train.sh nt2n_base_attention_propagated 26May_nt2n_base_attention_propagated_hs500
