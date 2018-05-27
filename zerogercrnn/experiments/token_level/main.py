@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from zerogercrnn.experiments.common import get_optimizer, get_scheduler
-from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
+from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader
 from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
 from zerogercrnn.lib.embedding import Embeddings
 from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
@@ -126,11 +126,10 @@ class TokenLevelRoutine(NetworkRoutine):
 def create_data_generator(args):
     embeddings = Embeddings(vector_file=args.embeddings_file, embeddings_size=50)
 
-    reader = TokensDataReader(train_file=args.train_file, eval_file=args.eval_file, embeddings=embeddings,
-                              seq_len=args.seq_len, limit=args.data_limit)
+    reader = TokensDataReader(train_file=args.train_file, eval_file=args.eval_file, seq_len=args.seq_len,
+                              limit=args.data_limit)
 
-    data_generator = TokensDataGenerator(data_reader=reader, seq_len=args.seq_len, batch_size=args.batch_size,
-                                         embeddings_size=args.embedding_size)
+    data_generator = TokensDataGenerator(data_reader=reader, seq_len=args.seq_len, batch_size=args.batch_size)
 
     return data_generator
 
