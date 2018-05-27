@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/ast/grid_search.sh nt2n_base 26May_nt2n_base
+./scripts/ast/train.sh nt2n_base_attention_plus_layered 26May_nt2n_base_attention_plus_layered_hs500
