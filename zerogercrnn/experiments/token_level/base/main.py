@@ -1,6 +1,6 @@
 from torch import nn as nn
 
-from zerogercrnn.experiments.token_level.common import TokenMain
+from zerogercrnn.experiments.token_level.common import TokenMain, TokensLoss
 from zerogercrnn.experiments.token_level.base.model import TokenBaseModel
 from zerogercrnn.lib.core import BaseModule
 from zerogercrnn.lib.metrics import Metrics, MaxPredictionAccuracyMetrics
@@ -19,7 +19,7 @@ class TokenBaseMain(TokenMain):
         )
 
     def create_criterion(self, args) -> nn.Module:
-        return nn.CrossEntropyLoss()
+        return TokensLoss()
 
     def create_train_metrics(self, args) -> Metrics:
         return MaxPredictionAccuracyMetrics()

@@ -29,6 +29,16 @@ def create_data_generator(args) -> BatchedDataGenerator:
     return data_generator
 
 
+class TokensLoss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.criterion = nn.CrossEntropyLoss()
+
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor):
+        return self.criterion(prediction.view(-1, prediction.size()[-1]), target.view(-1))
+
+
 def run_model(model: nn.Module, iter_data, hidden, batch_size):
     (n_input, n_target), forget_vector = iter_data
     assert forget_vector.size()[0] == batch_size
@@ -56,9 +66,6 @@ class TokenLevelRoutine(NetworkRoutine):
 
         self.hidden = None
 
-    def calc_loss(self, prediction, n_target):
-        return self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))  # TODO: check, maybe view?
-
     def optimize(self, loss):
         # Backward pass
         loss.backward()
@@ -82,7 +89,7 @@ class TokenLevelRoutine(NetworkRoutine):
         )
         self.hidden = hidden
 
-        loss = self.calc_loss(prediction, m_target)
+        loss = self.criterion(prediction, m_target)
         if self.optimizers is not None:
             self.optimize(loss)
 
