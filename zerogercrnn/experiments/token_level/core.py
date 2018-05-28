@@ -5,19 +5,22 @@ import torch
 from zerogercrnn.lib.core import CombinedModule, EmbeddingsModule, LinearLayer
 
 
-class TokenModelBase(CombinedModule):
+class TokenModel(CombinedModule):
     def __init__(self, num_tokens, embedding_dim, recurrent_output_size):
         super().__init__()
+        self.num_tokens = num_tokens
+        self.embedding_dim = embedding_dim
+        self.recurrent_output_size = recurrent_output_size
 
         self.token_embeddings = self.module(EmbeddingsModule(
-            num_embeddings=num_tokens,
-            embedding_dim=embedding_dim,
+            num_embeddings=self.num_tokens,
+            embedding_dim=self.embedding_dim,
             sparse=True
         ))
 
         self.h2o = self.module(LinearLayer(
-            input_size=recurrent_output_size,
-            output_size=num_tokens,
+            input_size=self.recurrent_output_size,
+            output_size=self.num_tokens,
             bias=True
         ))
 
@@ -30,3 +33,7 @@ class TokenModelBase(CombinedModule):
     @abstractmethod
     def get_recurrent_output(self, input_embedded, hidden, forget_vector):
         return None, None
+
+    @abstractmethod
+    def init_hidden(self, batch_size):
+        pass

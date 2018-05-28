@@ -9,7 +9,7 @@ tqdm.monitor_interval = 0
 class Logger:
     def __init__(self):
         self.ct = time.clock()
-        self.should_log = True
+        self.should_log = False
 
     def reset_time(self):
         self.ct = time.clock()
