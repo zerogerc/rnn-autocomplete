@@ -41,3 +41,8 @@ def add_terminal_args(parser):
     parser.add_argument('--terminal_embedding_dim', type=int, help='Dimension of terminal embeddings')
     parser.add_argument('--terminals_file', type=str, help='Json file with all terminals')
     parser.add_argument('--terminal_embeddings_file', type=str, help='File with pretrained terminal embeddings')
+
+
+def add_tokens_args(parser):
+    parser.add_argument('--tokens_num', type=int, help='Number of different tokens in train file')
+    parser.add_argument('--token_embedding_dim', type=int, help='Size of continuous token representation')

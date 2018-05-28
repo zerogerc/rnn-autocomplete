@@ -1,195 +1,52 @@
 import argparse
 
 import torch
-import torch.nn as nn
 
-from zerogercrnn.experiments.common import get_optimizer, get_scheduler
-from zerogercrnn.experiments.token_level.data import TokensDataGenerator, TokensDataReader, MockDataReader
-from zerogercrnn.experiments.token_level.model import TokenLevelBaseModel
-from zerogercrnn.lib.embedding import Embeddings
-from zerogercrnn.lib.file import load_if_saved, load_cuda_on_cpu
+from zerogercrnn.experiments.common import Main
+from zerogercrnn.experiments.token_level.base.main import TokenBaseMain
+from zerogercrnn.lib.argutils import add_general_arguments, add_batching_data_args, add_optimization_args, \
+    add_recurrent_core_args, add_tokens_args
 from zerogercrnn.lib.log import logger
-from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
-from zerogercrnn.lib.run import TrainEpochRunner, NetworkRoutine
-from zerogercrnn.lib.utils import get_best_device
 
-parser = argparse.ArgumentParser(description='AST level neural network')
-parser.add_argument('--title', type=str, help='Title for this run. Used in tensorboard and in saving of models.')
-parser.add_argument('--train_file', type=str, help='File with training data')
-parser.add_argument('--eval_file', type=str, help='File with eval data')
-parser.add_argument('--embeddings_file', type=str, help='File with embedding vectors')
-parser.add_argument('--data_limit', type=int, help='How much lines of data to process (only for fast checking)')
-parser.add_argument('--model_save_dir', type=str, help='Where to save trained models')
-parser.add_argument('--saved_model', type=str, help='File with trained model if not fresh train')
-parser.add_argument('--log', action='store_true', help='Log performance?')
-parser.add_argument('--task', type=str, help='One of: train, accuracy')
+parser = argparse.ArgumentParser(description='Token level neural network')
+add_general_arguments(parser)
+add_batching_data_args(parser)
+add_optimization_args(parser)
+add_recurrent_core_args(parser)
+add_tokens_args(parser)
 
-parser.add_argument('--tokens_count', type=int, help='All possible tokens count')  # 51k now
-parser.add_argument('--seq_len', type=int, help='Recurrent layer time unrolling')
-parser.add_argument('--batch_size', type=int, help='Size of batch')
-parser.add_argument('--learning_rate', type=float, help='Learning rate')
-parser.add_argument('--epochs', type=int, help='Number of epochs to run model')
-parser.add_argument('--decay_after_epoch', type=int, help='Multiply lr by decay_multiplier each epoch')
-parser.add_argument('--decay_multiplier', type=float, help='Multiply lr by this number after decay_after_epoch')
-parser.add_argument('--embedding_size', type=int, help='Size of embedding to use')
-parser.add_argument('--hidden_size', type=int, help='Hidden size of recurrent part of model')
-parser.add_argument('--num_layers', type=int, help='Number of recurrent layers')
-parser.add_argument('--dropout', type=float, help='Dropout to apply to recurrent layer')
-parser.add_argument('--weight_decay', type=float, help='Weight decay for l2 regularization')
+parser.add_argument('--prediction', type=str, help='One of: nt2n, nt2n_pre, nt2n_tail, nt2n_sum, nt2nt, ntn2t')
+parser.add_argument('--save_model_every', type=int, help='How often to save model', default=1)
 
-ENCODING = 'ISO-8859-1'
+# This is for evaluation purposes
+parser.add_argument('--eval', action='store_true', help='Evaluate or train')
+parser.add_argument('--eval_results_directory', type=str, help='Where to save results of evaluation')
 
 
-def calc_accuracy(args):
-    assert args.eval_file is not None
+def get_main(args) -> Main:
+    if args.prediction == 'token_base':
+        main = TokenBaseMain(args)
+    else:
+        raise Exception('Unknown type of prediction: {}'.format(args.prediciton))
 
-    data_generator = create_data_generator(args)
-    model = create_model(args)
-    model.eval()
-
-    if args.saved_model is not None:
-        if torch.cuda.is_available():
-            load_if_saved(model, args.saved_model)
-        else:
-            load_cuda_on_cpu(model, args.saved_model)
-
-    measurer = MaxPredictionAccuracyMetrics()
-    measurer.drop_state()
-
-    hidden = None
-    it = 0
-    for iter_data in data_generator.get_eval_generator():
-        prediction, target, hidden = run_model(model=model, iter_data=iter_data, hidden=hidden,
-                                               batch_size=args.batch_size)
-
-        measurer.report((prediction, target))
-
-        print('Iter: {}, Accuracy: {}'.format(it, measurer.get_current_value()))
-        it += 1
-        if it == 1000:
-            break
-
-    print('Accuracy: {}'.format(measurer.get_current_value()))
-
-
-def run_model(model, iter_data, hidden, batch_size):
-    (n_input, n_target), forget_vector = iter_data
-    assert forget_vector.size()[0] == batch_size
-
-    n_input = n_input.to(get_best_device())
-    n_target = n_target.to(get_best_device())
-
-    if hidden is None:
-        hidden = model.init_hidden(batch_size=batch_size)
-
-    model.zero_grad()
-    prediction, hidden = model(n_input, hidden, forget_vector=forget_vector)
-
-    return prediction, n_target, hidden
-
-
-class TokenLevelRoutine(NetworkRoutine):
-
-    def __init__(self, model, batch_size, seq_len, criterion, optimizers):
-        super().__init__(model)
-        self.model = self.network  # TODO: refactor base
-        self.batch_size = batch_size
-        self.seq_len = seq_len
-        self.criterion = criterion
-        self.optimizers = optimizers
-
-        self.hidden = None
-
-    def calc_loss(self, prediction, n_target):
-        return self.criterion(prediction.permute(1, 2, 0), n_target.transpose(1, 0))
-
-    def optimize(self, loss):
-        # Backward pass
-        loss.backward()
-
-        # Optimizer step
-        for optimizer in self.optimizers:
-            optimizer.step()
-
-    def run(self, iter_num, iter_data):
-        prediction, n_target, hidden = run_model(model=self.model, iter_data=iter_data, hidden=self.hidden,
-                                                 batch_size=self.batch_size)
-        self.hidden = hidden
-
-        loss = self.calc_loss(prediction, n_target)
-        if self.optimizers is not None:
-            self.optimize(loss)
-
-        return prediction, n_target
-
-
-def create_data_generator(args):
-    embeddings = Embeddings(vector_file=args.embeddings_file, embeddings_size=50)
-
-    reader = TokensDataReader(train_file=args.train_file, eval_file=args.eval_file, embeddings=embeddings,
-                              seq_len=args.seq_len, limit=args.data_limit)
-
-    data_generator = TokensDataGenerator(data_reader=reader, seq_len=args.seq_len, batch_size=args.batch_size,
-                                         embeddings_size=args.embedding_size)
-
-    return data_generator
-
-
-def create_model(args):
-    model = TokenLevelBaseModel(
-        embedding_size=args.embedding_size,
-        tokens_number=args.tokens_count,
-        hidden_size=args.hidden_size,
-        num_layers=args.num_layers,
-        dropout=args.dropout
-    ).to(get_best_device())
-
-    return model
+    return main
 
 
 def train(args):
-    model = create_model(args)
+    get_main(args).train(args)
 
-    if args.saved_model is not None:
-        load_if_saved(model=model, path=args.saved_model)
 
-    optimizers = [get_optimizer(args, model)]
-    schedulers = [get_scheduler(args, optimizers[-1])]
-    criterion = nn.NLLLoss()
-
-    data_generator = create_data_generator(args)
-
-    train_routine = TokenLevelRoutine(model=model, batch_size=args.batch_size, seq_len=args.seq_len,
-                                      criterion=criterion, optimizers=optimizers)
-
-    validation_routine = TokenLevelRoutine(model=model, batch_size=args.batch_size, seq_len=args.seq_len,
-                                           criterion=criterion, optimizers=None)
-
-    runner = TrainEpochRunner(
-        network=model,
-        train_routine=train_routine,
-        validation_routine=validation_routine,
-        metrics=MaxPredictionAccuracyMetrics(),
-        data_generator=data_generator,
-        schedulers=schedulers,
-        plotter='tensorboard',
-        save_dir=args.model_save_dir,
-        title=args.title,
-        report_train_every=10,
-        plot_train_every=50
-    )
-
-    runner.run(number_of_epochs=args.epochs)
+def evaluate(args):
+    get_main().eval(args)
 
 
 if __name__ == '__main__':
+    print(torch.__version__)
     _args = parser.parse_args()
     assert _args.title is not None
     logger.should_log = _args.log
 
-    if _args.task == 'train':
-        train(_args)
-    elif _args.task == 'accuracy':
-        calc_accuracy(_args)
+    if _args.eval:
+        evaluate(_args)
     else:
-        raise Exception('Not supported task')
+        train(_args)

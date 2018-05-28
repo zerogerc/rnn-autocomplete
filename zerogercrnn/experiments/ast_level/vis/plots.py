@@ -108,7 +108,7 @@ def compare_per_nt(file1, file2, y_label='New'):
     custom_lines = [Line2D([0], [0], color=COLOR_BASE, lw=4),
                     Line2D([0], [0], color=COLOR_GREEN, lw=4),
                     Line2D([0], [0], color=COLOR_RED, lw=4)]
-    plt.legend(custom_lines, ['Base', 'Increase', 'Decrease'])
+    plt.legend(custom_lines, ['База', 'Улучшение', 'Ухудшение'])
 
     # plt.legend((p1[0], p2[0]), (file1, file2))
     add_nt_x_ticks(nt)
@@ -127,7 +127,7 @@ def compare_per_nt_diff_only(file1, file2, y_label='New'):
     diff = data2 - data1
 
     ind = np.arange(len(nt))
-    p1 = plt.bar(ind, diff, width=1)
+    p1 = plt.bar(ind, (diff) * 100, width=1)
 
     for id, bar in enumerate(p1):
         if diff[id] >= 0:
@@ -139,7 +139,7 @@ def compare_per_nt_diff_only(file1, file2, y_label='New'):
         Line2D([0], [0], color=COLOR_GREEN, lw=4),
         Line2D([0], [0], color=COLOR_RED, lw=4)
     ]
-    plt.legend(custom_lines, ['Increase', 'Decrease'])
+    plt.legend(custom_lines,  ['Улучшение', 'Ухудшение'])
     plt.grid(True)
 
     add_nt_x_ticks(nt)
@@ -157,7 +157,7 @@ def main():
     res_file_base_old = 'eval_local/nt2n_base/nt_acc.txt'
     res_file_layered_attention_old = 'eval_local/nt2n_layered_attention/nt_acc.txt'
     # draw_per_nt_plot(res_file)
-    compare_per_nt_diff_only(res_file_base_old, res_file_layered_attention_old)
+    compare_per_nt_diff_only(res_file_base_old, res_file_layered_attention_old, y_label='Абсолютная разница в точности (%)')
 
 
 if __name__ == '__main__':
