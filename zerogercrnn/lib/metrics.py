@@ -74,8 +74,8 @@ class BaseAccuracyMetrics(Metrics):
         self.reported = 0
 
     # def decrease_hits(self, number):
-        # print('Hits decreased by {}'.format(number))
-        # self.hits -= number
+    # print('Hits decreased by {}'.format(number))
+    # self.hits -= number
 
     def drop_state(self):
         self.hits = 0
@@ -264,7 +264,7 @@ class TensorVisualizerMetrics(Metrics):
     def get_current_value(self, should_print=False):
         value = self.sum / self.reported
         if self.file is None:
-            return value # for test only
+            return value  # for test only
         np.save(self.file, value.cpu().numpy())
         return 0  # this metrics is only for saving results to file.
 
@@ -339,6 +339,27 @@ class FeaturesMeanVarianceMetrics(Metrics):
 
         np.save(os.path.join(self.directory, 'mean'), mean.cpu().numpy())
         np.save(os.path.join(self.directory, 'variance'), variance.cpu().numpy())
+
+
+class TopKWrapper(Metrics):
+
+    def __init__(self, base: Metrics, k=5, dim=2):
+        super().__init__()
+        self.base = base
+        self.k = k
+        self.dim = dim
+
+    def drop_state(self):
+        self.base.drop_state()
+
+    def report(self, predicted_target):
+        predicted, target = predicted_target
+        with torch.no_grad():
+            _, top_pred = predicted.topk(self.k, self.dim, True, True)
+            self.base.report((top_pred, target))
+
+    def get_current_value(self, should_print=False):
+        self.base.get_current_value(should_print=True)
 
 
 if __name__ == '__main__':
