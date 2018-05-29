@@ -10,14 +10,15 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --prediction $1 \
     --eval_results_directory eval/$2 \
     --train_file "data/ast/file_train.json" \
-    --data_limit 1000 \
+    --data_limit 100000 \
+    --saved_model "saved/26May_nt2n_base_attention_plus_layered_hs500/model_epoch_30" \
     --model_save_dir saved/$2 \
-    --seq_len 5 \
-    --batch_size 5 \
-    --learning_rate 0.0003 \
+    --seq_len 50 \
+    --batch_size 80 \
+    --learning_rate 0.00005 \
     --epochs 30 \
     --decay_after_epoch 0 \
-    --decay_multiplier 0.9 \
+    --decay_multiplier 0.8 \
     --weight_decay=0. \
     --hidden_size 500 \
     --num_layers 1 \

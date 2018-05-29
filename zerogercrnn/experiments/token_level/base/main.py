@@ -3,7 +3,7 @@ from torch import nn as nn
 from zerogercrnn.experiments.token_level.common import TokenMain, TokensLoss
 from zerogercrnn.experiments.token_level.base.model import TokenBaseModel
 from zerogercrnn.lib.core import BaseModule
-from zerogercrnn.lib.metrics import Metrics, MaxPredictionAccuracyMetrics
+from zerogercrnn.lib.metrics import Metrics, MaxPredictionAccuracyMetrics, SequentialMetrics, TopKWrapper, ResultsSaver
 
 
 class TokenBaseMain(TokenMain):
@@ -25,4 +25,7 @@ class TokenBaseMain(TokenMain):
         return MaxPredictionAccuracyMetrics()
 
     def create_eval_metrics(self, args) -> Metrics:
-        return MaxPredictionAccuracyMetrics()
+        return SequentialMetrics([
+            MaxPredictionAccuracyMetrics(),
+            TopKWrapper(base=ResultsSaver(dir_to_save=args.eval_results_directory))
+        ])

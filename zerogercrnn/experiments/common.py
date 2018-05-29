@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import os
 
 import torch
 import torch.nn as nn
@@ -118,6 +119,9 @@ class Main:
         runner.run(number_of_epochs=args.epochs)
 
     def eval(self, args):
+        if not os.path.exists(args.eval_results_directory):
+            os.makedirs(args.eval_results_directory)
+
         self.model.eval()
         self.eval_metrics.eval()
         self.eval_metrics.drop_state()

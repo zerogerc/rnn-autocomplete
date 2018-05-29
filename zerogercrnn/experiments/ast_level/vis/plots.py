@@ -150,14 +150,13 @@ def compare_per_nt_diff_only(file1, file2, y_label='New'):
 
 def main():
     res_file_base = 'eval_verified/nt2n_base/nt_acc_grouped.txt'
-    res_file_base_30k = 'eval_verified/nt2n_base_30k/nt_acc_grouped.txt'
     res_file_base_attention = 'eval_verified/nt2n_base_attention/nt_acc_grouped.txt'
-    res_file_base_attention_30k = 'eval_verified/nt2n_base_attention_30k/nt_acc_grouped.txt'
+    res_file_layered = 'eval_verified/nt2n_base_attention_plus_layered/nt_acc_grouped.txt'
 
     res_file_base_old = 'eval_local/nt2n_base/nt_acc.txt'
     res_file_layered_attention_old = 'eval_local/nt2n_layered_attention/nt_acc.txt'
     # draw_per_nt_plot(res_file)
-    compare_per_nt_diff_only(res_file_base_old, res_file_layered_attention_old, y_label='Абсолютная разница в точности (%)')
+    compare_per_nt_diff_only(res_file_base_attention, res_file_layered, y_label='Абсолютная разница в точности (%)')
 
 
 if __name__ == '__main__':

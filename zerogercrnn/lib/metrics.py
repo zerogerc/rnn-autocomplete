@@ -183,6 +183,9 @@ class ResultsSaver(Metrics):
         self.predicted = []
         self.target = []
 
+        if not os.path.exists(self.file_to_save):
+            os.makedirs(self.file_to_save)
+
     def drop_state(self):
         self.predicted = []
         self.target = []
@@ -197,8 +200,6 @@ class ResultsSaver(Metrics):
         predicted = np.concatenate(self.predicted, axis=0)
         target = np.concatenate(self.target, axis=0)
 
-        if not os.path.exists(self.file_to_save):
-            os.makedirs(self.file_to_save)
         predicted.dump(self.file_to_save + '/predicted')
         target.dump(self.file_to_save + '/target')
 
@@ -360,6 +361,38 @@ class TopKWrapper(Metrics):
 
     def get_current_value(self, should_print=False):
         self.base.get_current_value(should_print=True)
+
+
+class TopKAccuracy(Metrics):
+
+    def __init__(self, k):
+        super().__init__()
+        self.k = k
+        self.hits = np.zeros(self.k)
+        self.total = np.zeros(self.k)
+
+    def drop_state(self):
+        self.hits = np.zeros(self.k)
+        self.total = np.zeros(self.k)
+
+    def report(self, prediction_target):
+        topk_prediction, target = prediction_target
+        topk_prediction = topk_prediction.view(-1, topk_prediction.size()[-1])
+        target = target.view(-1)
+
+        batch_total = target.size()[0]
+        correct = topk_prediction.eq(target.unsqueeze(1).expand_as(topk_prediction))
+        for tk in range(self.k):
+            cur_hits = correct[:, :tk+1]
+            self.hits[tk] += cur_hits.sum()
+            self.total[tk] += batch_total
+
+    def get_current_value(self, should_print=False):
+        res = self.hits / self.total
+        if should_print:
+            print(res)
+
+        return res[0] # top1
 
 
 if __name__ == '__main__':

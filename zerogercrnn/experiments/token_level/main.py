@@ -37,7 +37,7 @@ def train(args):
 
 
 def evaluate(args):
-    get_main().eval(args)
+    get_main(args).eval(args)
 
 
 if __name__ == '__main__':
