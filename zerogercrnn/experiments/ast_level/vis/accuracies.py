@@ -111,6 +111,7 @@ def main(task, model):
         'base': 'eval_verified/nt2n_base_30k',
         'attention': 'eval_verified/nt2n_base_attention_30k',
         'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k',
+        'layered_old': 'eval_verified/nt2n_layered_attention',
         'token': 'eval_verified/token_base',
         'terminal': 'eval_verified/ntn2t_base'
     }
@@ -118,6 +119,7 @@ def main(task, model):
         'base': 'eval_verified/nt2n_base_30k/top5',
         'attention': 'eval_verified/nt2n_base_attention_30k/top5',
         'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k/top5',
+        'layered_old': 'eval_verified/nt2n_layered_attention/top5',
         'token': 'eval_verified/token_base/top5',
         'terminal': 'eval_verified/ntn2t_base/top5'
     }
@@ -147,5 +149,5 @@ def main(task, model):
 
 if __name__ == '__main__':
     _tasks = ['topk', 'to_top1', 'nt_eval', 't_eval', 'token_eval']
-    main(task='nt_eval', model='layered')
+    main(task='topk', model='layered_old')
     # main(task='topk', model='base')
