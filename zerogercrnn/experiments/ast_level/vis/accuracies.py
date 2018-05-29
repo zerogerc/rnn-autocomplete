@@ -4,8 +4,8 @@ import os
 
 from zerogercrnn.experiments.ast_level.data import ASTTarget
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper
-from zerogercrnn.experiments.ast_level.metrics import SingleNonTerminalAccuracyMetrics
-from zerogercrnn.experiments.token_level.metrics import UnknownIsMissTokenMetrics
+from zerogercrnn.experiments.ast_level.metrics import SingleNonTerminalAccuracyMetrics, EmptyNonEmptyWrapper, EmptyNonEmptyTerminalTopKAccuracyWrapper
+from zerogercrnn.experiments.token_level.metrics import AggregatedTokenMetrics
 from zerogercrnn.lib.metrics import SequentialMetrics, BaseAccuracyMetrics, TopKAccuracy
 
 
@@ -75,6 +75,19 @@ def eval_nt(results_dir, save_dir, group=False):
     run_nt_metrics(reader, metrics)
 
 
+def eval_t(res_dir, save_dir):
+    reader = ResultsReader(results_dir=res_dir)
+    # metrics = EmptyNonEmptyWrapper(AggregatedTerminalMetrics(), AggregatedTerminalMetrics())
+    metrics = EmptyNonEmptyTerminalTopKAccuracyWrapper()
+    run_metrics(reader, metrics)
+
+
+def eval_token(res_dir, save_dir):
+    reader = ResultsReader(results_dir=res_dir)
+    metrics = AggregatedTokenMetrics()
+    run_metrics(reader, metrics)
+
+
 def calc_top_accuracies(results_dir):
     reader = ResultsReader(results_dir=results_dir)
     metrics = TopKAccuracy(k=5)
@@ -93,28 +106,24 @@ def convert_to_top1(dir_from, dir_to):
     np.save(os.path.join(dir_to, 'target'), reader.target)
 
 
-def token_eval(res_dir, save_dir):
-    reader = ResultsReader(results_dir=res_dir)
-    metrics = UnknownIsMissTokenMetrics()
-    run_metrics(reader, metrics)
-
-
 def main(task, model):
     common_dirs = {
-        'base': 'eval_verified/nt2n_base',
-        'attention': 'eval_verified/nt2n_base_attention',
-        'layered': 'eval_verified/nt2n_base_attention_plus_layered',
-        'token': 'eval_verified/token_base'
+        'base': 'eval_verified/nt2n_base_30k',
+        'attention': 'eval_verified/nt2n_base_attention_30k',
+        'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k',
+        'token': 'eval_verified/token_base',
+        'terminal': 'eval_verified/ntn2t_base'
     }
     topk_dirs = {
-        'base': 'eval_verified/nt2n_base/top5',
-        'attention': 'eval_verified/nt2n_base_attention/top5',
-        'layered': 'eval_verified/nt2n_base_attention_plus_layered/top5',
-        'token': 'eval_verified/token_base/top5'
+        'base': 'eval_verified/nt2n_base_30k/top5',
+        'attention': 'eval_verified/nt2n_base_attention_30k/top5',
+        'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k/top5',
+        'token': 'eval_verified/token_base/top5',
+        'terminal': 'eval_verified/ntn2t_base/top5'
     }
     save_dir = 'eval_local'
 
-    if task == 'per_nt':
+    if task == 'nt_eval':
         res_dir = common_dirs[model]
         eval_nt(
             results_dir=res_dir,
@@ -123,7 +132,10 @@ def main(task, model):
         )
     elif task == 'token_eval':
         res_dir = common_dirs[model]
-        token_eval(res_dir, save_dir)
+        eval_token(res_dir, save_dir)
+    elif task == 't_eval':
+        res_dir = topk_dirs[model]
+        eval_t(res_dir, save_dir)
     elif task == 'topk':
         res_dir = topk_dirs[model]
         calc_top_accuracies(results_dir=res_dir)
@@ -134,6 +146,6 @@ def main(task, model):
 
 
 if __name__ == '__main__':
-    _tasks = ['topk', 'per_nt', 'to_top1', 'token_eval']
-    # main(task='to_top1', model='token')
-    main(task='token_eval', model='token')
+    _tasks = ['topk', 'to_top1', 'nt_eval', 't_eval', 'token_eval']
+    main(task='nt_eval', model='layered')
+    # main(task='topk', model='base')

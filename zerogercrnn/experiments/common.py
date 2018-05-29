@@ -137,6 +137,9 @@ class Main:
                 self.eval_metrics.report(metrics_values)
                 it += 1
 
+                if it % 1000 == 0:
+                    self.eval_metrics.get_current_value(should_print=True)
+
         self.eval_metrics.decrease_hits(self.data_generator.data_reader.eval_tails)
         self.eval_metrics.get_current_value(should_print=True)
 

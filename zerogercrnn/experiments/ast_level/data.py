@@ -176,14 +176,13 @@ class ASTDataReader(DataReader):
                     nodes_depth[it] = int(node['d'])
                     it += 1
 
-                # if len(nodes) <= 30000:
-                #     tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
-                chunks.append(ASTDataChunk(
-                    non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
-                    terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
-                    nodes_depth=torch.tensor(nodes_depth, dtype=torch.long)
-                ))
-                    # ))
+                if len(nodes) <= 30000:
+                    tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
+                    chunks.append(ASTDataChunk(
+                        non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
+                        terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
+                        nodes_depth=torch.tensor(nodes_depth, dtype=torch.long)
+                    ))
 
         if count_tails:
             return chunks, tails

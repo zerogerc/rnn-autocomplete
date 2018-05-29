@@ -1,6 +1,6 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain, TerminalMetrics, TerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.ntn2t_base.model import NTN2TBaseModel
-from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics
+from zerogercrnn.lib.metrics import MaxPredictionAccuracyMetrics, TopKWrapper, ResultsSaver
 
 
 class NTN2TBaseMain(ASTMain):
@@ -21,3 +21,6 @@ class NTN2TBaseMain(ASTMain):
 
     def create_train_metrics(self, args):
         return TerminalMetrics(base=MaxPredictionAccuracyMetrics())
+
+    def create_eval_metrics(self, args):
+        return TerminalMetrics(TopKWrapper(base=ResultsSaver(dir_to_save=args.eval_results_directory)))

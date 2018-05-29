@@ -1,7 +1,7 @@
 from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics
 
 
-class UnknownIsMissTokenMetrics(Metrics):
+class AggregatedTokenMetrics(Metrics):
 
     def __init__(self):
         super().__init__()

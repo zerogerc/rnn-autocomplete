@@ -53,6 +53,22 @@ def filter_requires_grad(parameters):
     return filter(lambda p: p.requires_grad, parameters)
 
 
+def register_forward_hook(module, metrics, picker):
+    module.register_forward_hook(lambda _, m_input, m_output: metrics.report(picker(m_input, m_output)))
+
+
+def register_output_hook(module, metrics, picker=None):
+    if picker is None:
+        picker = lambda m_output: m_output
+    register_forward_hook(module, metrics, lambda m_input, m_output: picker(m_output))
+
+
+def register_input_hook(module, metrics, picker=None):
+    if picker is None:
+        picker = lambda m_input: m_input[0]
+    register_forward_hook(module, metrics, lambda m_input, m_output: picker(m_input))
+
+
 if __name__ == '__main__':
     h1 = torch.randn((1, 8, 10))
     zeros = torch.ones(8, 1)

@@ -1,7 +1,8 @@
 from zerogercrnn.experiments.ast_level.common import ASTMain, NonTerminalMetrics, NonTerminalsCrossEntropyLoss
 from zerogercrnn.experiments.ast_level.metrics import NonTerminalsMetricsWrapper, SingleNonTerminalAccuracyMetrics
 from zerogercrnn.experiments.ast_level.nt2n_base_attention_plus_layered.model import NT2NBaseAttentionPlusLayeredModel
-from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, ResultsSaver, MaxPredictionWrapper
+from zerogercrnn.lib.metrics import SequentialMetrics, MaxPredictionAccuracyMetrics, ResultsSaver, MaxPredictionWrapper, TopKWrapper, FeaturesMeanVarianceMetrics
+from zerogercrnn.lib.utils import register_input_hook
 
 
 class NT2NBaseAttentionPlusLayeredMain(ASTMain):
@@ -29,5 +30,15 @@ class NT2NBaseAttentionPlusLayeredMain(ASTMain):
                 non_terminals_file=args.non_terminals_file,
                 results_dir=args.eval_results_directory
             ),
-            NonTerminalsMetricsWrapper(MaxPredictionWrapper(ResultsSaver(dir_to_save=args.eval_results_directory)))
+            NonTerminalsMetricsWrapper(TopKWrapper(base=ResultsSaver(dir_to_save=args.eval_results_directory)))
         ])
+
+    def register_eval_hooks(self):
+        return []
+
+
+def add_eval_hooks(model: NT2NBaseAttentionPlusLayeredModel):
+    metrics = FeaturesMeanVarianceMetrics()
+    register_input_hook(model.h2o, metrics)
+
+    return [metrics]

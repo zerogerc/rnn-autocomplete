@@ -4,9 +4,10 @@ import os
 import numpy as np
 import torch
 
+from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID
 from zerogercrnn.experiments.ast_level.utils import read_non_terminals
 from zerogercrnn.lib.constants import EMPTY_TOKEN_ID, UNKNOWN_TOKEN_ID, EOF_TOKEN
-from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics, MaxPredictionAccuracyMetrics
+from zerogercrnn.lib.metrics import Metrics, BaseAccuracyMetrics, IndexedAccuracyMetrics, MaxPredictionAccuracyMetrics, TopKAccuracy
 
 
 class NonTerminalsMetricsWrapper(Metrics):
@@ -266,3 +267,129 @@ class PerNtAttentionMetrics(Metrics):
 
     def get_current_value(self, should_print=False):
         pass
+
+
+class EmptyNonEmptyWrapper(Metrics):
+    def __init__(self, non_emp_base: Metrics, with_emp_base:Metrics):
+        super().__init__()
+        self.non_emp_base = non_emp_base
+        self.with_emp_base = with_emp_base
+
+    def drop_state(self):
+        self.non_emp_base.drop_state()
+        self.with_emp_base.drop_state()
+
+    def report(self, prediction_target):
+        prediction, target = prediction_target
+        prediction = prediction.view(-1)
+        target = target.view(-1)
+
+        self.with_emp_base.report((prediction, target))
+
+        non_emp_indices = (target != EMPTY_TOKEN_ID).nonzero().squeeze()
+        prediction = torch.index_select(prediction, 0, non_emp_indices)
+        target = torch.index_select(target, 0, non_emp_indices)
+        self.non_emp_base.report((prediction, target))
+
+    def get_current_value(self, should_print=False):
+        print('Non Empty')
+        self.non_emp_base.get_current_value(should_print=should_print)
+        print('With Empty')
+        self.with_emp_base.get_current_value(should_print=should_print)
+
+
+class EmptyNonEmptyTerminalTopKAccuracyWrapper(Metrics):
+    def __init__(self):
+        super().__init__()
+        self.non_emp_base = TopKAccuracy(k=5)
+        self.with_emp_base = TopKAccuracy(k=5)
+
+    def drop_state(self):
+        self.non_emp_base.drop_state()
+        self.with_emp_base.drop_state()
+
+    def report(self, prediction_target):
+        prediction, target = prediction_target
+        prediction = prediction.view(-1, prediction.size()[-1])
+        target = target.view(-1)
+
+        self.with_emp_base.report((prediction, target))
+
+        non_emp_indices = (target != EMPTY_TOKEN_ID).nonzero().squeeze()
+        prediction = torch.index_select(prediction, 0, non_emp_indices)
+        target = torch.index_select(target, 0, non_emp_indices)
+        self.non_emp_base.report((prediction, target))
+
+    def get_current_value(self, should_print=False):
+        print('Non Empty')
+        self.non_emp_base.get_current_value(should_print=should_print)
+        print('With Empty')
+        self.with_emp_base.get_current_value(should_print=should_print)
+
+
+# class AggregatedTerminalTopKMetrics(Metrics):
+#
+#     def __init__(self, k):
+#         super().__init__()
+#         self.k = k
+#         self.common = BaseAccuracyMetrics()
+#         self.target_non_unk = Top
+#         self.prediction_non_unk = IndexedAccuracyMetrics('Prediction not unk')
+#
+#     def drop_state(self):
+#         self.common.drop_state()
+#         self.target_non_unk.drop_state()
+#         self.prediction_non_unk.drop_state()
+#
+#     def report(self, prediction_target):
+#         prediction, target = prediction_target
+#         prediction = prediction.view(-1)
+#         target = target.view(-1)
+#
+#         self.common.report((prediction, target))
+#
+#         pred_non_unk_indices = (prediction != UNKNOWN_TOKEN_ID).nonzero().squeeze()
+#         target_non_unk_indices = (target != UNKNOWN_TOKEN_ID).nonzero().squeeze()
+#
+#         self.prediction_non_unk.report(prediction, target, pred_non_unk_indices)
+#         self.target_non_unk.report(prediction, target, target_non_unk_indices)
+#
+#     def get_current_value(self, should_print=False):
+#         print('P(hat(t) == t) = {}'.format(self.common.get_current_value(False)))
+#         print('P(hat(t) == t && hat(t) != unk) = {}'.format(self.prediction_non_unk.metrics.hits / (self.common.hits + self.common.misses)))
+#         print('P(hat(t) == t | t != unk) = {}'.format(self.target_non_unk.get_current_value(False)))
+#         print('P(hat(t) == t | hat(t) != unk) = {}'.format(self.prediction_non_unk.get_current_value(False)))
+
+
+
+class AggregatedTerminalMetrics(Metrics):
+
+    def __init__(self):
+        super().__init__()
+        self.common = BaseAccuracyMetrics()
+        self.target_non_unk = IndexedAccuracyMetrics('Target not unk')
+        self.prediction_non_unk = IndexedAccuracyMetrics('Prediction not unk')
+
+    def drop_state(self):
+        self.common.drop_state()
+        self.target_non_unk.drop_state()
+        self.prediction_non_unk.drop_state()
+
+    def report(self, prediction_target):
+        prediction, target = prediction_target
+        prediction = prediction.view(-1)
+        target = target.view(-1)
+
+        self.common.report((prediction, target))
+
+        pred_non_unk_indices = (prediction != UNKNOWN_TOKEN_ID).nonzero().squeeze()
+        target_non_unk_indices = (target != UNKNOWN_TOKEN_ID).nonzero().squeeze()
+
+        self.prediction_non_unk.report(prediction, target, pred_non_unk_indices)
+        self.target_non_unk.report(prediction, target, target_non_unk_indices)
+
+    def get_current_value(self, should_print=False):
+        print('P(hat(t) == t) = {}'.format(self.common.get_current_value(False)))
+        print('P(hat(t) == t && hat(t) != unk) = {}'.format(self.prediction_non_unk.metrics.hits / (self.common.hits + self.common.misses)))
+        print('P(hat(t) == t | t != unk) = {}'.format(self.target_non_unk.get_current_value(False)))
+        print('P(hat(t) == t | hat(t) != unk) = {}'.format(self.prediction_non_unk.get_current_value(False)))
