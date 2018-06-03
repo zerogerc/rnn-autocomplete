@@ -17,7 +17,7 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --learning_rate 0.001 \
     --epochs 30 \
     --decay_after_epoch 0 \
-    --decay_multiplier 0.9 \
+    --decay_multiplier 0.8 \
     --weight_decay=0. \
     --hidden_size 1500 \
     --num_layers 1 \
