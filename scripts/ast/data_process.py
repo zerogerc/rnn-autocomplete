@@ -84,11 +84,11 @@ def form_one_hot(args):
     )
 
     print('Train')
-    # converter.convert_file(
-    #     src_file=args.file_train_converted,
-    #     dst_file=args.file_train,
-    #     lim=LIM
-    # )
+    converter.convert_file(
+        src_file=args.file_train_converted,
+        dst_file=args.file_train,
+        lim=LIM
+    )
 
     print('Eval')
     converter.convert_file(
