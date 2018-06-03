@@ -1,6 +1,8 @@
 import json
 from tqdm import tqdm
 
+from zerogercrnn.lib.log import tqdm_lim
+
 """Utils for parsing and providing dataset from here: https://www.srl.inf.ethz.ch/js150.php."""
 
 # ENCODING = 'utf-8'
@@ -36,13 +38,17 @@ class OneHotConverter:
                 N = node['N']
                 T = node['T']
 
-                if N not in self.non_terminal_idx.keys():
-                    raise Exception('Unknown non terminal: {}'.format(N))
+                # if N not in self.non_terminal_idx.keys():
+                #     raise Exception('Unknown non terminal: {}'.format(N))
                 if T not in self.terminal_idx.keys():
                     raise Exception('Unknown terminal: {}'.format(T))
 
+                n_id = len(self.non_terminal_idx.keys())
+                if N in self.non_terminal_idx.keys():
+                    n_id = self.non_terminal_idx[N]
+
                 converted_json.append({
-                    'N': self.non_terminal_idx[N],
+                    'N': n_id,
                     'T': self.terminal_idx[T],
                     'd': node['d']
                 })
@@ -79,21 +85,25 @@ class JsonConverter:
                 break
 
     @staticmethod
-    def _convert_json_(raw_json, terminals_set, append_eof):
+    def _convert_json_(raw_json, terminals_set, append_eof, last_is_zero=False):
         left_child, right_sibling = DataUtils.get_left_child_right_sibling(
             raw_json=raw_json,
             append_eof=append_eof
         )
 
-        output_json = [{} for i in range(len(raw_json) - 1)]
+        if last_is_zero:
+            output_json = [{} for i in range(len(raw_json) - 1)]
+        else:
+            output_json = [{} for i in range(len(raw_json))]
+
         output_json[0]['d'] = 0
         cur_id = 0
-        for node in raw_json:
+        for (node_id, node) in enumerate(raw_json):
             if node == 0:
                 continue
 
             # non-terminal
-            N = DataUtils.encode_non_terminal(node, left_child, right_sibling)
+            N = DataUtils.encode_non_terminal(node_id, node, left_child, right_sibling)
 
             # terminal
             if 'value' not in node:
@@ -143,7 +153,7 @@ class TokensRetriever:
     ):
         c = 0
         with open(dataset, mode='r', encoding=ENCODING) as f:
-            for l in tqdm(f, total=min(lim, 100000)):
+            for l in tqdm_lim(f, total=lim, lim=100000):
                 c += 1
                 self._process_single_json_(json.loads(l), append_eof=append_eof)
 
@@ -155,7 +165,7 @@ class TokensRetriever:
 
         with open(terminal_dest, mode='w', encoding=encoding) as f:
             sorted_terminals = sorted(self.terminals.keys(), key=lambda key: self.terminals[key], reverse=True)
-            f.write(json.dumps(sorted_terminals))
+            f.write(json.dumps(([EMPTY_TOKEN] + sorted_terminals)[:50000]))
 
     def _process_single_json_(self, raw_json, append_eof):
         left_child, right_sibling = DataUtils.get_left_child_right_sibling(
@@ -163,12 +173,12 @@ class TokensRetriever:
             append_eof=append_eof
         )
 
-        for node in raw_json:
+        for (node_id, node) in enumerate(raw_json):
             if node == 0:
                 break
 
             # add non-terminal
-            node_type = DataUtils.encode_non_terminal(node, left_child, right_sibling)
+            node_type = DataUtils.encode_non_terminal(node_id, node, left_child, right_sibling)
             if node_type not in self.non_terminals.keys():
                 self.non_terminals[node_type] = 0
             self.non_terminals[node_type] += 1
@@ -219,7 +229,7 @@ class DataUtils:
         left_child = set()
         right_sibling = set()
 
-        for node in raw_json:
+        for (node_id, node) in enumerate(raw_json):
             if node == 0:
                 break
 
@@ -228,22 +238,29 @@ class DataUtils:
                 if append_eof and node['type'] == 'Program':  # we append eof, so last children also has right sibling
                     has_right_sibling_count = len(node['children'])
 
-                left_child.add(node['id'])  # has left child
+                if 'id' in node:
+                    left_child.add(node['id'])  # has left child
+                else:
+                    left_child.add(node_id)
+
                 for i in range(has_right_sibling_count):
                     right_sibling.add(node['children'][i])
 
         return left_child, right_sibling
 
     @staticmethod
-    def encode_non_terminal(node, left_child, right_sibling):
+    def encode_non_terminal(node_id, node, left_child, right_sibling):
         """Encodes non-terminal based on whether it has left_child and right_sibling."""
         node_type = node['type']
-        if node['id'] in left_child:
+        if 'id' in node:
+            node_id = node['id']
+
+        if node_id in left_child:
             node_type += '1'
         else:
             node_type += '0'
 
-        if node['id'] in right_sibling:
+        if node_id in right_sibling:
             node_type += '1'
         else:
             node_type += '0'

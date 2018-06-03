@@ -60,7 +60,7 @@ def convert_files(args):
     JsonConverter.convert_file(
         raw_file=args.file_train_raw,
         dest_file=args.file_train_converted,
-        terminals_file=args.file_glove_terminals,
+        terminals_file=args.file_terminals,
         encoding=ENCODING,
         append_eof=True,
         lim=LIM
@@ -70,7 +70,7 @@ def convert_files(args):
     JsonConverter.convert_file(
         raw_file=args.file_eval_raw,
         dest_file=args.file_eval_converted,
-        terminals_file=args.file_glove_terminals,
+        terminals_file=args.file_terminals,
         encoding=ENCODING,
         append_eof=True,
         lim=LIM
@@ -80,15 +80,15 @@ def convert_files(args):
 def form_one_hot(args):
     converter = OneHotConverter(
         file_non_terminals=args.file_non_terminals,
-        file_terminals=args.file_glove_terminals
+        file_terminals=args.file_terminals
     )
 
     print('Train')
-    converter.convert_file(
-        src_file=args.file_train_converted,
-        dst_file=args.file_train,
-        lim=LIM
-    )
+    # converter.convert_file(
+    #     src_file=args.file_train_converted,
+    #     dst_file=args.file_train,
+    #     lim=LIM
+    # )
 
     print('Eval')
     converter.convert_file(
@@ -114,8 +114,8 @@ def main():
     # print('Retrieving Glove terminals')
     # create_glove_terminals_file(args)
 
-    # print('Retrieving tokens ...')
-    # get_tokens(args)
+    print('Retrieving tokens ...')
+    get_tokens(args)
 
     print('Converting to sequences ...')
     convert_files(args)

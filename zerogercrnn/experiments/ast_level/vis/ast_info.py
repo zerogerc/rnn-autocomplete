@@ -225,6 +225,27 @@ def visualize_nt_stat(file):
     plt.show()
 
 
+class UNKNTExtractor(JsonExtractor):
+
+    def extract(self, raw_json):
+        unk_count = 0
+        for node in raw_json:
+            if node['N'] == 321:
+                unk_count += 1
+        return len(raw_json), unk_count
+
+
+def get_unk_nt_percentage(file_eval):  # unk percentage: 8.86e-7
+    extractor = UNKNTExtractor()
+    total_count = 0
+    unk_count = 0
+    for (c_t, c_u) in extract_jsons_info(extractor, file_eval):
+        total_count += c_t
+        unk_count += c_u
+
+    print(float(unk_count) / total_count)
+
+
 def get_non_terminals_statistic(file, lim=None):
     extractor = NonTerminalsStatExtractor()
     list(extract_jsons_info(extractor, file, lim=lim))
@@ -234,12 +255,13 @@ def get_non_terminals_statistic(file, lim=None):
 
 
 def run_main():
+    get_unk_nt_percentage('data/pyast/file_eval.json')
     # extract_depths_histogram()
     # draw_histogram('eval/ast/stat/node_depths.json')
 
     # get_easy_non_terminals(file='data/programs_eval_10000.json', lim=100)
     # get_non_terminals_statistic(file='data/programs_eval_10000.json', lim=10000)
-    visualize_nt_stat(file='data/ast/stat_nt_occurrences.json')
+    # visualize_nt_stat(file='data/ast/stat_nt_occurrences.json')
 
     # calc_programs_len(FILE_STAT_PROGRAM_LENGTHS)
     # plot_program_len_percentiles(FILE_STAT_PROGRAM_LENGTHS)
