@@ -153,7 +153,7 @@ class ASTRoutine(NetworkRoutine):
         # Backward pass
         loss.backward()
         torch.nn.utils.clip_grad_norm_(filter_requires_grad(self.model.parameters()), 5)
-        # torch.nn.utils.clip_grad_norm_(filter_requires_grad(self.model.sparse_parameters()), 5)
+        torch.nn.utils.clip_grad_norm_(filter_requires_grad(self.model.sparse_parameters()), 5)
 
         # Optimizer step
         for optimizer in self.optimizers:

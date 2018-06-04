@@ -13,7 +13,7 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --data_limit 100000 \
     --model_save_dir saved/$2 \
     --seq_len 50 \
-    --batch_size 80 \
+    --batch_size 128 \
     --learning_rate 0.001 \
     --epochs 8 \
     --decay_after_epoch 0 \
