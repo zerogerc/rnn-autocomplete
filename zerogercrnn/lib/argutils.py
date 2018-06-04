@@ -27,6 +27,7 @@ def add_recurrent_core_args(parser):
     parser.add_argument('--dropout', type=float, help='Dropout to apply to recurrent layer')
     # Layered LSTM args, ignored if not layered
     parser.add_argument('--layered_hidden_size', type=int, help='Size of hidden state in layered lstm')
+    parser.add_argument('--num_tree_layers', type=int, help='Number of layers to distribute hidden size')
 
 
 def add_non_terminal_args(parser):
