@@ -207,7 +207,7 @@ class BatchedDataGenerator(DataGenerator):
         self.batches = {}
 
         if data_reader.train_data is not None:
-            self.train_pool = self._prepare_data_(data_reader.train_data, shuffle=shuffle)
+            self.train_pool = self._prepare_data_(data_reader.train_data, splits=1, shuffle=shuffle)
             self.train_batcher = BucketsBatch(self.train_pool, self.seq_len, self.batch_size)
 
         if data_reader.validation_data is not None:

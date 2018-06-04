@@ -15,20 +15,20 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --seq_len 50 \
     --batch_size 80 \
     --learning_rate 0.001 \
-    --epochs 30 \
+    --epochs 8 \
     --decay_after_epoch 0 \
-    --decay_multiplier 0.9 \
+    --decay_multiplier 0.6 \
     --weight_decay=0. \
     --hidden_size 1500 \
     --num_layers 1 \
     --dropout 0.01 \
     --layered_hidden_size 500 \
     --non_terminals_num 97 \
-    --non_terminal_embedding_dim 50 \
+    --non_terminal_embedding_dim 300 \
     --non_terminals_file "data/ast/non_terminals.json" \
     --non_terminal_embeddings_file "data/ast/non_terminal_embeddings.txt" \
     --terminals_num 50001 \
-    --terminal_embedding_dim 50 \
+    --terminal_embedding_dim 1200 \
     --terminals_file "data/ast/terminals.json" \
     --terminal_embeddings_file "data/ast/terminal_embeddings.txt" \
     --node_depths_embedding_dim 20 \
