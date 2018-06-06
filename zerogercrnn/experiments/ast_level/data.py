@@ -155,9 +155,11 @@ class ASTDataReader(DataReader):
             )
 
         if file_eval is not None:
-            self.eval_data, self.eval_tails = self._read_programs(file_eval, total=50000, limit=limit, count_tails=True)
+            self.eval_data, self.eval_tails = self._read_programs(
+                file_eval, total=50000, limit=limit, count_tails=True, lim_30k=True
+            )
 
-    def _read_programs(self, file, total, limit, count_tails=False):
+    def _read_programs(self, file, total, limit, count_tails=False, lim_30k = False):
         chunks = []
         tails = 0
 
@@ -176,13 +178,13 @@ class ASTDataReader(DataReader):
                     nodes_depth[it] = int(node['d'])
                     it += 1
 
-                # if len(nodes) <= 30000:
-                tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
-                chunks.append(ASTDataChunk(
-                    non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
-                    terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
-                    nodes_depth=torch.tensor(nodes_depth, dtype=torch.long)
-                ))
+                if (not lim_30k) or (len(nodes) <= 30000):
+                    tails += len(nodes) % self.seq_len  # this is the size of appended tails <EOF, EMP>
+                    chunks.append(ASTDataChunk(
+                        non_terminals_one_hot=torch.tensor(non_terminals_one_hot, dtype=torch.long),
+                        terminals_one_hot=torch.tensor(terminals_one_hot, dtype=torch.long),
+                        nodes_depth=torch.tensor(nodes_depth, dtype=torch.long)
+                    ))
 
         if count_tails:
             return chunks, tails
