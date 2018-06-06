@@ -29,6 +29,7 @@ class NT2NBaseAttentionPlusLayeredModel(ASTNT2NModule):
             terminal_embedding_dim,
             hidden_dim,
             layered_hidden_size,
+            num_tree_layers,
             dropout
     ):
         super().__init__(
@@ -42,7 +43,7 @@ class NT2NBaseAttentionPlusLayeredModel(ASTNT2NModule):
         self.hidden_dim = hidden_dim
         self.layered_hidden_size = layered_hidden_size
         self.dropout = dropout
-        self.num_tree_layers = 50
+        self.num_tree_layers = num_tree_layers
 
         self.recurrent_cell = self.module(LSTMCellDropout(
             input_size=self.non_terminal_embedding_dim + self.terminal_embedding_dim,

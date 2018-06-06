@@ -12,9 +12,10 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --train_file "data/ast/file_train.json" \
     --data_limit 100000 \
     --model_save_dir saved/$2 \
+    --saved_model "saved/04Jun_nt2n_base_attention_plus_layered_new_embedding_size/model_epoch_3" \
     --seq_len 50 \
-    --batch_size 80 \
-    --learning_rate 0.001 \
+    --batch_size 128 \
+    --learning_rate 0.0001 \
     --epochs 8 \
     --decay_after_epoch 0 \
     --decay_multiplier 0.6 \
@@ -23,6 +24,7 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --num_layers 1 \
     --dropout 0.01 \
     --layered_hidden_size 500 \
+    --num_tree_layers 50 \
     --non_terminals_num 97 \
     --non_terminal_embedding_dim 300 \
     --non_terminals_file "data/ast/non_terminals.json" \

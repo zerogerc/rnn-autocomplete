@@ -10,6 +10,7 @@ FILE_TRAINING_PROCESSED = 'data/ast/file_train.json'
 FILE_STAT_TREE_HEIGHTS = 'data/ast/stat_tree_heights.json'
 FILE_STAT_PROGRAM_LENGTHS = 'data/ast/stat_program_lengths.json'
 
+PY_FILE_TRAINING_PROCESSED = 'data/pyast/file_train.json'
 
 # region Utils
 
@@ -137,15 +138,15 @@ class JsonProgramDepthStatExtractor(JsonExtractor):
         return depths_prob
 
 
-def extract_depths_histogram():
+def extract_depths_histogram(file_train):
     extractor = JsonProgramDepthStatExtractor()
 
     depths_prob = np.zeros(50)
-    for info in extract_jsons_info(extractor, FILE_TRAINING_PROCESSED):
+    for info in extract_jsons_info(extractor, file_train):
         depths_prob = depths_prob + info
 
     res = [x for x in depths_prob]
-    with open('eval/ast/stat/node_depths.json', 'w') as f:
+    with open('eval_local/node_depths.json', 'w') as f:
         f.write(json.dumps(res))
 
 
@@ -255,9 +256,10 @@ def get_non_terminals_statistic(file, lim=None):
 
 
 def run_main():
-    get_unk_nt_percentage('data/pyast/file_eval.json')
-    # extract_depths_histogram()
-    # draw_histogram('eval/ast/stat/node_depths.json')
+    # get_unk_nt_percentage('data/pyast/file_eval.json')
+    # extract_depths_histogram(PY_FILE_TRAINING_PROCESSED)
+    # extract_depths_histogram(FILE_TRAINING_PROCESSED)
+    draw_histogram('eval_local/node_depths.json')
 
     # get_easy_non_terminals(file='data/programs_eval_10000.json', lim=100)
     # get_non_terminals_statistic(file='data/programs_eval_10000.json', lim=10000)
