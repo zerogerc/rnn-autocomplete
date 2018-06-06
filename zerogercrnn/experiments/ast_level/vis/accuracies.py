@@ -118,6 +118,7 @@ def convert_to_top1(dir_from, dir_to):
 def main(task, model):
     common_dirs = {
         'base': 'eval_verified/nt2n_base_30k/top5_new',
+        'base_large_embeddings': 'eval_verified/nt2n_base_large_embeddings_30k',
         'attention': 'eval_verified/nt2n_base_attention_30k',
         'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k/top5_new',
         'layered_old': 'eval_verified/nt2n_layered_attention',
@@ -126,6 +127,7 @@ def main(task, model):
     }
     topk_dirs = {
         'base': 'eval_verified/nt2n_base_30k/top5_new',
+        'base_large_embeddings': 'eval_verified/nt2n_base_large_embeddings_30k',
         'attention': 'eval_verified/nt2n_base_attention_30k/top5',
         'layered': 'eval_verified/nt2n_base_attention_plus_layered_30k/top5',
         'layered_old': 'eval_verified/nt2n_layered_attention/top5',
@@ -135,7 +137,7 @@ def main(task, model):
     save_dir = 'eval_local'
 
     if task == 'nt_eval':
-        res_dir = common_dirs[model]
+        res_dir = topk_dirs[model]
         eval_nt(
             results_dir=res_dir,
             save_dir=save_dir,
@@ -223,5 +225,6 @@ if __name__ == '__main__':
     # )
 
     _tasks = ['topk', 'to_top1', 'nt_eval', 't_eval', 'token_eval']
-    main(task='nt_eval', model='layered')
+    _models = ['base_large_embeddings']
+    main(task='nt_eval', model=_models[0])
     # main(task='topk', model='base')
