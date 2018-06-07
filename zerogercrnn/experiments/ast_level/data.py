@@ -161,7 +161,9 @@ class ASTDataReader(DataReader):
             print('Train size: {}, Validation size: {}'.format(len(self.train_data), len(self.validation_data)))
 
         if file_eval is not None:
-            self.eval_data, self.eval_tails = self._read_programs(file_eval, total=50000, limit=limit, count_tails=True)
+            self.eval_data, self.eval_tails = self._read_programs(
+                file_eval, total=50000, limit=limit, count_tails=True, lim_30k=True
+            )
 
     def _read_programs(self, file, total, limit, count_tails=False, lim_30k=False):
         chunks = []
