@@ -11,10 +11,10 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --prediction $1 \
     --eval \
     --eval_results_directory eval/$2 \
-    --train_file "data/ast/file_train.json" \
+    --eval_file "data/ast/file_eval.json" \
     --data_limit 100000 \
     --model_save_dir saved/$2 \
-    --saved_model "saved/04Jul_nt2n_base_new_embedding_size/model_epoch_7" \
+    --saved_model "saved/" \
     --seq_len 50 \
     --batch_size 128 \
     --learning_rate 0.001 \
