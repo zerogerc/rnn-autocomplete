@@ -28,6 +28,7 @@ PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_lev
     --layered_hidden_size 500 \
     --non_terminals_num 97 \
     --non_terminal_embedding_dim 300 \
+    --num_tree_layers 50 \
     --non_terminals_file "data/ast/non_terminals.json" \
     --non_terminal_embeddings_file "data/ast/non_terminal_embeddings.txt" \
     --terminals_num 50001 \

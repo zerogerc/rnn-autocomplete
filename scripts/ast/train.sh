@@ -5,7 +5,7 @@ mkdir saved/$2
 mkdir eval
 mkdir eval/$2
 
-PYTHONPATH=. python3 -m cProfile -o program.prof zerogercrnn/experiments/ast_level/main.py \
+PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --title $2 \
     --prediction $1 \
     --eval_results_directory eval/$2 \
