@@ -75,8 +75,8 @@ class SingleNonTerminalAccuracyMetrics(Metrics):
         for cur in range(len(self.non_terminals)):
             cur_accuracy = self.accuracies[cur].get_current_value(should_print=False)
             result.append(cur_accuracy)
-            if should_print:
-                print('Accuracy on {} is {}'.format(self.non_terminals[cur], cur_accuracy))
+            # if should_print:
+            #     print('Accuracy on {} is {}'.format(self.non_terminals[cur], cur_accuracy))
 
         self.save_to_file(result)
 
