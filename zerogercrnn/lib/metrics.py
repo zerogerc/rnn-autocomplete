@@ -1,10 +1,15 @@
 import os
+import time
 from abc import abstractmethod
 
 import numpy as np
 import torch
 
 from zerogercrnn.lib.file import create_directory_if_not_exists
+
+
+def timestamp():
+    return int(time.time())
 
 
 class Metrics:
@@ -200,8 +205,9 @@ class ResultsSaver(Metrics):
         predicted = np.concatenate(self.predicted, axis=0)
         target = np.concatenate(self.target, axis=0)
 
-        predicted.dump(self.file_to_save + '/predicted')
-        target.dump(self.file_to_save + '/target')
+        t = str(timestamp())
+        predicted.dump(self.file_to_save + '/predicted' + t)
+        target.dump(self.file_to_save + '/target' + t)
 
 
 class SequentialMetrics(Metrics):
@@ -383,7 +389,7 @@ class TopKAccuracy(Metrics):
         batch_total = target.size()[0]
         correct = topk_prediction.eq(target.unsqueeze(1).expand_as(topk_prediction))
         for tk in range(self.k):
-            cur_hits = correct[:, :tk+1]
+            cur_hits = correct[:, :tk + 1]
             self.hits[tk] += cur_hits.sum()
             self.total[tk] += batch_total
 
@@ -392,10 +398,11 @@ class TopKAccuracy(Metrics):
         if should_print:
             print(res)
 
-        return res[0] # top1
+        return res[0]  # top1
 
 
 if __name__ == '__main__':
-    _tensor = torch.LongTensor([[1, 2, 3], [2, 1, 1]]).view(-1)
-    _indexes = torch.nonzero(_tensor - 1)
-    torch.index_select(_tensor, 0, _indexes.squeeze())
+    print(str(timestamp()))
+    # _tensor = torch.LongTensor([[1, 2, 3], [2, 1, 1]]).view(-1)
+    # _indexes = torch.nonzero(_tensor - 1)
+    # torch.index_select(_tensor, 0, _indexes.squeeze())

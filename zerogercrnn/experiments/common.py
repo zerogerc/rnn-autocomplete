@@ -119,6 +119,7 @@ class Main:
         runner.run(number_of_epochs=args.epochs)
 
     def eval(self, args):
+        print('Evaluation started!')
         if not os.path.exists(args.eval_results_directory):
             os.makedirs(args.eval_results_directory)
 
