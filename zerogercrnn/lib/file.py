@@ -5,14 +5,14 @@ from io import open
 
 import torch
 
-DEFAULT_ENCODING = 'ISO-8859-1'
+from zerogercrnn.lib.constants import ENCODING
 
 
 def create_directory_if_not_exists(path):
     os.makedirs(path, exist_ok=True)
 
 
-def read_lines(filename, encoding=DEFAULT_ENCODING):
+def read_lines(filename, encoding=ENCODING):
     """
     Read a file and split into lines
     """

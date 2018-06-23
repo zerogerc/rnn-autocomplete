@@ -3,7 +3,7 @@ import tempfile
 import webbrowser
 from urllib.request import pathname2url
 
-from zerogercrnn.lib.utils.file import DEFAULT_ENCODING
+from zerogercrnn.lib.constants import ENCODING
 
 VIS_PACKAGE = os.path.dirname(os.path.abspath(__file__))
 POPUP_CSS = os.path.join(VIS_PACKAGE, 'html_tools/popup.css')
@@ -34,7 +34,7 @@ def string_to_html(s):
 def show_html_page(page, save_file=None):
     """Show string *page* as an html in the browser. If save_file specified will save the page there."""
     html_path = save_file or os.path.join(tempfile.gettempdir(), 'diff.html')
-    f = open(html_path, encoding=DEFAULT_ENCODING, mode='w')
+    f = open(html_path, encoding=ENCODING, mode='w')
     f.write(page)
     f.close()
     webbrowser.open(url='file:{}'.format(pathname2url(html_path)))
