@@ -14,4 +14,4 @@ def create_smaller_file(file, new_file, lim):
 
 
 if __name__ == '__main__':
-    create_smaller_file('data/pyast/python50k_eval.json', 'data/pyast/python5k_eval.json', lim=5000)
+    create_smaller_file('data/ast/programs_eval.json', 'data/ast/programs_eval_5k.json', lim=5000)

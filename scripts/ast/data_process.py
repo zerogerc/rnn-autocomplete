@@ -19,6 +19,7 @@ parser.add_argument('--file_glove_map', type=str, help='File from glove_tokens.p
 parser.add_argument('--file_glove_vocab', type=str, help='Vocabulary of trained Glove vectors')
 parser.add_argument('--file_glove_terminals', type=str, help='Where to put terminals corpus of GloVe')
 parser.add_argument('--file_glove_non_terminals', type=str, help='Where to put non-terminals corpus of GloVe')
+parser.add_argument('--last_is_zero', action='store_true', help='Is programs jsons ends with 0?')
 
 LIM = 100000
 
@@ -63,7 +64,8 @@ def convert_files(args):
         terminals_file=args.file_terminals,
         encoding=ENCODING,
         append_eof=True,
-        lim=LIM
+        lim=LIM,
+        last_is_zero=args.last_is_zero
     )
 
     print('Eval')
@@ -73,7 +75,8 @@ def convert_files(args):
         terminals_file=args.file_terminals,
         encoding=ENCODING,
         append_eof=True,
-        lim=LIM
+        lim=LIM,
+        last_is_zero=args.last_is_zero
     )
 
 
@@ -114,11 +117,11 @@ def main():
     # print('Retrieving Glove terminals')
     # create_glove_terminals_file(args)
 
-    print('Retrieving tokens ...')
-    get_tokens(args)
-
-    print('Converting to sequences ...')
-    convert_files(args)
+    # print('Retrieving tokens ...')
+    # get_tokens(args)
+    #
+    # print('Converting to sequences ...')
+    # convert_files(args)
 
     print('Forming one-hot ...')
     form_one_hot(args)

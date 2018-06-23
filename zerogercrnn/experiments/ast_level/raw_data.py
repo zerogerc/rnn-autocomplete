@@ -66,7 +66,8 @@ class JsonConverter:
     Output format - json like that: [{"N": "Program01", "T": "_EMP_"}, 0]"""
 
     @staticmethod
-    def convert_file(raw_file, dest_file, terminals_file, encoding=ENCODING, append_eof=True, lim=None):
+    def convert_file(raw_file, dest_file, terminals_file,
+                     encoding=ENCODING, append_eof=True, lim=None, last_is_zero=False):
         f_read = open(raw_file, mode='r', encoding=encoding)
         f_write = open(dest_file, mode='w', encoding=encoding)
         terminals = set(DataUtils.read_json(file=terminals_file))
@@ -75,7 +76,7 @@ class JsonConverter:
         for l in tqdm(f_read, total=min(lim, 100000)):
             c += 1
             raw_json = json.loads(l)
-            converted_json = JsonConverter._convert_json_(raw_json, terminals, append_eof)
+            converted_json = JsonConverter._convert_json_(raw_json, terminals, append_eof, last_is_zero=last_is_zero)
 
             converted_json_string = json.dumps(converted_json)
             f_write.write(converted_json_string)
