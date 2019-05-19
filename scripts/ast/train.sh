@@ -12,7 +12,6 @@ PYTHONPATH=. python3 zerogercrnn/experiments/ast_level/main.py \
     --train_file "data/ast/file_train.json" \
     --data_limit 100000 \
     --model_save_dir saved/$2 \
-    --saved_model "saved/04Jun_nt2n_base_attention_plus_layered_new_embedding_size/model_epoch_3" \
     --seq_len 50 \
     --batch_size 128 \
     --learning_rate 0.0001 \
